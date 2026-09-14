@@ -12,6 +12,9 @@ import {
   ClipboardList,
   CalendarClock,
   UserPlus,
+  Stethoscope,
+  FlaskConical,
+  FileText,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -29,11 +32,18 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
     { href: "/receptionist/patients", label: "Patient Registration", icon: UserPlus },
     { href: "/receptionist/queue", label: "OPD Queue", icon: CalendarClock },
   ],
+  doctor: [
+    { href: "/doctor", label: "My Dashboard", icon: LayoutDashboard },
+    { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList },
+    { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
+    { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
+  ],
 };
 
 const roleLabelMap: Record<string, string> = {
   superadmin: "Super Admin",
   receptionist: "Receptionist",
+  doctor: "Doctor",
 };
 
 export function Sidebar() {
