@@ -15,6 +15,9 @@ import {
   Stethoscope,
   FlaskConical,
   FileText,
+  Pill,
+  PackageSearch,
+  Receipt,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -38,12 +41,19 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
     { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
     { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
   ],
+  pharmacist: [
+    { href: "/pharmacist", label: "Overview", icon: LayoutDashboard },
+    { href: "/pharmacist/prescriptions", label: "Prescriptions", icon: Pill },
+    { href: "/pharmacist/inventory", label: "Inventory", icon: PackageSearch },
+    { href: "/pharmacist/billing", label: "Billing", icon: Receipt },
+  ],
 };
 
 const roleLabelMap: Record<string, string> = {
   superadmin: "Super Admin",
   receptionist: "Receptionist",
   doctor: "Doctor",
+  pharmacist: "Pharmacist",
 };
 
 export function Sidebar() {
