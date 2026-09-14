@@ -79,7 +79,7 @@ export default function LabResultsPage({
     setTimeout(() => {
       setSaving(false);
       setPublished(true);
-      toast.success(`Report for ${request.patientName} published. Sent to Dr. ${request.doctor.replace("Dr. ", "")}'s patient record.`);
+      toast.success(`Report for ${request.patientName} published. Lab charge added to Central Invoice.`);
     }, 1000);
   };
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Plus, Trash2, FlaskConical, FilePen, History } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, Trash2, FlaskConical, FilePen, History, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 interface MedicalHistory {
@@ -61,6 +61,7 @@ export default function ConsultationPage({
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
+  const [visitCompleted, setVisitCompleted] = useState(false);
 
   // Prescription state
   const [diagnosis, setDiagnosis] = useState("");
@@ -117,6 +118,14 @@ export default function ConsultationPage({
       setSelectedTests([]);
       setLabNotes("");
     }, 800);
+  };
+
+  const handleCompleteConsultation = () => {
+    setVisitCompleted(true);
+    toast.success("Consultation completed. Visit updated.");
+    setTimeout(() => {
+      window.location.href = "/doctor/queue";
+    }, 1000);
   };
 
   if (loading || !patient) {
@@ -412,6 +421,18 @@ export default function ConsultationPage({
               </Card>
             </TabsContent>
           </Tabs>
+
+          <div className="mt-8 pt-6 border-t flex justify-end">
+            <Button 
+              size="lg" 
+              onClick={handleCompleteConsultation}
+              disabled={visitCompleted}
+              className="bg-green-600 hover:bg-green-700 text-white min-w-[200px]"
+            >
+              <CheckCircle2 className="w-5 h-5 mr-2" />
+              {visitCompleted ? "Completed" : "Complete Consultation"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

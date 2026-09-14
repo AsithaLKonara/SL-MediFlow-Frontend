@@ -22,6 +22,7 @@ interface PaymentRecord {
   patientName: string;
   type: string;
   description: string;
+  visitId: string;
   items: PaymentItem[];
   amount: number;
   status: string;
@@ -107,7 +108,7 @@ export default function ProcessPaymentPage({
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-xs text-muted-foreground font-mono mb-1">{record.id}</p>
-                <CardTitle className="text-xl">{record.description}</CardTitle>
+                <CardTitle className="text-xl">Central Invoice: {record.visitId}</CardTitle>
                 <CardDescription className="mt-1">Generated: {new Date(record.createdAt).toLocaleString()}</CardDescription>
               </div>
               <Badge variant="secondary" className="bg-primary/10 text-primary">{record.type}</Badge>
@@ -117,7 +118,7 @@ export default function ProcessPaymentPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground uppercase tracking-wide border-b pb-2">
-                  <th className="pb-3">Item Description</th>
+                  <th className="pb-3">Department / Charge</th>
                   <th className="pb-3 text-right">Qty</th>
                   <th className="pb-3 text-right">Unit Price</th>
                   <th className="pb-3 text-right">Subtotal</th>
@@ -128,8 +129,8 @@ export default function ProcessPaymentPage({
                   <tr key={i}>
                     <td className="py-3 font-medium">{item.name}</td>
                     <td className="py-3 text-right text-muted-foreground">{item.qty}</td>
-                    <td className="py-3 text-right text-muted-foreground">${item.unitPrice.toFixed(2)}</td>
-                    <td className="py-3 text-right font-semibold">${item.subtotal.toFixed(2)}</td>
+                    <td className="py-3 text-right text-muted-foreground">Rs. {item.unitPrice.toFixed(2)}</td>
+                    <td className="py-3 text-right font-semibold">Rs. {item.subtotal.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -137,7 +138,7 @@ export default function ProcessPaymentPage({
             
             <div className="mt-6 pt-4 border-t flex justify-between items-end">
               <p className="text-muted-foreground font-medium">Total Amount Due</p>
-              <p className="text-4xl font-bold text-primary">${record.amount.toFixed(2)}</p>
+              <p className="text-4xl font-bold text-primary">Rs. {record.amount.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -172,7 +173,7 @@ export default function ProcessPaymentPage({
                   {method === "CASH" && (
                     <div className="space-y-4 animate-in slide-in-from-top-2">
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Cash Tendered ($)</label>
+                        <label className="text-sm font-medium">Cash Tendered (Rs.)</label>
                         <Input 
                           type="number" step="0.01" min={record.amount} required 
                           className="text-lg font-mono" placeholder="0.00"
@@ -181,7 +182,7 @@ export default function ProcessPaymentPage({
                       </div>
                       <div className="flex justify-between items-center bg-muted/50 p-4 rounded-lg">
                         <p className="text-sm font-medium text-muted-foreground">Change Due:</p>
-                        <p className="text-2xl font-bold font-mono">${changeDue.toFixed(2)}</p>
+                        <p className="text-2xl font-bold font-mono">Rs. {changeDue.toFixed(2)}</p>
                       </div>
                     </div>
                   )}
@@ -190,13 +191,13 @@ export default function ProcessPaymentPage({
                     <div className="space-y-4 animate-in slide-in-from-top-2">
                       <div className="p-4 rounded-lg border bg-blue-50/50 text-blue-800 text-sm flex items-start gap-3">
                         <CreditCard className="w-5 h-5 shrink-0 mt-0.5" />
-                        <p>Ask patient to insert or tap card on the terminal. Amount <strong>${record.amount.toFixed(2)}</strong> will be sent automatically.</p>
+                        <p>Ask patient to insert or tap card on the terminal. Amount <strong>Rs. {record.amount.toFixed(2)}</strong> will be sent automatically.</p>
                       </div>
                     </div>
                   )}
 
                   <Button type="submit" disabled={processing} className="w-full bg-primary hover:bg-primary/90 text-white text-lg h-12">
-                    {processing ? "Processing..." : `Complete Payment of $${record.amount.toFixed(2)}`}
+                    {processing ? "Processing..." : `Complete Payment of Rs. ${record.amount.toFixed(2)}`}
                   </Button>
                 </form>
               </CardContent>
@@ -213,7 +214,7 @@ export default function ProcessPaymentPage({
               <CardContent className="pt-6 space-y-6 text-center">
                 <div className="space-y-2">
                   <p className="text-muted-foreground text-sm">Amount Paid</p>
-                  <p className="text-4xl font-bold text-[#3A3435]">${record.amount.toFixed(2)}</p>
+                  <p className="text-4xl font-bold text-[#3A3435]">Rs. {record.amount.toFixed(2)}</p>
                   <Badge variant="outline" className="mt-2 text-xs">{method} PAYMENT</Badge>
                 </div>
                 <div className="pt-4 border-t flex flex-col gap-3">

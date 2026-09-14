@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, UserCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -19,50 +20,49 @@ import {
 interface Patient {
   id: string;
   name: string;
-  dob: string;
+  age: number;
   contact: string;
-  gender: string;
   registeredAt: string;
-  status: string;
 }
 
-// Simulate next patient ID counter
 let nextPatientNum = 6;
-
 function generatePatientId() {
-  const num = String(nextPatientNum++).padStart(3, "0");
-  return `PAT-2026-${num}`;
+  return `AMZ-P-${String(nextPatientNum++).padStart(6, "0")}`;
 }
 
 export default function PatientsPage() {
+  const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
 
-  // Form state
-  const [form, setForm] = useState({
-    name: "",
-    dob: "",
-    contact: "",
-    gender: "MALE",
-    emergency: "",
-  });
+  // Registration Form state (Only 3 fields as per UX rules)
+  const [form, setForm] = useState({ name: "", age: "", contact: "" });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // We mock the API call, mapping old data to new schema
     fetch("/api/receptionist/patients")
       .then((r) => r.json())
       .then((data) => {
-        setPatients(data.data);
+        // Mock data mapping
+        const mapped = data.data.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          age: 45, // default mock
+          contact: p.contact,
+          registeredAt: p.registeredAt
+        }));
+        setPatients(mapped);
         setLoading(false);
       });
   }, []);
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.dob || !form.contact) {
-      toast.error("Please fill in all required fields.");
+    if (!form.name || !form.age || !form.contact) {
+      toast.error("Please fill in all 3 fields.");
       return;
     }
     setSubmitting(true);
@@ -70,174 +70,133 @@ export default function PatientsPage() {
       const newPatient: Patient = {
         id: generatePatientId(),
         name: form.name,
-        dob: form.dob,
+        age: parseInt(form.age, 10),
         contact: form.contact,
-        gender: form.gender,
         registeredAt: new Date().toISOString(),
-        status: "ACTIVE",
       };
       setPatients((prev) => [newPatient, ...prev]);
-      setForm({ name: "", dob: "", contact: "", gender: "MALE", emergency: "" });
+      setForm({ name: "", age: "", contact: "" });
       setShowForm(false);
       setSubmitting(false);
-      toast.success(`Patient ${newPatient.name} registered. ID: ${newPatient.id}`);
-    }, 800);
+      toast.success("Patient registered successfully.");
+      
+      // Navigate straight to Create Visit with this patient
+      router.push(`/receptionist/queue?patientId=${newPatient.id}`);
+    }, 600);
   };
 
   const filtered = patients.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase())
+      p.id.toLowerCase().includes(search.toLowerCase()) ||
+      p.contact.includes(search)
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Patient Registration</h2>
-          <p className="text-muted-foreground mt-1">Register new patients and manage the hospital directory.</p>
-        </div>
-        <Button
-          onClick={() => setShowForm((s) => !s)}
-          className="bg-primary hover:bg-primary/90 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Register New Patient
-        </Button>
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Search Patient</h2>
+        <p className="text-muted-foreground mt-1">Find an existing patient or register a new one to start a visit.</p>
       </div>
 
-      {/* Inline registration form */}
+      {/* Patient Search Card */}
+      <Card className="shadow-sm border-t-4 border-t-primary">
+        <CardContent className="pt-6">
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Name / Phone / Patient No."
+              className="pl-10 h-12 text-lg border-primary/30 focus-visible:ring-primary shadow-sm"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {search.length > 0 ? (
+            <div className="space-y-3">
+              {filtered.length > 0 ? (
+                filtered.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg hover:border-primary/50 transition-colors bg-slate-50">
+                    <div>
+                      <h3 className="font-bold text-lg text-[#3A3435]">{p.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {p.age} years • {p.contact} • <span className="font-mono">{p.id}</span>
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => router.push(`/receptionist/queue?patientId=${p.id}`)}
+                      className="bg-primary text-white"
+                    >
+                      Select Patient
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">Patient not found?</p>
+                  <Button onClick={() => setShowForm(true)} variant="outline" className="border-primary/50 text-primary">
+                    <Plus className="w-4 h-4 mr-2" /> Register New Patient
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <UserCheck className="w-12 h-12 mx-auto mb-4 text-slate-200" />
+              <p>Type to search the hospital database</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Inline Registration Form (New Patient) */}
       {showForm && (
-        <Card className="shadow-sm border-primary/20 bg-[#F2ECEB]/40">
+        <Card className="shadow-sm border-primary/20 bg-slate-50 border-2">
           <CardHeader className="pb-4">
-            <CardTitle>New Patient Registration</CardTitle>
-            <CardDescription>Fill in the patient details below. A unique Patient ID will be generated automatically.</CardDescription>
+            <CardTitle>Register Patient</CardTitle>
+            <CardDescription>Minimal required fields to create a hospital record.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+            <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Full Name *</label>
+                <label className="text-sm font-medium">Name</label>
                 <Input
-                  placeholder="e.g. Mrs. Amara Perera"
+                  autoFocus
+                  placeholder="Full name"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Date of Birth *</label>
+                <label className="text-sm font-medium">Age</label>
                 <Input
-                  type="date"
-                  value={form.dob}
-                  onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                  type="number"
+                  placeholder="Years"
+                  value={form.age}
+                  onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Contact Number *</label>
+                <label className="text-sm font-medium">Phone</label>
                 <Input
-                  placeholder="+94771234567"
+                  placeholder="Mobile number"
                   value={form.contact}
                   onChange={(e) => setForm((f) => ({ ...f, contact: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Gender</label>
-                <select
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  value={form.gender}
-                  onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
-                >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Emergency Contact</label>
-                <Input
-                  placeholder="+94779876543"
-                  value={form.emergency}
-                  onChange={(e) => setForm((f) => ({ ...f, emergency: e.target.value }))}
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <Button type="submit" disabled={submitting} className="bg-primary hover:bg-primary/90 text-white">
-                  {submitting ? "Registering..." : "Register & Generate ID"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+              <div className="md:col-span-3 flex items-center justify-end gap-3 mt-2">
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
                   Cancel
+                </Button>
+                <Button type="submit" disabled={submitting} className="bg-primary hover:bg-primary/90 text-white">
+                  {submitting ? "Saving..." : "Create Patient & Proceed"}
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
-
-      {/* Patient Directory */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle>Patient Directory</CardTitle>
-          <CardDescription>All registered patients with their unique hospital IDs.</CardDescription>
-          <div className="mt-4 relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or patient ID..."
-              className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="py-12 flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead>Patient ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Gender</TableHead>
-                    <TableHead>Date of Birth</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Registered</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.length > 0 ? (
-                    filtered.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-mono font-semibold text-primary">{p.id}</TableCell>
-                        <TableCell className="font-medium text-[#3A3435]">{p.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{p.gender}</TableCell>
-                        <TableCell className="text-muted-foreground">{new Date(p.dob).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-muted-foreground">{p.contact}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {new Date(p.registeredAt).toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="bg-green-100 text-green-700">
-                            {p.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                        No patients found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

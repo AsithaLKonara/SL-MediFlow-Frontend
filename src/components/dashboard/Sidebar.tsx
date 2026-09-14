@@ -39,8 +39,8 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
   ],
   receptionist: [
     { href: "/receptionist", label: "Overview", icon: LayoutDashboard },
-    { href: "/receptionist/patients", label: "Patient Registration", icon: UserPlus },
-    { href: "/receptionist/queue", label: "OPD Queue", icon: CalendarClock },
+    { href: "/receptionist/patients", label: "Patients", icon: UserPlus },
+    { href: "/receptionist/queue", label: "New Visit", icon: CalendarClock },
   ],
   doctor: [
     { href: "/doctor", label: "My Dashboard", icon: LayoutDashboard },
@@ -50,9 +50,8 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
   ],
   pharmacist: [
     { href: "/pharmacist", label: "Overview", icon: LayoutDashboard },
-    { href: "/pharmacist/prescriptions", label: "Prescriptions", icon: Pill },
+    { href: "/pharmacist/prescriptions", label: "Scan Prescription", icon: Pill },
     { href: "/pharmacist/inventory", label: "Inventory", icon: PackageSearch },
-    { href: "/pharmacist/billing", label: "Billing", icon: Receipt },
   ],
   labtech: [
     { href: "/labtech", label: "Overview", icon: LayoutDashboard },
