@@ -1,20 +1,19 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   return NextResponse.json({
-    totalRevenue: 1250000.00,
+    totalStaff: 142,
+    revenue: 1250000.00,
+    activeDoctors: 24,
+    activePatients: 350,
     revenueGrowth: 12.5,
-    activeStaff: 142,
-    patientVisitsToday: 350,
-    departmentsPerformance: [
-      { name: "OPD", score: 92 },
-      { name: "Pharmacy", score: 88 },
-      { name: "Laboratory", score: 95 },
-      { name: "Emergency", score: 85 },
-      { name: "Radiology", score: 90 },
+    systemAlerts: [
+      { id: 1, type: "CRITICAL", title: "Low Pharmacy Stock", message: "Paracetamol 500mg falls below 100 units.", time: "10 mins ago" },
+      { id: 2, type: "WARNING", title: "High Wait Times", message: "OPD wait times exceed 45 minutes for Dr. Silva.", time: "1 hour ago" },
+      { id: 3, type: "INFO", title: "System Update", message: "Database backup completed successfully.", time: "3 hours ago" },
+      { id: 4, type: "INFO", title: "New Staff Added", message: "Dr. Jenkins (Cardiology) profile created.", time: "5 hours ago" },
     ],
     revenueData: [
       { name: 'Jan', revenue: 400000 },

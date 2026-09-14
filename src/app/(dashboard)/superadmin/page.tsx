@@ -3,46 +3,34 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Users, Activity, Stethoscope, TrendingUp } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import {
-  Table,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableBody
-} from "@/components/ui/table";
+import { DollarSign, Users, Activity, Stethoscope, TrendingUp, Bell, AlertCircle, Info, AlertTriangle } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface Metrics {
-  totalRevenue: number;
-  revenueGrowth: number;
-  activeStaff: number;
-  patientVisitsToday: number;
-  departmentsPerformance: { name: string, score: number }[];
-  revenueData: { name: string, revenue: number }[];
+interface SystemAlert {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
 }
 
-interface Staff {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
+interface Metrics {
+  totalStaff: number;
+  revenue: number;
+  activeDoctors: number;
+  activePatients: number;
+  revenueGrowth: number;
+  systemAlerts: SystemAlert[];
+  revenueData: { name: string, revenue: number }[];
 }
 
 export default function SuperAdminDashboard() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/admin/metrics").then(res => res.json()),
-      fetch("/api/admin/staff").then(res => res.json())
-    ]).then(([metricsData, staffData]) => {
-      setMetrics(metricsData);
-      setStaff(staffData.data);
+    fetch("/api/admin/metrics").then(res => res.json()).then(d => {
+      setMetrics(d);
       setLoading(false);
     });
   }, []);
@@ -55,22 +43,43 @@ export default function SuperAdminDashboard() {
     );
   }
 
+  const getAlertIcon = (type: string) => {
+    switch (type) {
+      case "CRITICAL": return <AlertCircle className="w-5 h-5 text-red-600" />;
+      case "WARNING": return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
+      default: return <Info className="w-5 h-5 text-blue-600" />;
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Dashboard Overview</h2>
-        <p className="text-muted-foreground mt-2">Welcome back, Super Admin. Here is what's happening today.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Super Admin Dashboard</h2>
+        <p className="text-muted-foreground mt-2">Welcome back. Here is your system-wide overview.</p>
       </div>
 
-      {/* Metrics Row */}
+      {/* KPI Row: Total Staff, Revenue, Active Doctors, Active Patients */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Staff</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.totalStaff}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Registered across all roles
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className="border-t-4 border-t-primary shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${metrics.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-700">${metrics.revenue.toLocaleString()}</div>
             <p className="text-xs flex items-center mt-1 text-green-600 font-medium">
               <TrendingUp className="w-3 h-3 mr-1" />
               +{metrics.revenueGrowth}% from last month
@@ -80,52 +89,39 @@ export default function SuperAdminDashboard() {
 
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Staff</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.activeStaff}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Across all departments
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Patient Visits Today</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.patientVisitsToday}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              +12% higher than average
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Doctors</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Doctors</CardTitle>
             <Stethoscope className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">{metrics.activeDoctors}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Currently on shift
+              Currently on shift today
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Patients</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.activePatients}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              In queues or consultations
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Row */}
+      {/* Main Area: Revenue Chart (Left), System Alerts/Recent Activity (Right) */}
       <div className="grid gap-6 md:grid-cols-7">
-        <Card className="col-span-4 shadow-sm">
+        <Card className="col-span-4 shadow-sm border-t-2 border-t-slate-200">
           <CardHeader>
             <CardTitle>Revenue Overview</CardTitle>
             <CardDescription>Monthly revenue breakdown for the current year</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={metrics.revenueData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -149,67 +145,34 @@ export default function SuperAdminDashboard() {
 
         <Card className="col-span-3 shadow-sm">
           <CardHeader>
-            <CardTitle>Department Performance</CardTitle>
-            <CardDescription>Efficiency score by department</CardDescription>
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" />
+              <CardTitle>System Alerts & Activity</CardTitle>
+            </div>
+            <CardDescription>Recent system events and notifications</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.departmentsPerformance} layout="vertical" margin={{top: 0, right: 0, left: 20, bottom: 0}}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#3A3435', fontSize: 12, fontWeight: 500}} />
-                <Tooltip 
-                  cursor={{fill: '#F3F4F6'}}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value: any) => [`${value}/100`, 'Score']}
-                />
-                <Bar dataKey="score" fill="#B45A6A" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent>
+            <div className="space-y-4">
+              {metrics.systemAlerts.map((alert) => (
+                <div key={alert.id} className="flex gap-4 items-start p-3 rounded-lg border bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <div className="mt-0.5">
+                    {getAlertIcon(alert.type)}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold leading-none">{alert.title}</p>
+                      <span className="text-xs text-muted-foreground">{alert.time}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {alert.message}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Table Row */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Recent Staff Activity</CardTitle>
-          <CardDescription>Overview of registered hospital staff</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {staff.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium text-[#3A3435]">{member.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{member.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-slate-50 text-slate-700 font-semibold border-slate-200">
-                      {member.role.replace('_', ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="secondary" 
-                      className={member.status === 'ACTIVE' ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}
-                    >
-                      {member.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }
