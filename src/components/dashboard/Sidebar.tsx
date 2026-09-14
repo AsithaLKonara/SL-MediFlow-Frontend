@@ -23,6 +23,7 @@ import {
   FilePlus2,
   Banknote,
   CreditCard,
+  Shield,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -30,9 +31,10 @@ import { cn } from "@/lib/utils";
 const roleNavConfig: Record<string, { label: string; href: string; icon: React.ElementType }[]> = {
   superadmin: [
     { href: "/superadmin", label: "Overview", icon: LayoutDashboard },
-    { href: "/superadmin/staff", label: "Staff Management", icon: Users },
+    { href: "/superadmin/staff", label: "Staff", icon: Users },
     { href: "/superadmin/finance", label: "Finance", icon: DollarSign },
     { href: "/superadmin/departments", label: "Departments", icon: Building2 },
+    { href: "/superadmin/rbac", label: "Access Control", icon: Shield },
     { href: "/superadmin/settings", label: "Settings", icon: Settings },
   ],
   receptionist: [
