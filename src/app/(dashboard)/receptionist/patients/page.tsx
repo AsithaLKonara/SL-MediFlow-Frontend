@@ -94,9 +94,14 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Search Patient</h2>
-        <p className="text-muted-foreground mt-1">Find an existing patient or register a new one to start a visit.</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Search Patient</h2>
+          <p className="text-muted-foreground mt-1">Find an existing patient or register a new one to start a visit.</p>
+        </div>
+        <Button onClick={() => setShowForm(true)} className="bg-primary text-white hidden sm:flex">
+          <Plus className="w-4 h-4 mr-2" /> New Patient
+        </Button>
       </div>
 
       {/* Patient Search Card */}
@@ -144,7 +149,10 @@ export default function PatientsPage() {
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <UserCheck className="w-12 h-12 mx-auto mb-4 text-slate-200" />
-              <p>Type to search the hospital database</p>
+              <p className="mb-6">Type to search the hospital database</p>
+              <Button onClick={() => setShowForm(true)} variant="outline" className="border-primary/50 text-primary">
+                <Plus className="w-4 h-4 mr-2" /> Register New Patient
+              </Button>
             </div>
           )}
         </CardContent>
