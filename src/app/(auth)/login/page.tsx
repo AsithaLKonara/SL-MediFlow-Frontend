@@ -32,8 +32,8 @@ export default function LoginPage() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin@amaz.com",
+      password: "ChangeMe123!",
     },
   });
 

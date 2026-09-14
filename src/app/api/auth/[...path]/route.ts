@@ -14,7 +14,7 @@ export async function POST(
 
     switch (action) {
       case "login":
-        if (body.email === "test@example.com" && body.password === "password123") {
+        if (body.email === "admin@amaz.com" && body.password === "ChangeMe123!") {
           return NextResponse.json({
             token: "mock-jwt-token-12345",
             user: { id: "1", name: "Test User", email: body.email },
