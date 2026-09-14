@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function AuthLayout({
   children,
 }: {
@@ -12,9 +14,15 @@ export default function AuthLayout({
         <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-primary-foreground/10 rounded-full blur-3xl"></div>
         
         <div className="max-w-md space-y-6 relative z-10">
-          {/* Logo Placeholder */}
-          <div className="w-16 h-16 border-4 border-primary-foreground rounded-full flex items-center justify-center mb-10">
-             <span className="text-3xl font-extrabold">A</span>
+          {/* Logo */}
+          <div className="mb-8">
+            <Image 
+              src="/logo.png" 
+              alt="AMAZ Hospital Logo" 
+              width={350} 
+              height={100} 
+              className="object-contain drop-shadow-md h-20 w-auto object-left" 
+            />
           </div>
           <h1 className="text-5xl font-extrabold tracking-tight">Welcome <span className="italic font-serif text-accent">Back</span></h1>
           <p className="text-primary-foreground/80 leading-relaxed text-lg pt-4">
