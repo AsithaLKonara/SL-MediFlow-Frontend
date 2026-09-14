@@ -18,6 +18,9 @@ import {
   Pill,
   PackageSearch,
   Receipt,
+  Microscope,
+  FileSearch2,
+  FilePlus2,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -47,6 +50,11 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
     { href: "/pharmacist/inventory", label: "Inventory", icon: PackageSearch },
     { href: "/pharmacist/billing", label: "Billing", icon: Receipt },
   ],
+  labtech: [
+    { href: "/labtech", label: "Overview", icon: LayoutDashboard },
+    { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
+    { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
+  ],
 };
 
 const roleLabelMap: Record<string, string> = {
@@ -54,6 +62,7 @@ const roleLabelMap: Record<string, string> = {
   receptionist: "Receptionist",
   doctor: "Doctor",
   pharmacist: "Pharmacist",
+  labtech: "Lab Technician",
 };
 
 export function Sidebar() {
