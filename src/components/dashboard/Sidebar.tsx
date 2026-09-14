@@ -36,6 +36,14 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
     { href: "/superadmin/departments", label: "Departments", icon: Building2 },
     { href: "/superadmin/rbac", label: "Access Control", icon: Shield },
     { href: "/superadmin/settings", label: "Settings", icon: Settings },
+    
+    // Cross-role access for Super Admin
+    { href: "/receptionist/patients", label: "Reception: Patients", icon: UserPlus },
+    { href: "/receptionist/queue", label: "Reception: New Visit", icon: CalendarClock },
+    { href: "/doctor/queue", label: "Doctor: Patient Queue", icon: ClipboardList },
+    { href: "/pharmacist/prescriptions", label: "Pharmacy: Scan RX", icon: Pill },
+    { href: "/labtech/requests", label: "Lab: Test Requests", icon: Microscope },
+    { href: "/cashier/payments", label: "Cashier: Payments", icon: Banknote },
   ],
   receptionist: [
     { href: "/receptionist", label: "Overview", icon: LayoutDashboard },
