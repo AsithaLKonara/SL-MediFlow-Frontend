@@ -152,7 +152,7 @@ export default function PharmacistPOSPage() {
           <p className="text-muted-foreground mt-1">Transaction Complete</p>
         </div>
         <Card className="shadow-sm max-w-2xl border-2 border-primary/20">
-          <CardHeader className="bg-slate-50 border-b">
+          <CardHeader className="bg-muted/30 border-b">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-mono">{generatedBill.id}</p>
@@ -217,11 +217,11 @@ export default function PharmacistPOSPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Patient ID *</label>
-                <Input placeholder="Scan or enter ID" value={patientId} onChange={e => setPatientId(e.target.value)} className="bg-slate-50" />
+                <Input placeholder="Scan or enter ID" value={patientId} onChange={e => setPatientId(e.target.value)} className="bg-muted/30" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Patient Name *</label>
-                <Input placeholder="Full name" value={patientName} onChange={e => setPatientName(e.target.value)} className="bg-slate-50" />
+                <Input placeholder="Full name" value={patientName} onChange={e => setPatientName(e.target.value)} className="bg-muted/30" />
               </div>
             </div>
           </CardHeader>
@@ -236,7 +236,7 @@ export default function PharmacistPOSPage() {
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-white shadow-sm group">
+                    <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card text-card-foreground shadow-sm group">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-sm">{item.name}</p>
@@ -247,13 +247,13 @@ export default function PharmacistPOSPage() {
                       
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1 border rounded-md">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-l-md text-muted-foreground hover:bg-slate-100" onClick={() => updateQty(item.id, -1)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-l-md text-muted-foreground hover:bg-muted/50" onClick={() => updateQty(item.id, -1)}>
                             <Minus className="w-3 h-3" />
                           </Button>
                           <div className="w-10 text-center text-sm font-medium">
                             {item.qty}
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-r-md text-muted-foreground hover:bg-slate-100" onClick={() => updateQty(item.id, 1)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-r-md text-muted-foreground hover:bg-muted/50" onClick={() => updateQty(item.id, 1)}>
                             <Plus className="w-3 h-3" />
                           </Button>
                         </div>
@@ -271,7 +271,7 @@ export default function PharmacistPOSPage() {
             )}
             
             {/* TOTALS & ACTIONS */}
-            <div className="p-4 border-t bg-slate-50">
+            <div className="p-4 border-t bg-muted/30">
               <div className="flex justify-between items-end mb-4">
                 <div className="text-muted-foreground">
                   <p className="text-sm">Items: {cart.reduce((a,b)=>a+b.qty,0)}</p>
@@ -304,7 +304,7 @@ export default function PharmacistPOSPage() {
 
         {/* RIGHT PANE: CATALOG & SCANNER */}
         <Card className="lg:col-span-5 flex flex-col shadow-sm h-full overflow-hidden">
-          <CardHeader className="bg-slate-50 border-b pb-4">
+          <CardHeader className="bg-muted/30 border-b pb-4">
             <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
@@ -316,14 +316,14 @@ export default function PharmacistPOSPage() {
               />
             </form>
           </CardHeader>
-          <ScrollArea className="flex-1 p-4 bg-slate-50/50">
+          <ScrollArea className="flex-1 p-4 bg-muted/30/50">
             <div className="grid grid-cols-2 gap-3">
               {filteredCatalog.length > 0 ? (
                 filteredCatalog.map(item => (
                   <Button
                     key={item.id}
                     variant="outline"
-                    className="h-auto py-3 px-4 flex flex-col items-start text-left justify-start gap-1 border-slate-200 hover:border-primary hover:bg-primary/5 transition-all bg-white shadow-sm"
+                    className="h-auto py-3 px-4 flex flex-col items-start text-left justify-start gap-1 border-border hover:border-primary hover:bg-primary/5 transition-all bg-card text-card-foreground shadow-sm"
                     onClick={() => addToCart(item)}
                   >
                     <div className="w-full flex justify-between items-start">

@@ -154,7 +154,7 @@ export default function SuperAdminDashboard() {
           <CardContent>
             <div className="space-y-4">
               {metrics.systemAlerts.map((alert) => (
-                <div key={alert.id} className="flex gap-4 items-start p-3 rounded-lg border bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                <div key={alert.id} className="flex gap-4 items-start p-3 rounded-lg border bg-muted/30/50 hover:bg-muted/30 transition-colors">
                   <div className="mt-0.5">
                     {getAlertIcon(alert.type)}
                   </div>

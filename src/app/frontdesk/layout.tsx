@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Home } from "lucide-react";
 import { FullScreenButton } from "./components/FullScreenButton";
+import { FrontdeskToggles } from "./components/FrontdeskToggles";
 
 export const metadata: Metadata = {
   title: "Front Desk | AMAZ Hospital",
@@ -35,6 +36,7 @@ export default function FrontDeskLayout({
             {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
           </div>
           <div className="h-4 w-px bg-border mx-1" />
+          <FrontdeskToggles />
           <FullScreenButton />
         </div>
       </header>

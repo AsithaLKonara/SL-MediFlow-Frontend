@@ -96,7 +96,7 @@ export function Sidebar() {
   const width = isCollapsed ? "w-[80px]" : "w-64";
 
   return (
-    <aside className={cn("h-screen bg-white border-r flex flex-col shadow-sm fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out", width)}>
+    <aside className={cn("h-screen bg-card text-card-foreground border-r flex flex-col shadow-sm fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out", width)}>
       <div className={cn("h-16 flex items-center border-b shrink-0", isCollapsed ? "justify-center px-0" : "px-6")}>
         {isCollapsed ? (
           <div className="font-bold text-xl text-primary">A+</div>

@@ -130,7 +130,7 @@ export default function ReceptionistOverview() {
               </TableHeader>
               <TableBody>
                 {metrics.nextInQueue.map((item) => {
-                  const sc = statusConfig[item.status] ?? { label: item.status, className: "bg-slate-100 text-slate-700" };
+                  const sc = statusConfig[item.status] ?? { label: item.status, className: "bg-muted/50 text-foreground/80" };
                   return (
                     <TableRow key={item.queueNo}>
                       <TableCell className="font-mono font-semibold text-primary">{item.queueNo}</TableCell>

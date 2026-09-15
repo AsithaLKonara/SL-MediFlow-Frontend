@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { VirtualKeyboardProvider } from "@/components/VirtualKeyboardProvider";
+import { SidebarProvider } from "@/components/dashboard/SidebarProvider";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -30,10 +31,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem
           disableTransitionOnChange
         >
-          <VirtualKeyboardProvider>
-            {children}
-            <Toaster />
-          </VirtualKeyboardProvider>
+          <SidebarProvider>
+            <VirtualKeyboardProvider>
+              {children}
+              <Toaster />
+            </VirtualKeyboardProvider>
+          </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>

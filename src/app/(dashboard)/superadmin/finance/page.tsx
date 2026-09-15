@@ -180,7 +180,7 @@ export default function FinancePage() {
                   <TableCell>
                     <Badge 
                       variant="secondary" 
-                      className={trx.status === 'COMPLETED' ? "bg-slate-100 text-slate-700" : "bg-yellow-100 text-yellow-700"}
+                      className={trx.status === 'COMPLETED' ? "bg-muted/50 text-foreground/80" : "bg-yellow-100 text-yellow-700"}
                     >
                       {trx.status}
                     </Badge>

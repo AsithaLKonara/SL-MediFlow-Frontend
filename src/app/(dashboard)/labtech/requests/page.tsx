@@ -31,7 +31,7 @@ interface LabRequest {
 const statusConfig: Record<string, { label: string; className: string }> = {
   PENDING:     { label: "Pending",     className: "bg-yellow-100 text-yellow-700" },
   IN_PROGRESS: { label: "In Progress", className: "bg-blue-100 text-blue-700" },
-  COMPLETED:   { label: "Completed",   className: "bg-slate-100 text-slate-700" },
+  COMPLETED:   { label: "Completed",   className: "bg-muted/50 text-foreground/80" },
   PUBLISHED:   { label: "Published",   className: "bg-green-100 text-green-700" },
 };
 
@@ -53,7 +53,7 @@ export default function LabTechRequestsPage() {
   );
 
   const RequestCard = ({ req }: { req: LabRequest }) => {
-    const sc = statusConfig[req.status] ?? { label: req.status, className: "bg-slate-100 text-slate-700" };
+    const sc = statusConfig[req.status] ?? { label: req.status, className: "bg-muted/50 text-foreground/80" };
     return (
       <div className={`rounded-lg border shadow-sm p-4 space-y-3 hover:shadow-md transition-shadow ${req.priority === "URGENT" ? "border-red-200 bg-red-50/20" : ""}`}>
         <div className="flex items-start justify-between gap-3 flex-wrap">

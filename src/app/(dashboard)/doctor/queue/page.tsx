@@ -78,7 +78,7 @@ export default function DoctorQueuePage() {
                 </TableHeader>
                 <TableBody>
                   {queue.map((entry) => {
-                    const sc = statusConfig[entry.status] ?? { label: entry.status, className: "bg-slate-100 text-slate-700" };
+                    const sc = statusConfig[entry.status] ?? { label: entry.status, className: "bg-muted/50 text-foreground/80" };
                     return (
                       <TableRow key={entry.id} className={entry.status === "COMPLETED" ? "opacity-50" : ""}>
                         <TableCell className="font-mono font-bold text-primary">{entry.queueNo}</TableCell>
@@ -96,7 +96,7 @@ export default function DoctorQueuePage() {
                               <AlertTriangle className="w-3 h-3" /> Urgent
                             </Badge>
                           ) : (
-                            <Badge variant="secondary" className="bg-slate-100 text-slate-600">Normal</Badge>
+                            <Badge variant="secondary" className="bg-muted/50 text-muted-foreground">Normal</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">

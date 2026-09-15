@@ -110,7 +110,7 @@ export default function StaffManagementPage() {
                         <TableCell className="font-medium text-[#3A3435]">{member.name}</TableCell>
                         <TableCell className="text-muted-foreground">{member.email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-slate-50 text-slate-700 font-semibold border-slate-200">
+                          <Badge variant="outline" className="bg-muted/30 text-foreground/80 font-semibold border-border">
                             {member.role.replace('_', ' ')}
                           </Badge>
                         </TableCell>

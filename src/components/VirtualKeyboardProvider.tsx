@@ -17,6 +17,11 @@ export function VirtualKeyboardProvider({ children }: { children: React.ReactNod
     const handleFocus = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
       
+      // Only activate keyboard if Touch Mode is enabled
+      if (!document.body.classList.contains("touch-mode")) {
+        return;
+      }
+      
       // Ensure we only trigger on actual text/number inputs
       if (
         target instanceof HTMLInputElement &&

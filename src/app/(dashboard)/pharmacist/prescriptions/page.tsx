@@ -108,7 +108,7 @@ export default function PharmacyDashboardPage() {
         </div>
 
         <Card className="shadow-sm border-t-4 border-t-primary">
-          <CardHeader className="bg-slate-50 border-b pb-4">
+          <CardHeader className="bg-muted/30 border-b pb-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Patient</p>
@@ -220,7 +220,7 @@ export default function PharmacyDashboardPage() {
         ) : (
           <div className="space-y-3">
             {prescriptions.filter(p => p.status === "PENDING").map(rx => (
-              <div key={rx.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white shadow-sm hover:border-primary/50 transition-all">
+              <div key={rx.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-card text-card-foreground shadow-sm hover:border-primary/50 transition-all">
                 <div className="mb-4 sm:mb-0">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="font-mono font-bold text-primary">{rx.id}</span>

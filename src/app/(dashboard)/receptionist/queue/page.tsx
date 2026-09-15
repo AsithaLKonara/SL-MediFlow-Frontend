@@ -73,7 +73,7 @@ function CreateVisitFlow() {
           </div>
 
           <Card className="shadow-sm border-t-4 border-t-primary">
-            <CardHeader className="bg-slate-50 border-b pb-4">
+            <CardHeader className="bg-muted/30 border-b pb-4">
               <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Selected Patient</CardDescription>
               <div className="flex items-center gap-3 mt-2">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -98,7 +98,7 @@ function CreateVisitFlow() {
                     className={`p-4 border rounded-lg cursor-pointer transition-all ${
                       selectedDoctor?.id === doc.id 
                         ? "border-primary bg-primary/5 ring-1 ring-primary" 
-                        : "hover:border-primary/50 bg-white"
+                        : "hover:border-primary/50 bg-card text-card-foreground"
                     }`}
                   >
                     <div className="flex justify-between items-start">
@@ -148,7 +148,7 @@ function CreateVisitFlow() {
                 <p className="font-semibold text-lg">{selectedDoctor?.name}</p>
               </div>
 
-              <div className="border-t border-b py-6 mb-8 bg-slate-50 rounded-lg">
+              <div className="border-t border-b py-6 mb-8 bg-muted/30 rounded-lg">
                 <p className="text-sm font-semibold tracking-widest text-muted-foreground uppercase mb-2">Queue Token</p>
                 <p className="text-6xl font-black text-[#6B0F26] tracking-tight">{token}</p>
               </div>

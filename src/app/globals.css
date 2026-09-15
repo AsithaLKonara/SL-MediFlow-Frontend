@@ -59,7 +59,7 @@
   --primary-foreground: #F2ECEB;
   --secondary: #B45A6A;
   --secondary-foreground: #FFFFFF;
-  --muted: #e6dfdd; /* slightly lighter than F2ECEB for some contrast or use C7C1BC */
+  --muted: #e6dfdd;
   --muted-foreground: #3A3435;
   --accent: #B45A6A;
   --accent-foreground: #F2ECEB;
@@ -113,29 +113,6 @@
 }
 
 @layer base {
-  .touch-mode {
-    --radius: 0.75rem;
-  }
-  
-  .touch-mode button,
-  .touch-mode input,
-  .touch-mode select {
-    min-height: 48px !important;
-    font-size: 1.05rem !important;
-  }
-  
-  .touch-mode .text-sm {
-    font-size: 1rem !important;
-  }
-  
-  .touch-mode .p-4 {
-    padding: 1.25rem !important;
-  }
-  
-  .touch-mode .p-6 {
-    padding: 1.5rem !important;
-  }
-}
   * {
     @apply border-border outline-ring/50;
   }
@@ -145,4 +122,28 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Touch mode overrides outside of layers so they ALWAYS win */
+.touch-mode {
+  --radius: 0.75rem;
+}
+
+.touch-mode button,
+.touch-mode input,
+.touch-mode select {
+  min-height: 48px !important;
+  font-size: 1.05rem !important;
+}
+
+.touch-mode .text-sm {
+  font-size: 1rem !important;
+}
+
+.touch-mode .p-4 {
+  padding: 1.25rem !important;
+}
+
+.touch-mode .p-6 {
+  padding: 1.5rem !important;
 }

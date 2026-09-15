@@ -134,7 +134,7 @@ export default function RBACMatrixPage() {
       <Card className="shadow-sm border-t-4 border-t-primary">
         <CardHeader className="bg-muted/30 border-b pb-4">
           <div className="flex items-center gap-4">
-            <div className="p-2 bg-white rounded-lg border shadow-sm">
+            <div className="p-2 bg-card text-card-foreground rounded-lg border shadow-sm">
               <Users className="w-5 h-5 text-muted-foreground" />
             </div>
             <div className="flex-1">
@@ -143,7 +143,7 @@ export default function RBACMatrixPage() {
             </div>
             <div className="w-64">
               <Select value={selectedRole} onValueChange={(val) => val && setSelectedRole(val)}>
-                <SelectTrigger className="bg-white">
+                <SelectTrigger className="bg-card text-card-foreground">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -177,7 +177,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.create || false} 
                       onCheckedChange={() => handleToggle(feature, 'create')}
-                      className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-slate-300"
+                      className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-border"
                     />
                   </TableCell>
                   
@@ -185,7 +185,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.read || false} 
                       onCheckedChange={() => handleToggle(feature, 'read')}
-                      className="data-[state=checked]:bg-blue-600 border-slate-300"
+                      className="data-[state=checked]:bg-blue-600 border-border"
                     />
                   </TableCell>
                   
@@ -193,7 +193,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.update || false} 
                       onCheckedChange={() => handleToggle(feature, 'update')}
-                      className="data-[state=checked]:bg-amber-600 border-slate-300"
+                      className="data-[state=checked]:bg-amber-600 border-border"
                     />
                   </TableCell>
                   
@@ -201,7 +201,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.delete || false} 
                       onCheckedChange={() => handleToggle(feature, 'delete')}
-                      className="data-[state=checked]:bg-red-600 border-slate-300"
+                      className="data-[state=checked]:bg-red-600 border-border"
                     />
                   </TableCell>
                 </TableRow>

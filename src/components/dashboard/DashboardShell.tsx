@@ -24,9 +24,5 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 }
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
-  return (
-    <SidebarProvider>
-      <ShellInner>{children}</ShellInner>
-    </SidebarProvider>
-  );
+  return <ShellInner>{children}</ShellInner>;
 }

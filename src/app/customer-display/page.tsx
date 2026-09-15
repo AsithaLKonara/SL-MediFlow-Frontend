@@ -101,7 +101,7 @@ export default function CustomerDisplayPage() {
           <div className="absolute inset-4 md:inset-8 bg-card/95 backdrop-blur-md border border-border rounded-2xl flex flex-col items-center justify-center p-8 text-center animate-in zoom-in-95 z-50 shadow-2xl">
             {state.checkout.method === "QR" ? (
               <>
-                <div className="w-64 h-64 bg-white p-4 rounded-xl shadow-lg flex items-center justify-center mb-6">
+                <div className="w-64 h-64 bg-card text-card-foreground p-4 rounded-xl shadow-lg flex items-center justify-center mb-6">
                   {/* Placeholder for actual QR code */}
                   <div className="w-full h-full border-4 border-dashed border-neutral-300 flex items-center justify-center text-neutral-400 font-medium text-lg text-center p-4">
                     LANKAQR<br/>Code

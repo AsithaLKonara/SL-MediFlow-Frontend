@@ -122,7 +122,7 @@ export default function PatientsPage() {
             <div className="space-y-3">
               {filtered.length > 0 ? (
                 filtered.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg hover:border-primary/50 transition-colors bg-slate-50">
+                  <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg hover:border-primary/50 transition-colors bg-muted/30">
                     <div>
                       <h3 className="font-bold text-lg text-[#3A3435]">{p.name}</h3>
                       <p className="text-sm text-muted-foreground">
@@ -160,7 +160,7 @@ export default function PatientsPage() {
 
       {/* Inline Registration Form (New Patient) */}
       {showForm && (
-        <Card className="shadow-sm border-primary/20 bg-slate-50 border-2">
+        <Card className="shadow-sm border-primary/20 bg-muted/30 border-2">
           <CardHeader className="pb-4">
             <CardTitle>Register Patient</CardTitle>
             <CardDescription>Minimal required fields to create a hospital record.</CardDescription>

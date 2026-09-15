@@ -89,7 +89,7 @@ export default function DepartmentsPage() {
                   </span>
                   <span className="font-medium">{dept.efficiency}%</span>
                 </div>
-                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-muted/50 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-[#B45A6A] rounded-full"
                     style={{ width: `${dept.efficiency}%` }}
