@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/dashboard/SidebarProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const formatSafeDate = (dateStr: string) => {
   if (!dateStr) return "N/A";
@@ -86,9 +87,14 @@ export default function ConsultationPage({
   // Prescription state
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
-  const [drugs, setDrugs] = useState([{ drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "" }]);
+  
+  const initialDrugState = { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "" };
+  const [addedDrugs, setAddedDrugs] = useState<typeof initialDrugState[]>([]);
+  const [currentDrug, setCurrentDrug] = useState(initialDrugState);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  
   const [savingDraft, setSavingDraft] = useState(false);
-  const [activeDrugSearch, setActiveDrugSearch] = useState<number | null>(null);
+  const [activeDrugSearch, setActiveDrugSearch] = useState(false);
 
   // Lab request state
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
@@ -100,24 +106,42 @@ export default function ConsultationPage({
       .then((d) => { setPatient(d); setLoading(false); });
   }, [patientId]);
 
-  const addDrugRow = () =>
-    setDrugs((prev) => [...prev, { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "" }]);
-
-  const removeDrugRow = (idx: number) =>
-    setDrugs((prev) => prev.filter((_, i) => i !== idx));
-
-  const updateDrug = (idx: number, field: string, value: string) => {
-    setDrugs((prev) => prev.map((d, i) => (i === idx ? { ...d, [field]: value } : d)));
+  const handleAddOrUpdateDrug = () => {
+    if (!currentDrug.drug.trim()) return toast.error("Medication name is required.");
+    
+    if (editingIndex !== null) {
+      setAddedDrugs(prev => prev.map((d, i) => i === editingIndex ? currentDrug : d));
+      setEditingIndex(null);
+    } else {
+      setAddedDrugs(prev => [...prev, currentDrug]);
+    }
+    setCurrentDrug(initialDrugState);
   };
 
-  const selectDrug = (idx: number, medicine: typeof MOCK_MEDICINES[0]) => {
-    setDrugs((prev) => prev.map((d, i) => {
-      if (i === idx) {
-        return { ...d, drug: medicine.name, dosage: medicine.dosage };
-      }
-      return d;
-    }));
-    setActiveDrugSearch(null);
+  const handleEditDrug = (idx: number) => {
+    setCurrentDrug(addedDrugs[idx]);
+    setEditingIndex(idx);
+    document.getElementById('medication-builder')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleRemoveDrug = (e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+    setAddedDrugs(prev => prev.filter((_, i) => i !== idx));
+    if (editingIndex === idx) {
+      setCurrentDrug(initialDrugState);
+      setEditingIndex(null);
+    } else if (editingIndex !== null && editingIndex > idx) {
+      setEditingIndex(editingIndex - 1);
+    }
+  };
+
+  const updateCurrentDrug = (field: string, value: string) => {
+    setCurrentDrug(prev => ({ ...prev, [field]: value }));
+  };
+
+  const selectDrug = (medicine: typeof MOCK_MEDICINES[0]) => {
+    setCurrentDrug(prev => ({ ...prev, drug: medicine.name, dosage: medicine.dosage }));
+    setActiveDrugSearch(false);
   };
 
   const toggleTest = (test: string) =>
@@ -139,7 +163,7 @@ export default function ConsultationPage({
     setVisitCompleted(true);
     toast.success("Consultation completed and securely saved.");
     
-    if (drugs.some(d => d.drug.trim())) {
+    if (addedDrugs.length > 0) {
       toast.success("Prescription forwarded to Pharmacy.");
     }
     if (selectedTests.length > 0) {
@@ -299,150 +323,198 @@ export default function ConsultationPage({
           </div>
 
           {/* PRESCRIPTION BUILDER */}
-          <div className="bg-card text-card-foreground border border-border rounded-lg p-6 shadow-sm">
+          <div id="medication-builder" className="bg-card text-card-foreground border border-border rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold uppercase tracking-wider text-foreground/90 flex items-center gap-2">
                 <Beaker className="w-4 h-4 text-muted-foreground/70" /> Medications
               </h2>
-              <Button type="button" variant="outline" size="sm" onClick={addDrugRow} className="h-8">
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add Medication
-              </Button>
             </div>
 
             <div className="space-y-4">
-              {drugs.map((drug, idx) => (
-                <div key={idx} className="relative bg-muted/30 border border-border rounded-lg p-4 group">
-                  <div className="absolute -left-3 -top-3 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
-                    {idx + 1}
-                  </div>
-                  
-                  <div className="space-y-4 ml-1">
-                    <div className="flex gap-4">
-                      <div className="flex-1 relative">
-                        <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Medication Name</label>
-                        <Input
-                          placeholder="Search or enter drug name (e.g. Amlodipine)"
-                          value={drug.drug}
-                          onChange={(e) => {
-                            updateDrug(idx, "drug", e.target.value);
-                            setActiveDrugSearch(idx);
-                          }}
-                          onFocus={() => setActiveDrugSearch(idx)}
-                          onBlur={() => setTimeout(() => setActiveDrugSearch(null), 200)}
-                          className="font-medium bg-card text-card-foreground border-border"
-                        />
-                        {activeDrugSearch === idx && drug.drug.length > 0 && (
-                          <div className="absolute z-50 w-full mt-1 bg-card text-card-foreground border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                            {MOCK_MEDICINES.filter((m) => m.name.toLowerCase().includes(drug.drug.toLowerCase())).length > 0 ? (
-                              MOCK_MEDICINES.filter((m) => m.name.toLowerCase().includes(drug.drug.toLowerCase())).map((m, i) => (
-                                <button
-                                  key={i}
-                                  type="button"
-                                  className="w-full text-left px-4 py-2 text-sm hover:bg-muted/30 focus:bg-muted/30 focus:outline-none flex justify-between"
-                                  onClick={() => selectDrug(idx, m)}
-                                >
-                                  <span className="font-medium text-foreground">{m.base}</span>
-                                  <span className="text-muted-foreground">{m.dosage}</span>
-                                </button>
-                              ))
-                            ) : (
-                              <div className="px-4 py-2 text-sm text-muted-foreground">No matches found.</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {drugs.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="mt-6 text-muted-foreground/70 hover:text-red-600 dark:text-red-400 hover:bg-red-500/10"
-                          onClick={() => removeDrugRow(idx)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+              {/* Single Input Block */}
+              <div className="relative bg-muted/30 border border-border rounded-lg p-4 group">
+                <div className="absolute -left-3 -top-3 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
+                  {editingIndex !== null ? <FilePen className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                </div>
+                
+                <div className="space-y-4 ml-1">
+                  <div className="flex gap-4">
+                    <div className="flex-1 relative">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Medication Name</label>
+                      <Input
+                        placeholder="Search or enter drug name (e.g. Amlodipine)"
+                        value={currentDrug.drug}
+                        onChange={(e) => {
+                          updateCurrentDrug("drug", e.target.value);
+                          setActiveDrugSearch(true);
+                        }}
+                        onFocus={() => setActiveDrugSearch(true)}
+                        onBlur={() => setTimeout(() => setActiveDrugSearch(false), 200)}
+                        className="font-medium bg-card text-card-foreground border-border"
+                      />
+                      {activeDrugSearch && currentDrug.drug.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-card text-card-foreground border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {MOCK_MEDICINES.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).length > 0 ? (
+                            MOCK_MEDICINES.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).map((m, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                className="w-full text-left px-4 py-2 text-sm hover:bg-muted/30 focus:bg-muted/30 focus:outline-none flex justify-between"
+                                onMouseDown={(e) => {
+                                  e.preventDefault(); // Prevent onBlur from firing before click
+                                  selectDrug(m);
+                                }}
+                              >
+                                <span className="font-medium text-foreground">{m.base}</span>
+                                <span className="text-muted-foreground">{m.dosage}</span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-2 text-sm text-muted-foreground">No matches found.</div>
+                          )}
+                        </div>
                       )}
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Dosage</label>
-                        <Input
-                          placeholder="e.g. 5mg"
-                          value={drug.dosage}
-                          onChange={(e) => updateDrug(idx, "dosage", e.target.value)}
-                          className="bg-card text-card-foreground border-border"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Times Per Day</label>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="e.g. 2"
-                          value={drug.timesPerDay}
-                          onChange={(e) => updateDrug(idx, "timesPerDay", e.target.value)}
-                          className="bg-card text-card-foreground border-border"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Tablets Per Time</label>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="e.g. 1"
-                          value={drug.tabletsPerTime}
-                          onChange={(e) => updateDrug(idx, "tabletsPerTime", e.target.value)}
-                          className="bg-card text-card-foreground border-border"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Duration</label>
-                        <Input
-                          placeholder="e.g. 30 days"
-                          value={drug.duration}
-                          onChange={(e) => updateDrug(idx, "duration", e.target.value)}
-                          className="bg-card text-card-foreground border-border"
-                        />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Dosage</label>
+                      <Input
+                        placeholder="e.g. 5mg"
+                        value={currentDrug.dosage}
+                        onChange={(e) => updateCurrentDrug("dosage", e.target.value)}
+                        className="bg-card text-card-foreground border-border"
+                      />
                     </div>
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                    <div>
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Times Per Day</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 2"
+                        value={currentDrug.timesPerDay}
+                        onChange={(e) => updateCurrentDrug("timesPerDay", e.target.value)}
+                        className="bg-card text-card-foreground border-border"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Tablets Per Time</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 1"
+                        value={currentDrug.tabletsPerTime}
+                        onChange={(e) => updateCurrentDrug("tabletsPerTime", e.target.value)}
+                        className="bg-card text-card-foreground border-border"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Duration</label>
+                      <Input
+                        placeholder="e.g. 30 days"
+                        value={currentDrug.duration}
+                        onChange={(e) => updateCurrentDrug("duration", e.target.value)}
+                        className="bg-card text-card-foreground border-border"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col md:flex-row md:items-end gap-4 justify-between">
+                    <div className="flex-1 flex flex-col sm:flex-row sm:items-end gap-4">
                       <div className="flex-1">
                         <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Patient Instructions</label>
                         <Input
                           placeholder="e.g. Take with plenty of water"
-                          value={drug.instructions}
-                          onChange={(e) => updateDrug(idx, "instructions", e.target.value)}
+                          value={currentDrug.instructions}
+                          onChange={(e) => updateCurrentDrug("instructions", e.target.value)}
                           className="bg-card text-card-foreground border-border text-sm italic"
                         />
                       </div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <button
                           type="button"
-                          onClick={() => updateDrug(idx, "timing", drug.timing === "before" ? "" : "before")}
+                          onClick={() => updateCurrentDrug("timing", currentDrug.timing === "before" ? "" : "before")}
                           className={cn(
                             "px-3 py-2 rounded-md text-xs font-medium border transition-colors",
-                            drug.timing === "before" ? "bg-primary text-white border-slate-800" : "bg-card text-card-foreground border-border text-muted-foreground hover:bg-muted/30"
+                            currentDrug.timing === "before" ? "bg-primary text-white border-slate-800" : "bg-card text-card-foreground border-border text-muted-foreground hover:bg-muted/30"
                           )}
                         >
                           Before Eat
                         </button>
                         <button
                           type="button"
-                          onClick={() => updateDrug(idx, "timing", drug.timing === "after" ? "" : "after")}
+                          onClick={() => updateCurrentDrug("timing", currentDrug.timing === "after" ? "" : "after")}
                           className={cn(
                             "px-3 py-2 rounded-md text-xs font-medium border transition-colors",
-                            drug.timing === "after" ? "bg-primary text-white border-slate-800" : "bg-card text-card-foreground border-border text-muted-foreground hover:bg-muted/30"
+                            currentDrug.timing === "after" ? "bg-primary text-white border-slate-800" : "bg-card text-card-foreground border-border text-muted-foreground hover:bg-muted/30"
                           )}
                         >
                           After Eat
                         </button>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      {editingIndex !== null && (
+                        <Button type="button" variant="ghost" onClick={() => { setCurrentDrug(initialDrugState); setEditingIndex(null); }} className="h-10 text-muted-foreground">
+                          Cancel
+                        </Button>
+                      )}
+                      <Button type="button" onClick={handleAddOrUpdateDrug} className="h-10 min-w-[120px]">
+                        {editingIndex !== null ? "Update" : "Add to List"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Data Table */}
+              {addedDrugs.length > 0 && (
+                <div className="mt-6 border border-border rounded-lg overflow-hidden bg-card">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-[40px] text-center">#</TableHead>
+                        <TableHead>Medication</TableHead>
+                        <TableHead>Dosage</TableHead>
+                        <TableHead>Frequency</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead className="w-[60px] text-center">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {addedDrugs.map((d, i) => (
+                        <TableRow 
+                          key={i} 
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => handleEditDrug(i)}
+                        >
+                          <TableCell className="text-center font-medium text-muted-foreground">{i + 1}</TableCell>
+                          <TableCell className="font-semibold text-foreground">{d.drug}</TableCell>
+                          <TableCell className="text-muted-foreground">{d.dosage || "-"}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {d.timesPerDay ? `${d.timesPerDay}x day` : "-"}
+                            {d.tabletsPerTime ? ` (${d.tabletsPerTime} tab)` : ""}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{d.duration || "-"}</TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => handleRemoveDrug(e, i)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </div>
 
