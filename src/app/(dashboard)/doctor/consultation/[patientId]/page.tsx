@@ -245,37 +245,35 @@ export default function ConsultationPage({
             </dl>
           </div>
 
-          {/* CLINICAL TIMELINE */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5" /> Clinical Timeline
+          {/* LAB ORDERS */}
+          <div className="bg-white border rounded-lg p-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+              <FlaskConical className="w-3.5 h-3.5" /> Laboratory Orders
             </h3>
             
-            <div className="space-y-0 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent pl-6">
-              
-              <div className="relative mb-6">
-                <div className="absolute -left-[29px] bg-green-500 h-3 w-3 rounded-full border-2 border-white"></div>
-                <p className="text-xs font-bold text-green-600 mb-1">Right Now</p>
-                <div className="bg-white border border-green-200 rounded-lg p-3 shadow-sm">
-                  <p className="text-sm font-medium">Current Consultation</p>
-                </div>
-              </div>
-
-              {patient.medicalHistory?.map((h, i) => (
-                <div key={i} className="relative mb-6 last:mb-0">
-                  <div className="absolute -left-[29px] bg-slate-300 h-3 w-3 rounded-full border-2 border-white"></div>
-                  <p className="text-xs font-bold text-slate-500 mb-1">{formatSafeDate(h.date)}</p>
-                  <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                    <p className="text-xs text-slate-500 mb-0.5">{h.doctor}</p>
-                    <p className="text-sm font-semibold text-slate-900">{h.diagnosis}</p>
-                    {h.prescription.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-slate-100">
-                        <p className="text-[11px] text-slate-500 font-medium">💊 {h.prescription.join(", ")}</p>
-                      </div>
+            <div className="flex flex-col gap-2">
+              {LAB_TESTS.map((test) => {
+                const isSelected = selectedTests.includes(test);
+                return (
+                  <label
+                    key={test}
+                    className={cn(
+                      "flex items-center gap-3 p-2.5 rounded-md border cursor-pointer transition-all",
+                      isSelected ? "bg-blue-50 border-blue-200" : "bg-white border-slate-100 hover:bg-slate-50"
                     )}
-                  </div>
-                </div>
-              ))}
+                  >
+                    <div className={cn(
+                      "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                      isSelected ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 bg-white"
+                    )}>
+                      {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                    </div>
+                    <span className={cn("text-xs font-medium", isSelected ? "text-blue-900" : "text-slate-700")}>
+                      {test}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
@@ -448,37 +446,7 @@ export default function ConsultationPage({
             </div>
           </div>
 
-          {/* LAB ORDERS */}
-          <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 mb-4 flex items-center gap-2">
-              <FlaskConical className="w-4 h-4 text-slate-400" /> Laboratory Orders
-            </h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              {LAB_TESTS.map((test) => {
-                const isSelected = selectedTests.includes(test);
-                return (
-                  <label
-                    key={test}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                      isSelected ? "bg-blue-50 border-blue-200" : "bg-white border-slate-200 hover:bg-slate-50"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors",
-                      isSelected ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 bg-white"
-                    )}>
-                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    </div>
-                    <span className={cn("text-sm font-medium", isSelected ? "text-blue-900" : "text-slate-700")}>
-                      {test}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+
 
           {/* CLINICAL NOTES */}
           <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
