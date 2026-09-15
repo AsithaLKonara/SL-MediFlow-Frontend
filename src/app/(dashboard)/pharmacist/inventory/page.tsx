@@ -30,7 +30,35 @@ export default function PharmacistInventoryPage() {
   const [restocking, setRestocking] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/pharmacist/inventory").then(r => r.json()).then(d => { setItems(d.data); setLoading(false); });
+    fetch("http://localhost:5000/api/pharmacy/medicines")
+      .then(r => r.json())
+      .then(data => {
+        const mappedItems = data.map((med: any) => {
+          const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0;
+          const status = stock <= med.reorderLevel ? "LOW_STOCK" : "IN_STOCK";
+          const earliestExpiry = med.stockBatches?.length > 0 ? med.stockBatches[0].expiryDate : new Date().toISOString();
+          const latestPrice = med.stockBatches?.length > 0 ? med.stockBatches[med.stockBatches.length - 1].unitPrice : 0;
+          
+          return {
+            id: med.id,
+            name: med.name,
+            category: med.category,
+            stock,
+            reorderLevel: med.reorderLevel,
+            unit: med.unit,
+            unitPrice: latestPrice,
+            expiryDate: earliestExpiry,
+            status
+          };
+        });
+        setItems(mappedItems);
+        setLoading(false);
+      })
+      .catch(e => {
+        console.error("Failed to load inventory", e);
+        setLoading(false);
+        toast.error("Failed to load live inventory data");
+      });
   }, []);
 
   const handleReorder = (item: InventoryItem) => {

@@ -59,18 +59,7 @@ const LAB_TESTS = [
   "Dengue Antigen",
 ];
 
-const MOCK_MEDICINES = [
-  { name: "Amlodipine 5mg", dosage: "5mg", base: "Amlodipine" },
-  { name: "Amlodipine 10mg", dosage: "10mg", base: "Amlodipine" },
-  { name: "Metformin 500mg", dosage: "500mg", base: "Metformin" },
-  { name: "Metformin 850mg", dosage: "850mg", base: "Metformin" },
-  { name: "Atorvastatin 20mg", dosage: "20mg", base: "Atorvastatin" },
-  { name: "Atorvastatin 40mg", dosage: "40mg", base: "Atorvastatin" },
-  { name: "Paracetamol 500mg", dosage: "500mg", base: "Paracetamol" },
-  { name: "Amoxicillin 250mg", dosage: "250mg", base: "Amoxicillin" },
-  { name: "Amoxicillin 500mg", dosage: "500mg", base: "Amoxicillin" },
-  { name: "Losartan 50mg", dosage: "50mg", base: "Losartan" },
-];
+// Medicines are now fetched from the backend API
 
 export default function ConsultationPage({
   params,
@@ -100,10 +89,17 @@ export default function ConsultationPage({
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [labNotes, setLabNotes] = useState("");
 
+  const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
+
   useEffect(() => {
     fetch(`/api/doctor/patients/${patientId}`)
       .then((r) => r.json())
       .then((d) => { setPatient(d); setLoading(false); });
+
+    fetch("http://localhost:5000/api/pharmacy/medicines")
+      .then((r) => r.json())
+      .then((d) => setAvailableMedicines(d))
+      .catch((e) => console.error("Failed to load medicines", e));
   }, [patientId]);
 
   const handleAddOrUpdateDrug = () => {
@@ -139,8 +135,8 @@ export default function ConsultationPage({
     setCurrentDrug(prev => ({ ...prev, [field]: value }));
   };
 
-  const selectDrug = (medicine: typeof MOCK_MEDICINES[0]) => {
-    setCurrentDrug(prev => ({ ...prev, drug: medicine.name, dosage: medicine.dosage }));
+  const selectDrug = (medicine: any) => {
+    setCurrentDrug(prev => ({ ...prev, drug: medicine.name, dosage: medicine.unit }));
     setActiveDrugSearch(false);
   };
 
@@ -354,8 +350,8 @@ export default function ConsultationPage({
                       />
                       {activeDrugSearch && currentDrug.drug.length > 0 && (
                         <div className="absolute z-50 w-full mt-1 bg-card text-card-foreground border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          {MOCK_MEDICINES.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).length > 0 ? (
-                            MOCK_MEDICINES.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).map((m, i) => (
+                          {availableMedicines.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).length > 0 ? (
+                            availableMedicines.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).map((m, i) => (
                               <button
                                 key={i}
                                 type="button"
@@ -365,8 +361,8 @@ export default function ConsultationPage({
                                   selectDrug(m);
                                 }}
                               >
-                                <span className="font-medium text-foreground">{m.base}</span>
-                                <span className="text-muted-foreground">{m.dosage}</span>
+                                <span className="font-medium text-foreground">{m.genericName || m.name}</span>
+                                <span className="text-muted-foreground">{m.unit}</span>
                               </button>
                             ))
                           ) : (

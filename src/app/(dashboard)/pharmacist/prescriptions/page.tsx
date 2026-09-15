@@ -87,15 +87,36 @@ export default function PharmacyDashboardPage() {
     });
   };
 
-  const handleDispense = () => {
+  const handleDispense = async () => {
     if (!activeRx) return;
     setSubmitting(true);
-    setTimeout(() => {
+    
+    try {
+      // Dispense each drug via the Backend API
+      for (const drug of activeRx.drugs) {
+        if (drug.dispenseQty > 0) {
+          const res = await fetch("http://localhost:5000/api/pharmacy/dispense", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ medicineId: drug.id, quantity: drug.dispenseQty })
+          });
+          
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || `Failed to dispense ${drug.name}`);
+          }
+        }
+      }
+      
       setPrescriptions(prev => prev.map(p => p.id === activeRx.id ? { ...p, status: "DISPENSED" } : p));
-      setSubmitting(false);
       toast.success(`Medicines dispensed. Pharmacy charge added to Visit ${activeRx.visitId}`);
       setActiveRx(null);
-    }, 800);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "An error occurred during dispensing");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (activeRx) {
