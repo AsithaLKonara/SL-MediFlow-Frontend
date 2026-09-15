@@ -150,7 +150,7 @@ function CreateVisitFlow() {
 
               <div className="border-t border-b py-6 mb-8 bg-muted/30 rounded-lg">
                 <p className="text-sm font-semibold tracking-widest text-muted-foreground uppercase mb-2">Queue Token</p>
-                <p className="text-6xl font-black text-[#6B0F26] tracking-tight">{token}</p>
+                <p className="text-6xl font-black text-primary tracking-tight">{token}</p>
               </div>
 
               <div className="flex justify-between items-center text-sm border-t pt-4 text-muted-foreground mb-8">

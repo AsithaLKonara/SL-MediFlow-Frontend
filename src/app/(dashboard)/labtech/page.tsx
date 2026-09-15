@@ -44,7 +44,7 @@ export default function LabTechOverview() {
             <Microscope className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{metrics.pendingRequests}</div>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.pendingRequests}</div>
             <p className="text-xs text-muted-foreground mt-1">Awaiting processing</p>
           </CardContent>
         </Card>
@@ -55,7 +55,7 @@ export default function LabTechOverview() {
             <FlaskConical className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{metrics.inProgressTests}</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.inProgressTests}</div>
             <p className="text-xs text-muted-foreground mt-1">Tests currently running</p>
           </CardContent>
         </Card>
@@ -66,7 +66,7 @@ export default function LabTechOverview() {
             <FileCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">{metrics.publishedToday}</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.publishedToday}</div>
             <p className="text-xs text-muted-foreground mt-1">Reports sent to doctors</p>
           </CardContent>
         </Card>
@@ -77,7 +77,7 @@ export default function LabTechOverview() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{metrics.criticalResults}</div>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{metrics.criticalResults}</div>
             <p className="text-xs text-muted-foreground mt-1">Require immediate attention</p>
           </CardContent>
         </Card>
@@ -85,10 +85,10 @@ export default function LabTechOverview() {
 
       {/* Urgent Requests */}
       {metrics.urgentRequests.length > 0 && (
-        <Card className="shadow-sm border-red-200">
+        <Card className="shadow-sm border-red-500/20">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-red-700">
+              <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
                 <AlertTriangle className="w-5 h-5" />
                 Urgent Test Requests
               </CardTitle>
@@ -100,15 +100,15 @@ export default function LabTechOverview() {
           </CardHeader>
           <CardContent className="space-y-3">
             {metrics.urgentRequests.map((req) => (
-              <div key={req.id} className="flex items-start gap-4 p-4 rounded-lg border border-red-200 bg-red-50/40">
-                <div className="p-2 bg-red-100 rounded-lg shrink-0">
-                  <Microscope className="w-4 h-4 text-red-600" />
+              <div key={req.id} className="flex items-start gap-4 p-4 rounded-lg border border-red-500/20 bg-red-500/10/40">
+                <div className="p-2 bg-red-500/10 rounded-lg shrink-0">
+                  <Microscope className="w-4 h-4 text-red-600 dark:text-red-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-[#3A3435]">{req.patientName}</p>
                     <span className="text-xs text-muted-foreground">by {req.doctor}</span>
-                    <Badge variant="secondary" className="bg-red-100 text-red-700 animate-pulse ml-auto">
+                    <Badge variant="secondary" className="bg-red-500/10 text-red-600 dark:text-red-400 animate-pulse ml-auto">
                       URGENT
                     </Badge>
                   </div>

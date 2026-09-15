@@ -189,7 +189,7 @@ export default function ProcessPaymentPage({
 
                   {method === "CARD" && (
                     <div className="space-y-4 animate-in slide-in-from-top-2">
-                      <div className="p-4 rounded-lg border bg-blue-50/50 text-blue-800 text-sm flex items-start gap-3">
+                      <div className="p-4 rounded-lg border bg-blue-500/10/50 text-blue-800 text-sm flex items-start gap-3">
                         <CreditCard className="w-5 h-5 shrink-0 mt-0.5" />
                         <p>Ask patient to insert or tap card on the terminal. Amount <strong>Rs. {record.amount.toFixed(2)}</strong> will be sent automatically.</p>
                       </div>
@@ -203,13 +203,13 @@ export default function ProcessPaymentPage({
               </CardContent>
             </Card>
           ) : (
-            <Card className="shadow-sm border-2 border-green-200">
-              <CardHeader className="bg-green-50/50 border-b border-green-100 text-center pb-6">
-                <div className="mx-auto w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3">
+            <Card className="shadow-sm border-2 border-green-500/20">
+              <CardHeader className="bg-green-500/10/50 border-b border-green-500/20 text-center pb-6">
+                <div className="mx-auto w-12 h-12 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-3">
                   <CheckCircle className="w-6 h-6" />
                 </div>
                 <CardTitle className="text-2xl text-green-800">Payment Successful</CardTitle>
-                <CardDescription className="text-green-700 mt-1">Receipt ID: RCPT-{record.id.split("-")[2]}</CardDescription>
+                <CardDescription className="text-green-600 dark:text-green-400 mt-1">Receipt ID: RCPT-{record.id.split("-")[2]}</CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-6 text-center">
                 <div className="space-y-2">

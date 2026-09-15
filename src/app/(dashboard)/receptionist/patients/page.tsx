@@ -148,7 +148,7 @@ export default function PatientsPage() {
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              <UserCheck className="w-12 h-12 mx-auto mb-4 text-slate-200" />
+              <UserCheck className="w-12 h-12 mx-auto mb-4 text-border" />
               <p className="mb-6">Type to search the hospital database</p>
               <Button onClick={() => setShowForm(true)} variant="outline" className="border-primary/50 text-primary">
                 <Plus className="w-4 h-4 mr-2" /> Register New Patient

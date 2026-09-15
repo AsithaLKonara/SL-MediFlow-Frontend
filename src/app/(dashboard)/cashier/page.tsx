@@ -44,7 +44,7 @@ export default function CashierOverview() {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">${metrics.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">${metrics.totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Processed today</p>
           </CardContent>
         </Card>
@@ -55,7 +55,7 @@ export default function CashierOverview() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{metrics.pendingPayments}</div>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.pendingPayments}</div>
             <p className="text-xs text-muted-foreground mt-1">Awaiting settlement</p>
           </CardContent>
         </Card>
@@ -98,13 +98,13 @@ export default function CashierOverview() {
           {metrics.recentTransactions.map((txn) => (
             <div key={txn.id} className="flex items-center gap-4 p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors">
               <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                {txn.status === "COMPLETED" ? <Receipt className="w-4 h-4 text-primary" /> : <Clock className="w-4 h-4 text-yellow-600" />}
+                {txn.status === "COMPLETED" ? <Receipt className="w-4 h-4 text-primary" /> : <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-[#3A3435]">{txn.patientName}</p>
                   <span className="text-xs text-muted-foreground">· {txn.type}</span>
-                  <Badge variant="secondary" className={txn.status === "PENDING" ? "bg-yellow-100 text-yellow-700 ml-auto" : "bg-green-100 text-green-700 ml-auto"}>
+                  <Badge variant="secondary" className={txn.status === "PENDING" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ml-auto" : "bg-green-500/10 text-green-600 dark:text-green-400 ml-auto"}>
                     {txn.status}
                   </Badge>
                 </div>

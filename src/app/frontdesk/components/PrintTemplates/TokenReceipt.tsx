@@ -8,7 +8,7 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
   date: string;
 }>(({ tokenNumber, patientName, doctorName, date }, ref) => {
   return (
-    <div ref={ref} className="w-[300px] bg-white text-black p-4 font-sans print:p-0">
+    <div ref={ref} className="w-[300px] bg-card text-card-foreground text-black p-4 font-sans print:p-0">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-black mb-1">AMAZ HOSPITAL</h1>
         <p className="text-sm font-medium border-b-2 border-black pb-2">Front Desk Token</p>
@@ -32,7 +32,7 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
         )}
         <div className="flex justify-between">
           <span className="font-bold">Date:</span>
-          <span>{date}</span>
+          <span suppressHydrationWarning>{date}</span>
         </div>
       </div>
 

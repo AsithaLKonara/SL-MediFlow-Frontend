@@ -71,7 +71,7 @@ export default function FinancePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${data.metrics.todayRevenue.toLocaleString()}</div>
-            <p className="text-xs text-green-600 flex items-center mt-1 font-medium">
+            <p className="text-xs text-green-600 dark:text-green-400 flex items-center mt-1 font-medium">
               <ArrowUpRight className="w-3 h-3 mr-1" />
               +5% from yesterday
             </p>
@@ -96,7 +96,7 @@ export default function FinancePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${data.metrics.outstandingReceivables.toLocaleString()}</div>
-            <p className="text-xs text-yellow-600 mt-1 font-medium">Requires follow-up</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">Requires follow-up</p>
           </CardContent>
         </Card>
 
@@ -136,7 +136,7 @@ export default function FinancePage() {
                 formatter={(value: any) => [`$${Number(value).toLocaleString()}`, undefined]}
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
-              <Bar dataKey="income" name="Income" fill="#6B0F26" radius={[4, 4, 0, 0]} barSize={32} />
+              <Bar dataKey="income" name="Income" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={32} />
               <Bar dataKey="expense" name="Expense" fill="#C7C1BC" radius={[4, 4, 0, 0]} barSize={32} />
             </BarChart>
           </ResponsiveContainer>
@@ -170,7 +170,7 @@ export default function FinancePage() {
                   </TableCell>
                   <TableCell>{trx.category}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={trx.type === 'INCOME' ? "text-green-700 bg-green-50 border-green-200" : "text-red-700 bg-red-50 border-red-200"}>
+                    <Badge variant="outline" className={trx.type === 'INCOME' ? "text-green-600 dark:text-green-400 bg-green-500/10 border-green-500/20" : "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20"}>
                       {trx.type}
                     </Badge>
                   </TableCell>
@@ -180,7 +180,7 @@ export default function FinancePage() {
                   <TableCell>
                     <Badge 
                       variant="secondary" 
-                      className={trx.status === 'COMPLETED' ? "bg-muted/50 text-foreground/80" : "bg-yellow-100 text-yellow-700"}
+                      className={trx.status === 'COMPLETED' ? "bg-muted/50 text-foreground/80" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}
                     >
                       {trx.status}
                     </Badge>

@@ -43,7 +43,7 @@ export default function PharmacistOverview() {
             <Pill className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{metrics.pendingPrescriptions}</div>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.pendingPrescriptions}</div>
             <p className="text-xs text-muted-foreground mt-1">Awaiting dispensing</p>
           </CardContent>
         </Card>
@@ -54,7 +54,7 @@ export default function PharmacistOverview() {
             <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">{metrics.fulfilledToday}</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.fulfilledToday}</div>
             <p className="text-xs text-muted-foreground mt-1">Prescriptions dispensed</p>
           </CardContent>
         </Card>
@@ -65,7 +65,7 @@ export default function PharmacistOverview() {
             <PackageSearch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{metrics.lowStockItems}</div>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{metrics.lowStockItems}</div>
             <p className="text-xs text-muted-foreground mt-1">Items need reordering</p>
           </CardContent>
         </Card>
@@ -102,7 +102,7 @@ export default function PharmacistOverview() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold text-[#3A3435]">{rx.patientName}</p>
                   <span className="text-xs text-muted-foreground">by {rx.doctor}</span>
-                  <Badge variant="secondary" className={rx.status === "PENDING" ? "bg-yellow-100 text-yellow-700 ml-auto" : "bg-green-100 text-green-700 ml-auto"}>
+                  <Badge variant="secondary" className={rx.status === "PENDING" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ml-auto" : "bg-green-500/10 text-green-600 dark:text-green-400 ml-auto"}>
                     {rx.status === "PENDING" ? <><Clock className="w-3 h-3 mr-1 inline" />Pending</> : "Fulfilled"}
                   </Badge>
                 </div>

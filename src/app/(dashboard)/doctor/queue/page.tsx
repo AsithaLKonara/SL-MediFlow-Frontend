@@ -24,9 +24,9 @@ interface QueueEntry {
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  WAITING:         { label: "Waiting",         className: "bg-yellow-100 text-yellow-700" },
-  IN_CONSULTATION: { label: "In Consultation", className: "bg-blue-100 text-blue-700" },
-  COMPLETED:       { label: "Completed",       className: "bg-green-100 text-green-700" },
+  WAITING:         { label: "Waiting",         className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  IN_CONSULTATION: { label: "In Consultation", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  COMPLETED:       { label: "Completed",       className: "bg-green-500/10 text-green-600 dark:text-green-400" },
 };
 
 export default function DoctorQueuePage() {
@@ -92,7 +92,7 @@ export default function DoctorQueuePage() {
                         <TableCell className="max-w-[200px] truncate text-sm">{entry.reason}</TableCell>
                         <TableCell>
                           {entry.priority === "URGENT" ? (
-                            <Badge variant="secondary" className="bg-red-100 text-red-700 gap-1">
+                            <Badge variant="secondary" className="bg-red-500/10 text-red-600 dark:text-red-400 gap-1">
                               <AlertTriangle className="w-3 h-3" /> Urgent
                             </Badge>
                           ) : (

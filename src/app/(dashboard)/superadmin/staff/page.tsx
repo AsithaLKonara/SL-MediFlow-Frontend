@@ -117,7 +117,7 @@ export default function StaffManagementPage() {
                         <TableCell>
                           <Badge 
                             variant="secondary" 
-                            className={member.status === 'ACTIVE' ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}
+                            className={member.status === 'ACTIVE' ? "bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/10" : "bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/10"}
                           >
                             {member.status}
                           </Badge>

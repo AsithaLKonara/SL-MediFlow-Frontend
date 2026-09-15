@@ -45,9 +45,9 @@ export default function SuperAdminDashboard() {
 
   const getAlertIcon = (type: string) => {
     switch (type) {
-      case "CRITICAL": return <AlertCircle className="w-5 h-5 text-red-600" />;
-      case "WARNING": return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
-      default: return <Info className="w-5 h-5 text-blue-600" />;
+      case "CRITICAL": return <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />;
+      case "WARNING": return <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />;
+      default: return <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
     }
   };
 
@@ -79,8 +79,8 @@ export default function SuperAdminDashboard() {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">${metrics.revenue.toLocaleString()}</div>
-            <p className="text-xs flex items-center mt-1 text-green-600 font-medium">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">${metrics.revenue.toLocaleString()}</div>
+            <p className="text-xs flex items-center mt-1 text-green-600 dark:text-green-400 font-medium">
               <TrendingUp className="w-3 h-3 mr-1" />
               +{metrics.revenueGrowth}% from last month
             </p>
@@ -137,7 +137,7 @@ export default function SuperAdminDashboard() {
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Revenue']}
                 />
-                <Line type="monotone" dataKey="revenue" stroke="#6B0F26" strokeWidth={3} dot={{r: 4, fill: '#6B0F26', strokeWidth: 0}} activeDot={{r: 6}} />
+                <Line type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={3} dot={{r: 4, fill: 'var(--primary)', strokeWidth: 0}} activeDot={{r: 6}} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

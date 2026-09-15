@@ -9,7 +9,7 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
   date: string;
 }>(({ patientName, patientAge, patientPhone, doctorName, medicines, date }, ref) => {
   return (
-    <div ref={ref} className="w-[300px] bg-white text-black p-4 font-sans print:p-0">
+    <div ref={ref} className="w-[300px] bg-card text-card-foreground text-black p-4 font-sans print:p-0">
       <div className="text-center mb-4">
         <h1 className="text-2xl font-black mb-1">AMAZ HOSPITAL</h1>
         <p className="text-sm font-medium border-b-2 border-black pb-2">Official Prescription</p>
@@ -28,13 +28,13 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
           <span className="font-bold">Phone:</span>
           <span>{patientPhone}</span>
         </div>
-        <div className="flex justify-between mt-2 pt-2 border-t border-gray-300">
+        <div className="flex justify-between mt-2 pt-2 border-t border-border/60">
           <span className="font-bold">Doctor:</span>
           <span>{doctorName}</span>
         </div>
         <div className="flex justify-between">
           <span className="font-bold">Date:</span>
-          <span>{date}</span>
+          <span suppressHydrationWarning>{date}</span>
         </div>
       </div>
 

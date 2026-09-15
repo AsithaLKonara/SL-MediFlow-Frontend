@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { VirtualKeyboardProvider } from "@/components/VirtualKeyboardProvider";
 import { SidebarProvider } from "@/components/dashboard/SidebarProvider";
 import "./globals.css";
 
-const poppins = Poppins({
-  weight: ["300", "400", "500", "600", "700"],
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 });
@@ -21,7 +20,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${poppins.variable} font-sans h-full antialiased`}
+      className={`${inter.variable} font-sans h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

@@ -51,7 +51,7 @@ export default function DoctorOverview() {
           <div className="w-px h-8 bg-border"></div>
           <div className="text-center">
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Completed</p>
-            <p className="text-xl font-bold text-green-600">{metrics.completedConsultations}</p>
+            <p className="text-xl font-bold text-green-600 dark:text-green-400">{metrics.completedConsultations}</p>
           </div>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function DoctorOverview() {
         <Link href="/doctor/lab-requests" className="group block">
           <Card className="h-full border-border bg-card hover:border-blue-500/30 hover:shadow-md transition-all cursor-pointer">
             <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <FlaskConical className="w-8 h-8" />
               </div>
               <div>
@@ -129,7 +129,7 @@ export default function DoctorOverview() {
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-semibold text-[#3A3435] truncate">{p.patientName}</p>
                     <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded-full">Age {p.age}</span>
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs ml-auto border-none">
+                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs ml-auto border-none">
                       <Clock className="w-3 h-3 mr-1" /> Waiting
                     </Badge>
                   </div>

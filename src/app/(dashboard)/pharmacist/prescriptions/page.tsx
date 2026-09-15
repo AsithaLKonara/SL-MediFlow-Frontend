@@ -124,7 +124,7 @@ export default function PharmacyDashboardPage() {
               </div>
               <div>
                 <p className="text-muted-foreground">Status</p>
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">{activeRx.status}</Badge>
+                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400">{activeRx.status}</Badge>
               </div>
             </div>
           </CardHeader>
@@ -224,7 +224,7 @@ export default function PharmacyDashboardPage() {
                 <div className="mb-4 sm:mb-0">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="font-mono font-bold text-primary">{rx.id}</span>
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">{rx.status}</Badge>
+                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400">{rx.status}</Badge>
                   </div>
                   <p className="font-semibold text-[#3A3435]">{rx.patientName}</p>
                   <p className="text-sm text-muted-foreground">By {rx.doctor} · Visit {rx.visitId}</p>

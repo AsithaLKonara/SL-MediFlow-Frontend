@@ -106,12 +106,12 @@ export default function LabResultsPage({
           </p>
         </div>
         {request.priority === "URGENT" && (
-          <Badge variant="secondary" className="bg-red-100 text-red-700 gap-1 animate-pulse ml-2">
+          <Badge variant="secondary" className="bg-red-500/10 text-red-600 dark:text-red-400 gap-1 animate-pulse ml-2">
             <AlertTriangle className="w-3.5 h-3.5" /> URGENT
           </Badge>
         )}
         {published && (
-          <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1 ml-2">
+          <Badge variant="secondary" className="bg-green-500/10 text-green-600 dark:text-green-400 gap-1 ml-2">
             <CheckCircle className="w-3.5 h-3.5" /> Published
           </Badge>
         )}
@@ -199,19 +199,19 @@ export default function LabResultsPage({
                     const currentResult = results[idx] ?? "";
                     const flagged = currentResult && isCritical(currentResult, test.referenceRange);
                     return (
-                      <div key={idx} className={`rounded-lg border p-4 space-y-3 transition-colors ${flagged ? "border-red-300 bg-red-50/30" : ""}`}>
+                      <div key={idx} className={`rounded-lg border p-4 space-y-3 transition-colors ${flagged ? "border-red-500/20 bg-red-500/10/30" : ""}`}>
                         <div className="flex items-center justify-between gap-2">
                           <div>
                             <p className="font-semibold text-[#3A3435]">{test.name}</p>
                             <p className="text-xs text-muted-foreground">Reference: {test.referenceRange} · Unit: {test.unit}</p>
                           </div>
                           {flagged && (
-                            <Badge variant="secondary" className="bg-red-100 text-red-700 gap-1 shrink-0">
+                            <Badge variant="secondary" className="bg-red-500/10 text-red-600 dark:text-red-400 gap-1 shrink-0">
                               <AlertTriangle className="w-3 h-3" /> Critical Value
                             </Badge>
                           )}
                           {currentResult && !flagged && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1 shrink-0">
+                            <Badge variant="secondary" className="bg-green-500/10 text-green-600 dark:text-green-400 gap-1 shrink-0">
                               <CheckCircle className="w-3 h-3" /> Normal
                             </Badge>
                           )}
@@ -227,7 +227,7 @@ export default function LabResultsPage({
                           <span className="text-sm text-muted-foreground shrink-0 min-w-[40px]">{test.unit}</span>
                         </div>
                         {flagged && (
-                          <p className="text-xs text-red-700 font-medium">
+                          <p className="text-xs text-red-600 dark:text-red-400 font-medium">
                             ⚠️ Value is outside normal range. Please verify before publishing.
                           </p>
                         )}
@@ -254,8 +254,8 @@ export default function LabResultsPage({
                     {saving ? "Publishing Report..." : "Publish Report to Patient Record"}
                   </Button>
                 ) : (
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                  <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-4 flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
                     <p className="text-sm text-green-800 font-medium">
                       Report has been published and is now available in {request.patientName}'s medical record.
                     </p>

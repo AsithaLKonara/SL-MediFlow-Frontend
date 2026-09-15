@@ -15,9 +15,12 @@ export default function FrontDeskLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden relative">
+      {/* Subtle top-page radial gradient for Enterprise Sheen */}
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none -z-10"></div>
+      
       {/* Front Desk Minimal Header */}
-      <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
+      <header className="h-14 border-b border-border/40 bg-background/80 backdrop-blur-md flex items-center justify-between px-4 shrink-0 z-10">
         <div className="flex items-center gap-4">
           <Link href="/frontdesk" className="flex items-center gap-2 font-bold text-lg text-primary hover:text-primary/80 transition-colors" title="Return to Dashboard">
             <Home className="w-5 h-5" />

@@ -63,7 +63,7 @@ function VerifyEmailContent() {
 
       {status === "success" && (
         <div className="space-y-6">
-          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+          <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center text-green-600 dark:text-green-400">
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <div>

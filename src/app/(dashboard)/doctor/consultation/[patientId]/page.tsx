@@ -179,7 +179,7 @@ export default function ConsultationPage({
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-xl font-bold tracking-tight text-foreground uppercase">{patient.name || "Unknown Patient"}</h1>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 flex items-center gap-1.5 border border-green-200">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 flex items-center gap-1.5 border border-green-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                   Active Consultation
                 </span>
@@ -187,7 +187,7 @@ export default function ConsultationPage({
               <div className="text-sm text-muted-foreground mt-1 flex items-center gap-3 divide-x divide-slate-300">
                 <span className="font-mono font-medium">{patient.id}</span>
                 <span className="pl-3">{patient.age || "--"} yrs · {patient.gender || "--"}</span>
-                <span className="pl-3 font-semibold text-red-600">{patient.bloodGroup || "Unknown"}</span>
+                <span className="pl-3 font-semibold text-red-600 dark:text-red-400">{patient.bloodGroup || "Unknown"}</span>
               </div>
             </div>
           </div>
@@ -213,15 +213,15 @@ export default function ConsultationPage({
               </h3>
               
               {patient.allergies?.length > 0 && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-md">
-                  <p className="text-[10px] uppercase font-bold text-red-700 tracking-wider mb-1">Allergies</p>
+                <div className="bg-red-500/10 border-l-4 border-red-500 p-3 rounded-r-md">
+                  <p className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 tracking-wider mb-1">Allergies</p>
                   <p className="text-sm font-semibold text-red-900">{patient.allergies.join(", ")}</p>
                 </div>
               )}
 
               {patient.chronicConditions?.length > 0 && (
-                <div className="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-md">
-                  <p className="text-[10px] uppercase font-bold text-amber-700 tracking-wider mb-1">Conditions</p>
+                <div className="bg-amber-500/10 border-l-4 border-amber-500 p-3 rounded-r-md">
+                  <p className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider mb-1">Conditions</p>
                   <p className="text-sm font-semibold text-amber-900">{patient.chronicConditions.join(", ")}</p>
                 </div>
               )}
@@ -259,16 +259,16 @@ export default function ConsultationPage({
                     key={test}
                     className={cn(
                       "flex items-center gap-3 p-2.5 rounded-md border cursor-pointer transition-all",
-                      isSelected ? "bg-blue-50 border-blue-200" : "bg-card text-card-foreground border-border/50 hover:bg-muted/30"
+                      isSelected ? "bg-blue-500/10 border-blue-500/20" : "bg-card text-card-foreground border-border/50 hover:bg-muted/30"
                     )}
                   >
                     <div className={cn(
                       "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
-                      isSelected ? "bg-blue-600 border-blue-600 text-white" : "border-border bg-card text-card-foreground"
+                      isSelected ? "bg-primary border-blue-600 text-white" : "border-border bg-card text-card-foreground"
                     )}>
                       {isSelected && <CheckCircle2 className="w-3 h-3" />}
                     </div>
-                    <span className={cn("text-xs font-medium", isSelected ? "text-blue-900" : "text-foreground/80")}>
+                    <span className={cn("text-xs font-medium", isSelected ? "text-blue-600 dark:text-blue-400" : "text-foreground/80")}>
                       {test}
                     </span>
                   </label>
@@ -356,7 +356,7 @@ export default function ConsultationPage({
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="mt-6 text-muted-foreground/70 hover:text-red-600 hover:bg-red-50"
+                          className="mt-6 text-muted-foreground/70 hover:text-red-600 dark:text-red-400 hover:bg-red-500/10"
                           onClick={() => removeDrugRow(idx)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -467,7 +467,7 @@ export default function ConsultationPage({
       {/* ========================================================= */}
       {/* STICKY BOTTOM ACTION BAR                                  */}
       {/* ========================================================= */}
-      <div className={cn("fixed bottom-0 right-0 border-t bg-card text-card-foreground/95 backdrop-blur-sm z-40 p-4 transition-all duration-300 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]", leftMargin)}>
+      <div className={cn("fixed bottom-0 right-0 border-t border-border/40 bg-background/80 backdrop-blur-md z-40 p-4 transition-all duration-300 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]", leftMargin)}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
@@ -486,7 +486,7 @@ export default function ConsultationPage({
               size="lg" 
               onClick={handleCompleteConsultation}
               disabled={visitCompleted}
-              className="bg-slate-900 hover:bg-primary text-white min-w-[220px]"
+              className="bg-primary hover:bg-primary text-white min-w-[220px]"
             >
               <CheckCircle2 className="w-5 h-5 mr-2" />
               {visitCompleted ? "Completed" : "Complete Consultation"}

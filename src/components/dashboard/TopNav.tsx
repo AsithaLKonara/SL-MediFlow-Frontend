@@ -44,7 +44,7 @@ export function TopNav() {
   };
 
   return (
-    <header className={cn("h-16 bg-background border-b px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all duration-300 ease-in-out", marginLeft)}>
+    <header className={cn("h-16 bg-background/80 backdrop-blur-md border-b border-border/40 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all duration-300 ease-in-out", marginLeft)}>
       <div className="flex items-center gap-4 w-full max-w-md">
         <Button variant="ghost" size="icon" onClick={toggleSidebar} className="shrink-0 text-muted-foreground hover:text-foreground">
           <Menu className="w-5 h-5" />

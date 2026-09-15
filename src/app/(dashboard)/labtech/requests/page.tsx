@@ -29,10 +29,10 @@ interface LabRequest {
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  PENDING:     { label: "Pending",     className: "bg-yellow-100 text-yellow-700" },
-  IN_PROGRESS: { label: "In Progress", className: "bg-blue-100 text-blue-700" },
+  PENDING:     { label: "Pending",     className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  IN_PROGRESS: { label: "In Progress", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
   COMPLETED:   { label: "Completed",   className: "bg-muted/50 text-foreground/80" },
-  PUBLISHED:   { label: "Published",   className: "bg-green-100 text-green-700" },
+  PUBLISHED:   { label: "Published",   className: "bg-green-500/10 text-green-600 dark:text-green-400" },
 };
 
 export default function LabTechRequestsPage() {
@@ -55,13 +55,13 @@ export default function LabTechRequestsPage() {
   const RequestCard = ({ req }: { req: LabRequest }) => {
     const sc = statusConfig[req.status] ?? { label: req.status, className: "bg-muted/50 text-foreground/80" };
     return (
-      <div className={`rounded-lg border shadow-sm p-4 space-y-3 hover:shadow-md transition-shadow ${req.priority === "URGENT" ? "border-red-200 bg-red-50/20" : ""}`}>
+      <div className={`rounded-lg border shadow-sm p-4 space-y-3 hover:shadow-md transition-shadow ${req.priority === "URGENT" ? "border-red-500/20 bg-red-500/10/20" : ""}`}>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-xs text-muted-foreground">{req.id}</span>
               {req.priority === "URGENT" && (
-                <Badge variant="secondary" className="bg-red-100 text-red-700 gap-1 animate-pulse text-xs">
+                <Badge variant="secondary" className="bg-red-500/10 text-red-600 dark:text-red-400 gap-1 animate-pulse text-xs">
                   <AlertTriangle className="w-3 h-3" /> URGENT
                 </Badge>
               )}

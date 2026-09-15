@@ -62,11 +62,11 @@ export default function PharmacistInventoryPage() {
       </div>
 
       {lowStockItems.length > 0 && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold text-red-800">Low Stock Alert</p>
-            <p className="text-sm text-red-700 mt-0.5">
+            <p className="text-sm text-red-600 dark:text-red-400 mt-0.5">
               {lowStockItems.map(i => i.name).join(", ")} are below reorder levels.
             </p>
           </div>
@@ -102,17 +102,17 @@ export default function PharmacistInventoryPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id} className={item.status === "LOW_STOCK" ? "bg-red-50/40" : ""}>
+                    <TableRow key={item.id} className={item.status === "LOW_STOCK" ? "bg-red-500/10/40" : ""}>
                       <TableCell className="font-medium text-[#3A3435]">{item.name}</TableCell>
                       <TableCell className="text-muted-foreground">{item.category}</TableCell>
-                      <TableCell className={`text-right font-bold ${item.status === "LOW_STOCK" ? "text-red-600" : "text-green-700"}`}>
+                      <TableCell className={`text-right font-bold ${item.status === "LOW_STOCK" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
                         {item.stock} {item.unit}s
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">{item.reorderLevel}</TableCell>
                       <TableCell className="text-right font-medium">${item.unitPrice.toFixed(2)}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{new Date(item.expiryDate).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className={item.status === "LOW_STOCK" ? "bg-red-100 text-red-700 gap-1" : "bg-green-100 text-green-700"}>
+                        <Badge variant="secondary" className={item.status === "LOW_STOCK" ? "bg-red-500/10 text-red-600 dark:text-red-400 gap-1" : "bg-green-500/10 text-green-600 dark:text-green-400"}>
                           {item.status === "LOW_STOCK" && <AlertTriangle className="w-3 h-3" />}
                           {item.status === "LOW_STOCK" ? "Low Stock" : "In Stock"}
                         </Badge>

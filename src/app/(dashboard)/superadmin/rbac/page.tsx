@@ -125,7 +125,7 @@ export default function RBACMatrixPage() {
           <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs px-3 py-1 gap-1">
             <ShieldCheck className="w-3 h-3" /> RBAC Enforced
           </Badge>
-          <Button onClick={handleSave} disabled={saving} className="gap-2 bg-[#6B0F26] hover:bg-[#6B0F26]/90">
+          <Button onClick={handleSave} disabled={saving} className="gap-2 bg-primary hover:bg-primary/90">
             <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Configuration"}
           </Button>
         </div>
@@ -181,11 +181,11 @@ export default function RBACMatrixPage() {
                     />
                   </TableCell>
                   
-                  <TableCell className="text-center bg-blue-50/30">
+                  <TableCell className="text-center bg-blue-500/10/30">
                     <Checkbox 
                       checked={currentPermissions[feature]?.read || false} 
                       onCheckedChange={() => handleToggle(feature, 'read')}
-                      className="data-[state=checked]:bg-blue-600 border-border"
+                      className="data-[state=checked]:bg-primary border-border"
                     />
                   </TableCell>
                   
@@ -197,7 +197,7 @@ export default function RBACMatrixPage() {
                     />
                   </TableCell>
                   
-                  <TableCell className="text-center bg-red-50/30">
+                  <TableCell className="text-center bg-red-500/10/30">
                     <Checkbox 
                       checked={currentPermissions[feature]?.delete || false} 
                       onCheckedChange={() => handleToggle(feature, 'delete')}

@@ -160,7 +160,7 @@ export default function PharmacistPOSPage() {
                 <CardDescription>Patient ID: {generatedBill.patientId} · {new Date(generatedBill.issuedAt).toLocaleString()}</CardDescription>
               </div>
               <Badge variant={generatedBill.status === "PAID" ? "default" : "secondary"} 
-                     className={generatedBill.status === "PAID" ? "bg-green-600 hover:bg-green-700" : "bg-amber-100 text-amber-800"}>
+                     className={generatedBill.status === "PAID" ? "bg-green-600 hover:bg-green-700" : "bg-amber-500/10 text-amber-800"}>
                 {generatedBill.status === "PAID" ? "PAID" : "SENT TO CASHIER"}
               </Badge>
             </div>
@@ -229,7 +229,7 @@ export default function PharmacistPOSPage() {
           <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
             {cart.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-                <ShoppingCart className="w-12 h-12 mb-4 text-slate-200" />
+                <ShoppingCart className="w-12 h-12 mb-4 text-border" />
                 <p>Cart is empty. Scan barcode or click items to add.</p>
               </div>
             ) : (
@@ -240,7 +240,7 @@ export default function PharmacistPOSPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-sm">{item.name}</p>
-                          {item.category === "Prescription" && <Badge variant="outline" className="text-[10px] py-0 h-4 border-amber-200 text-amber-700 bg-amber-50">Rx</Badge>}
+                          {item.category === "Prescription" && <Badge variant="outline" className="text-[10px] py-0 h-4 border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-500/10">Rx</Badge>}
                         </div>
                         <p className="text-xs text-muted-foreground">${item.unitPrice.toFixed(2)}</p>
                       </div>
@@ -260,7 +260,7 @@ export default function PharmacistPOSPage() {
                         <div className="w-20 text-right font-bold text-sm">
                           ${(item.qty * item.unitPrice).toFixed(2)}
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-50 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFromCart(item.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-500/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFromCart(item.id)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -278,7 +278,7 @@ export default function PharmacistPOSPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-muted-foreground mb-1">Grand Total</p>
-                  <p className="text-4xl font-bold text-[#6B0F26]">${total.toFixed(2)}</p>
+                  <p className="text-4xl font-bold text-primary">${total.toFixed(2)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -328,7 +328,7 @@ export default function PharmacistPOSPage() {
                   >
                     <div className="w-full flex justify-between items-start">
                       <span className="font-semibold text-sm line-clamp-1" title={item.name}>{item.name}</span>
-                      {item.category === "Prescription" && <span className="text-[10px] font-bold text-amber-600">Rx</span>}
+                      {item.category === "Prescription" && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">Rx</span>}
                     </div>
                     <div className="w-full flex justify-between items-center text-xs text-muted-foreground mt-1">
                       <span>Stock: {item.stock}</span>

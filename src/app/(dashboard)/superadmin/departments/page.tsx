@@ -57,9 +57,9 @@ export default function DepartmentsPage() {
                 <Badge 
                   variant="secondary" 
                   className={
-                    dept.status === 'NORMAL' ? "bg-green-100 text-green-700" :
-                    dept.status === 'BUSY' ? "bg-yellow-100 text-yellow-700" :
-                    "bg-red-100 text-red-700 animate-pulse"
+                    dept.status === 'NORMAL' ? "bg-green-500/10 text-green-600 dark:text-green-400" :
+                    dept.status === 'BUSY' ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                    "bg-red-500/10 text-red-600 dark:text-red-400 animate-pulse"
                   }
                 >
                   {dept.status}
@@ -91,7 +91,7 @@ export default function DepartmentsPage() {
                 </div>
                 <div className="h-2 w-full bg-muted/50 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-[#B45A6A] rounded-full"
+                    className="h-full bg-primary/80 rounded-full"
                     style={{ width: `${dept.efficiency}%` }}
                   />
                 </div>
