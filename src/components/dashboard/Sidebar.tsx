@@ -35,6 +35,7 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
     { href: "/superadmin/staff", label: "Staff", icon: Users },
     { href: "/superadmin/finance", label: "Finance", icon: DollarSign },
     { href: "/superadmin/departments", label: "Departments", icon: Building2 },
+    { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch },
     { href: "/superadmin/rbac", label: "Access Control", icon: Shield },
     { href: "/superadmin/settings", label: "Settings", icon: Settings },
     
