@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Home } from "lucide-react";
 import { FullScreenButton } from "./components/FullScreenButton";
 
 export const metadata: Metadata = {
@@ -16,7 +18,10 @@ export default function FrontDeskLayout({
       {/* Front Desk Minimal Header */}
       <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-4">
-          <div className="font-bold text-lg text-primary">AMAZ</div>
+          <Link href="/frontdesk" className="flex items-center gap-2 font-bold text-lg text-primary hover:text-primary/80 transition-colors" title="Return to Dashboard">
+            <Home className="w-5 h-5" />
+            <span>AMAZ</span>
+          </Link>
           <div className="h-4 w-px bg-border" />
           <div className="text-sm font-medium">Front Desk & POS</div>
         </div>

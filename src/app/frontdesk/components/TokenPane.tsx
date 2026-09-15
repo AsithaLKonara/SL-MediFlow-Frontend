@@ -6,12 +6,43 @@ import { Input } from "@/components/ui/input";
 import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useReactToPrint } from "react-to-print";
+import { useRef } from "react";
+import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
+import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 
 export function TokenPane() {
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const tokenPrintRef = useRef<HTMLDivElement>(null);
+  const handlePrintToken = useReactToPrint({ contentRef: tokenPrintRef });
+
+  const prescriptionPrintRef = useRef<HTMLDivElement>(null);
+  const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
 
   return (
-    <div className="flex-1 flex flex-col p-4 gap-4">
+    <div className="flex-1 flex flex-col p-4 gap-4 relative">
+      <div className="hidden">
+        <TokenReceipt 
+          ref={tokenPrintRef} 
+          tokenNumber="A-102" 
+          doctorName="Dr. Silva" 
+          patientName="John Doe" 
+          date={new Date().toLocaleDateString()} 
+        />
+        <PrescriptionReceipt 
+          ref={prescriptionPrintRef}
+          patientName="Nimal Perera"
+          patientAge="45"
+          patientPhone="0771234567"
+          doctorName="Dr. Silva"
+          date={new Date().toLocaleDateString()}
+          medicines={[
+            { name: "Paracetamol 500mg", dosage: "2 pills after meals" },
+            { name: "Amoxicillin 250mg", dosage: "1 pill before meals" }
+          ]}
+        />
+      </div>
       <Tabs defaultValue="reception" className="flex flex-col h-full">
         <TabsList className="grid w-full grid-cols-2 mb-4 bg-background border border-border">
           <TabsTrigger value="reception" className="data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
@@ -89,7 +120,7 @@ export function TokenPane() {
             </div>
 
             <div className="mt-auto pt-4 border-t border-border">
-              <Button className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" onClick={() => window.print()}>
+              <Button className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" onClick={() => handlePrintToken()}>
                 <Ticket className="w-5 h-5 mr-2" />
                 Register & Generate Token
               </Button>
@@ -121,10 +152,10 @@ export function TokenPane() {
                     </div>
 
                     <div className="pt-3 border-t border-border flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 border-primary/30 text-primary hover:bg-primary/10">
-                        View Details
+                      <Button variant="outline" size="sm" className="flex-1 border-primary/30 text-primary hover:bg-primary/10" onClick={() => handlePrintPrescription()}>
+                        Print Rx
                       </Button>
-                      <Button size="sm" className="flex-1 bg-primary bg-primary/90">
+                      <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90">
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Send to POS
                       </Button>
