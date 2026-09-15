@@ -83,7 +83,59 @@
   --sidebar-ring: #6B0F26;
 }
 
+.dark {
+  --background: #1e1b1c;
+  --foreground: #F2ECEB;
+  --card: #2c2728;
+  --card-foreground: #F2ECEB;
+  --popover: #2c2728;
+  --popover-foreground: #F2ECEB;
+  --primary: #B45A6A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #6B0F26;
+  --secondary-foreground: #F2ECEB;
+  --muted: #3a3435;
+  --muted-foreground: #C7C1BC;
+  --accent: #B45A6A;
+  --accent-foreground: #F2ECEB;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #3a3435;
+  --input: #3a3435;
+  --ring: #B45A6A;
+  --sidebar: #1e1b1c;
+  --sidebar-foreground: #F2ECEB;
+  --sidebar-primary: #B45A6A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #3a3435;
+  --sidebar-accent-foreground: #F2ECEB;
+  --sidebar-border: #3a3435;
+  --sidebar-ring: #B45A6A;
+}
+
 @layer base {
+  .touch-mode {
+    --radius: 0.75rem;
+  }
+  
+  .touch-mode button,
+  .touch-mode input,
+  .touch-mode select {
+    min-height: 48px !important;
+    font-size: 1.05rem !important;
+  }
+  
+  .touch-mode .text-sm {
+    font-size: 1rem !important;
+  }
+  
+  .touch-mode .p-4 {
+    padding: 1.25rem !important;
+  }
+  
+  .touch-mode .p-6 {
+    padding: 1.5rem !important;
+  }
+}
   * {
     @apply border-border outline-ring/50;
   }

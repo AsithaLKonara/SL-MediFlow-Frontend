@@ -4,19 +4,35 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 type SidebarContextType = {
   isCollapsed: boolean;
   toggleSidebar: () => void;
+  isTouchMode: boolean;
+  toggleTouchMode: () => void;
 };
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isTouchMode, setIsTouchMode] = useState(false);
   
   useEffect(() => {
-    const stored = localStorage.getItem("amaz_sidebar_collapsed");
-    if (stored) {
-      setIsCollapsed(JSON.parse(stored));
+    const storedSidebar = localStorage.getItem("amaz_sidebar_collapsed");
+    if (storedSidebar) {
+      setIsCollapsed(JSON.parse(storedSidebar));
+    }
+    
+    const storedTouch = localStorage.getItem("amaz_touch_mode");
+    if (storedTouch) {
+      setIsTouchMode(JSON.parse(storedTouch));
     }
   }, []);
+
+  useEffect(() => {
+    if (isTouchMode) {
+      document.body.classList.add("touch-mode");
+    } else {
+      document.body.classList.remove("touch-mode");
+    }
+  }, [isTouchMode]);
 
   const toggleSidebar = () => {
     setIsCollapsed(prev => {
@@ -26,8 +42,16 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const toggleTouchMode = () => {
+    setIsTouchMode(prev => {
+      const next = !prev;
+      localStorage.setItem("amaz_touch_mode", JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
+    <SidebarContext.Provider value={{ isCollapsed, toggleSidebar, isTouchMode, toggleTouchMode }}>
       {children}
     </SidebarContext.Provider>
   );

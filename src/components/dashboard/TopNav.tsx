@@ -1,6 +1,8 @@
 "use client";
 
-import { Bell, Search, Menu } from "lucide-react";
+import { Bell, Search, Menu, Sun, Moon, Maximize, Minimize, Pointer } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -15,11 +17,34 @@ import { useSidebar } from "./SidebarProvider";
 import { cn } from "@/lib/utils";
 
 export function TopNav() {
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, toggleSidebar, isTouchMode, toggleTouchMode } = useSidebar();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
   const marginLeft = isCollapsed ? "ml-[80px]" : "ml-64";
 
+  useEffect(() => {
+    setMounted(true);
+    
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen().catch(err => console.error(err));
+    } else {
+      await document.exitFullscreen().catch(err => console.error(err));
+    }
+  };
+
   return (
-    <header className={cn("h-16 bg-white border-b px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all duration-300 ease-in-out", marginLeft)}>
+    <header className={cn("h-16 bg-background border-b px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all duration-300 ease-in-out", marginLeft)}>
       <div className="flex items-center gap-4 w-full max-w-md">
         <Button variant="ghost" size="icon" onClick={toggleSidebar} className="shrink-0 text-muted-foreground hover:text-foreground">
           <Menu className="w-5 h-5" />
@@ -34,7 +59,41 @@ export function TopNav() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        {mounted && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="text-muted-foreground hover:text-foreground"
+              title="Toggle Dark Mode"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+            
+            <Button
+              variant={isTouchMode ? "secondary" : "ghost"}
+              size="icon"
+              onClick={toggleTouchMode}
+              className={cn("text-muted-foreground hover:text-foreground", isTouchMode && "text-primary bg-primary/10 hover:bg-primary/20")}
+              title="Toggle Touch/Kiosk Mode"
+            >
+              <Pointer className="h-5 w-5" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className="text-muted-foreground hover:text-foreground mr-2 hidden sm:flex"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+            </Button>
+          </>
+        )}
+
         <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
           <Bell className="h-5 w-5" />
           <span className="absolute top-2 right-2.5 w-2 h-2 bg-primary rounded-full"></span>
