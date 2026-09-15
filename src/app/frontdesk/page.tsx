@@ -68,6 +68,7 @@ export default function FrontDeskDashboard() {
           </button>
 
           <button 
+            onClick={() => router.push('/frontdesk/inventory')}
             className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-secondary hover:text-secondary text-foreground rounded-2xl p-8 transition-colors group text-left h-48"
           >
             <Package className="w-12 h-12 opacity-50 group-hover:opacity-100" />

@@ -10,10 +10,17 @@ import { useCartSync, CartItem } from "../hooks/useCartSync";
 export function POSPane() {
   const { updateState, state } = useCartSync(true);
 
-  const [cart, setCart] = useState<CartItem[]>([
-    { id: "1", name: "Paracetamol 500mg", qty: 2, price: 15.00 },
-    { id: "2", name: "Amoxicillin 250mg", qty: 1, price: 45.00 },
-  ]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
+  const [searchInput, setSearchInput] = useState("");
+  const [activeDrugSearch, setActiveDrugSearch] = useState(false);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
+      .then((r) => r.json())
+      .then((d) => setAvailableMedicines(d))
+      .catch((e) => console.error("Failed to load medicines", e));
+  }, []);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "QR" | null>(null);
@@ -32,6 +39,54 @@ export function POSPane() {
 
   const handleRemove = (id: string) => {
     setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const addToCart = (med: any) => {
+    setCart(prev => {
+      const exists = prev.find(i => i.id === med.id);
+      if (exists) {
+        return prev.map(i => i.id === med.id ? { ...i, qty: i.qty + 1 } : i);
+      }
+      
+      const price = med.stockBatches && med.stockBatches.length > 0 
+        ? med.stockBatches[med.stockBatches.length - 1].unitPrice 
+        : 0;
+        
+      return [...prev, { id: med.id, name: med.name, qty: 1, price }];
+    });
+    setSearchInput("");
+    setActiveDrugSearch(false);
+    
+    // Auto-focus the quantity input after it renders
+    setTimeout(() => {
+      document.getElementById(`qty-input-${med.id}`)?.focus();
+    }, 100);
+  };
+
+  const handleBarcodeScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = searchInput.trim();
+      if (!code) return;
+
+      const match = availableMedicines.find(m => m.barcode === code || m.name.toLowerCase() === code.toLowerCase());
+      if (match) {
+        addToCart(match);
+      } else {
+        // Fallback to fetch directly
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines?barcode=${code}`);
+          const data = await res.json();
+          if (data && data.length > 0) {
+            addToCart(data[0]);
+          } else {
+            // Not found
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
   };
 
   const handlePaymentMethodSelect = (method: "CASH" | "CARD" | "BANK" | "QR") => {
@@ -78,7 +133,45 @@ export function POSPane() {
         <Input
           placeholder="Scan barcode or search medicine..."
           className="pl-9 bg-background border-border"
+          value={searchInput}
+          onChange={(e) => {
+            setSearchInput(e.target.value);
+            setActiveDrugSearch(true);
+          }}
+          onFocus={() => setActiveDrugSearch(true)}
+          onBlur={() => setTimeout(() => setActiveDrugSearch(false), 200)}
+          onKeyDown={handleBarcodeScan}
+          autoFocus
         />
+        
+        {activeDrugSearch && searchInput.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-card text-card-foreground border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+            {availableMedicines.filter((m) => m.name.toLowerCase().includes(searchInput.toLowerCase()) || m.barcode?.includes(searchInput)).length > 0 ? (
+              availableMedicines.filter((m) => m.name.toLowerCase().includes(searchInput.toLowerCase()) || m.barcode?.includes(searchInput)).map((m, i) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="w-full text-left px-4 py-3 text-sm hover:bg-muted/50 focus:bg-muted/50 focus:outline-none flex justify-between items-center border-b last:border-0"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    addToCart(m);
+                  }}
+                >
+                  <div>
+                    <div className="font-medium text-foreground">{m.name}</div>
+                    <div className="text-xs text-muted-foreground">{m.barcode ? `Barcode: ${m.barcode}` : 'No barcode'}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-primary">LKR {m.stockBatches?.[0]?.unitPrice || 0}</div>
+                    <div className="text-xs text-muted-foreground">Stock: {m.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0}</div>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-sm text-muted-foreground">No medicines found.</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Cart Table */}
@@ -99,10 +192,12 @@ export function POSPane() {
                 <TableCell className="font-medium text-foreground">{item.name}</TableCell>
                 <TableCell className="text-right">
                   <Input
+                    id={`qty-input-${item.id}`}
                     type="number"
                     value={item.qty}
                     className="w-16 h-8 text-right ml-auto bg-background border-border text-foreground"
                     onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
+                    onFocus={(e) => e.target.select()}
                   />
                 </TableCell>
                 <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>

@@ -54,8 +54,11 @@ export default function LoginPage() {
         throw new Error(errorData.error || "Login failed");
       }
 
-      // Normally we would save token to cookies/localStorage here or let next-auth handle it
-      router.push("/dashboard");
+      if (data.email === "frontdesk@amaz.com") {
+        router.push("/frontdesk");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
     } finally {
