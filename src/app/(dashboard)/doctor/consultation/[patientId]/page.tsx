@@ -98,7 +98,13 @@ export default function ConsultationPage({
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
       .then((r) => r.json())
-      .then((d) => setAvailableMedicines(d))
+      .then((data) => {
+        const mappedItems = data.map((med: any) => {
+          const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0;
+          return { ...med, stock };
+        });
+        setAvailableMedicines(mappedItems);
+      })
       .catch((e) => console.error("Failed to load medicines", e));
   }, [patientId]);
 
@@ -136,8 +142,23 @@ export default function ConsultationPage({
   };
 
   const selectDrug = (medicine: any) => {
-    setCurrentDrug(prev => ({ ...prev, drug: medicine.name, dosage: medicine.unit }));
+    let parsedDosage = medicine.unit;
+    let finalDrugName = medicine.name;
+
+    if (medicine.genericName && medicine.name.toLowerCase().includes(medicine.genericName.toLowerCase())) {
+      const extracted = medicine.name.substring(medicine.genericName.length).trim();
+      if (extracted) {
+        parsedDosage = extracted;
+        finalDrugName = medicine.genericName;
+      }
+    }
+
+    setCurrentDrug(prev => ({ ...prev, drug: finalDrugName, dosage: parsedDosage }));
     setActiveDrugSearch(false);
+    
+    if (medicine.stock === 0) {
+      toast.warning(`${medicine.name} is currently OUT OF STOCK in the pharmacy.`, { duration: 5000 });
+    }
   };
 
   const toggleTest = (test: string) =>
@@ -355,14 +376,22 @@ export default function ConsultationPage({
                               <button
                                 key={i}
                                 type="button"
-                                className="w-full text-left px-4 py-2 text-sm hover:bg-muted/30 focus:bg-muted/30 focus:outline-none flex justify-between"
+                                className="w-full text-left px-4 py-2 text-sm hover:bg-muted/30 focus:bg-muted/30 focus:outline-none flex justify-between items-center"
                                 onMouseDown={(e) => {
                                   e.preventDefault(); // Prevent onBlur from firing before click
                                   selectDrug(m);
                                 }}
                               >
-                                <span className="font-medium text-foreground">{m.genericName || m.name}</span>
-                                <span className="text-muted-foreground">{m.unit}</span>
+                                <div>
+                                  <span className="font-medium text-foreground block">{m.genericName || m.name}</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.category}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="block text-muted-foreground text-xs">{m.unit}</span>
+                                  <span className={cn("text-[10px] font-bold", m.stock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
+                                    {m.stock > 0 ? `${m.stock} IN STOCK` : "OUT OF STOCK"}
+                                  </span>
+                                </div>
                               </button>
                             ))
                           ) : (
