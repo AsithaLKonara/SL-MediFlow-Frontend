@@ -96,7 +96,7 @@ export default function ConsultationPage({
       .then((r) => r.json())
       .then((d) => { setPatient(d); setLoading(false); });
 
-    fetch("http://localhost:5000/api/pharmacy/medicines")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
       .then((r) => r.json())
       .then((d) => setAvailableMedicines(d))
       .catch((e) => console.error("Failed to load medicines", e));

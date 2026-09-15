@@ -95,7 +95,7 @@ export default function PharmacyDashboardPage() {
       // Dispense each drug via the Backend API
       for (const drug of activeRx.drugs) {
         if (drug.dispenseQty > 0) {
-          const res = await fetch("http://localhost:5000/api/pharmacy/dispense", {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/dispense`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ medicineId: drug.id, quantity: drug.dispenseQty })
