@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "./SidebarProvider";
 
 const roleNavConfig: Record<string, { label: string; href: string; icon: React.ElementType }[]> = {
   superadmin: [
@@ -83,6 +84,7 @@ const roleLabelMap: Record<string, string> = {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { isCollapsed } = useSidebar();
 
   // Determine the current role from the pathname
   const roleKey = Object.keys(roleNavConfig).find((key) =>
@@ -91,17 +93,26 @@ export function Sidebar() {
 
   const navItems = roleNavConfig[roleKey];
   const roleLabel = roleLabelMap[roleKey];
+  const width = isCollapsed ? "w-[80px]" : "w-64";
 
   return (
-    <aside className="w-64 h-screen bg-white border-r flex flex-col shadow-sm fixed left-0 top-0 z-40">
-      <div className="h-16 flex items-center px-6 border-b shrink-0">
-        <Image src="/logo.png" alt="AMAZ Hospital" width={140} height={40} className="object-contain" />
+    <aside className={cn("h-screen bg-white border-r flex flex-col shadow-sm fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out", width)}>
+      <div className={cn("h-16 flex items-center border-b shrink-0", isCollapsed ? "justify-center px-0" : "px-6")}>
+        {isCollapsed ? (
+          <div className="font-bold text-xl text-primary">A+</div>
+        ) : (
+          <Image src="/logo.png" alt="AMAZ Hospital" width={140} height={40} className="object-contain" />
+        )}
       </div>
 
-      <div className="px-4 pt-4 pb-1">
-        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
-          {roleLabel}
-        </span>
+      <div className={cn("pt-4 pb-1 transition-opacity duration-200", isCollapsed ? "px-0 text-center" : "px-4")}>
+        {isCollapsed ? (
+          <div className="w-8 h-[1px] bg-border mx-auto my-2" />
+        ) : (
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
+            {roleLabel}
+          </span>
+        )}
       </div>
 
       <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
@@ -112,27 +123,33 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              title={isCollapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                "flex items-center rounded-md text-sm font-medium transition-all duration-200",
+                isCollapsed ? "justify-center py-3 px-0 mx-2" : "gap-3 px-3 py-2.5",
                 isActive
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <item.icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
-              {item.label}
+              <item.icon className={cn(isCollapsed ? "w-6 h-6" : "w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
+              {!isCollapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t shrink-0">
+      <div className={cn("border-t shrink-0 flex flex-col", isCollapsed ? "p-2" : "p-4")}>
         <Link
           href="/login"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          title={isCollapsed ? "Logout" : undefined}
+          className={cn(
+            "flex items-center rounded-md text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors",
+            isCollapsed ? "justify-center py-3 px-0" : "gap-3 px-3 py-2.5"
+          )}
         >
-          <LogOut className="w-5 h-5" />
-          Logout
+          <LogOut className={cn(isCollapsed ? "w-6 h-6 text-destructive" : "w-5 h-5")} />
+          {!isCollapsed && <span>Logout</span>}
         </Link>
       </div>
     </aside>

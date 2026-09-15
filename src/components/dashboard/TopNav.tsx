@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -11,11 +11,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useSidebar } from "./SidebarProvider";
+import { cn } from "@/lib/utils";
 
 export function TopNav() {
+  const { isCollapsed, toggleSidebar } = useSidebar();
+  const marginLeft = isCollapsed ? "ml-[80px]" : "ml-64";
+
   return (
-    <header className="h-16 bg-white border-b px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm ml-64">
+    <header className={cn("h-16 bg-white border-b px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all duration-300 ease-in-out", marginLeft)}>
       <div className="flex items-center gap-4 w-full max-w-md">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="shrink-0 text-muted-foreground hover:text-foreground">
+          <Menu className="w-5 h-5" />
+        </Button>
         <div className="relative w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
