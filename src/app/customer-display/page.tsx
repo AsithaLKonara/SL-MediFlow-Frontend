@@ -1,0 +1,135 @@
+"use client";
+
+import { useCartSync } from "../frontdesk/hooks/useCartSync";
+import { ShoppingBag, BellRing, Receipt } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+import { useEffect, useState } from "react";
+
+export default function CustomerDisplayPage() {
+  const { state } = useCartSync(false); // Receiver
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="flex h-screen w-full bg-background flex-col items-center justify-center text-muted-foreground">Loading Display...</div>;
+  }
+
+  return (
+    <div className="flex flex-col lg:flex-row min-h-screen w-full lg:h-screen lg:overflow-hidden">
+      {/* Left Side: Tokens / Announcements */}
+      <div className="w-full lg:w-1/2 min-h-[40vh] lg:h-full bg-secondary/10 border-b lg:border-b-0 lg:border-r border-border p-4 md:p-8 flex flex-col items-center justify-center relative">
+        <div className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 md:gap-4">
+          <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center">
+            <BellRing className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-secondary">Now Serving</h2>
+        </div>
+
+        {state.tokenCalled ? (
+          <div className="text-center animate-in zoom-in duration-500">
+            <h1 className="text-7xl md:text-9xl font-black text-primary-foreground tracking-tighter mb-2 md:mb-4">{state.tokenCalled.number}</h1>
+            <p className="text-xl md:text-3xl text-secondary font-medium">Please proceed to {state.tokenCalled.doctor}</p>
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground">
+            <h1 className="text-4xl md:text-6xl font-bold mb-2 md:mb-4">AMAZ Hospital</h1>
+            <p className="text-lg md:text-xl">Waiting for next token...</p>
+          </div>
+        )}
+      </div>
+
+      {/* Right Side: POS Receipt */}
+      <div className="w-full lg:w-1/2 flex-1 lg:h-full bg-background p-4 md:p-8 flex flex-col relative">
+        <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-8">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-primary rounded-xl flex items-center justify-center">
+            <Receipt className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-primary">Your Receipt</h2>
+        </div>
+
+        <div className="flex-1 bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-auto">
+            <Table>
+              <TableHeader className="bg-background">
+                <TableRow className="border-border border-b-2">
+                  <TableHead className="text-base md:text-lg py-3 md:py-4">Item</TableHead>
+                  <TableHead className="text-base md:text-lg py-3 md:py-4 text-center">Qty</TableHead>
+                  <TableHead className="text-base md:text-lg py-3 md:py-4 text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {state.cart.map((item) => (
+                  <TableRow key={item.id} className="border-border">
+                    <TableCell className="text-lg md:text-xl font-medium py-3 md:py-4">{item.name}</TableCell>
+                    <TableCell className="text-lg md:text-xl text-center text-muted-foreground py-3 md:py-4">{item.qty}</TableCell>
+                    <TableCell className="text-lg md:text-xl text-right py-3 md:py-4">LKR {(item.price * item.qty).toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                {state.cart.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-40 md:h-48 text-center text-lg md:text-xl text-muted-foreground">
+                      <div className="flex flex-col items-center gap-3 md:gap-4 justify-center">
+                        <ShoppingBag className="w-10 h-10 md:w-12 md:h-12 opacity-50" />
+                        No items scanned yet
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Totals Footer */}
+          <div className="bg-background p-4 md:p-8 border-t-2 border-border space-y-3 md:space-y-4">
+            <div className="flex justify-between text-xl md:text-2xl text-muted-foreground">
+              <span>Subtotal</span>
+              <span>LKR {state.subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-3xl md:text-5xl font-bold text-primary pt-3 md:pt-4 border-t border-border">
+              <span>Total</span>
+              <span>LKR {state.total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Overlay */}
+        {state.checkout?.status === "PAYING" && (state.checkout.method === "BANK" || state.checkout.method === "QR") && (
+          <div className="absolute inset-4 md:inset-8 bg-card/95 backdrop-blur-md border border-border rounded-2xl flex flex-col items-center justify-center p-8 text-center animate-in zoom-in-95 z-50 shadow-2xl">
+            {state.checkout.method === "QR" ? (
+              <>
+                <div className="w-64 h-64 bg-white p-4 rounded-xl shadow-lg flex items-center justify-center mb-6">
+                  {/* Placeholder for actual QR code */}
+                  <div className="w-full h-full border-4 border-dashed border-neutral-300 flex items-center justify-center text-neutral-400 font-medium text-lg text-center p-4">
+                    LANKAQR<br/>Code
+                  </div>
+                </div>
+                <h2 className="text-3xl font-bold text-primary mb-2">Scan to Pay</h2>
+                <p className="text-xl text-muted-foreground">Amount: LKR {state.total.toFixed(2)}</p>
+              </>
+            ) : (
+              <>
+                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                  <Receipt className="w-12 h-12 text-primary" />
+                </div>
+                <h2 className="text-3xl font-bold text-primary mb-4">Bank Transfer Details</h2>
+                <div className="bg-background border border-border rounded-xl p-6 text-left space-y-2 w-full max-w-sm mb-6">
+                  <p className="text-muted-foreground text-sm">Bank Name</p>
+                  <p className="text-lg font-semibold text-foreground mb-4">Commercial Bank</p>
+                  <p className="text-muted-foreground text-sm">Account Name</p>
+                  <p className="text-lg font-semibold text-foreground mb-4">AMAZ Hospital (Pvt) Ltd</p>
+                  <p className="text-muted-foreground text-sm">Account Number</p>
+                  <p className="text-2xl font-mono font-bold text-primary">1000 234 5678</p>
+                </div>
+                <p className="text-xl text-muted-foreground">Amount: LKR {state.total.toFixed(2)}</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
