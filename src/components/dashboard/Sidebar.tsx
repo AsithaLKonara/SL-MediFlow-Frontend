@@ -21,7 +21,6 @@ import {
   Microscope,
   FileSearch2,
   FilePlus2,
-  Banknote,
   CreditCard,
   Shield,
 } from "lucide-react";

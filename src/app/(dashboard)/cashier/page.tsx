@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Banknote, Banknote, Receipt, CreditCard, Clock } from "lucide-react";
+import { Banknote, Receipt, CreditCard, Clock } from "lucide-react";
 import Link from "next/link";
 
 interface Metrics {
