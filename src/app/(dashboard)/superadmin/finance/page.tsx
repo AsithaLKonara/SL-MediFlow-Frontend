@@ -39,7 +39,7 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/finance")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/finance/dashboard`)
       .then(res => res.json())
       .then(data => {
         setData(data);
