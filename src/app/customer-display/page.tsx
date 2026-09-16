@@ -2,6 +2,7 @@
 
 import { useCartSync } from "../frontdesk/hooks/useCartSync";
 import { ShoppingBag, BellRing, Receipt } from "lucide-react";
+import Image from "next/image";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { useEffect, useState } from "react";
@@ -35,8 +36,8 @@ export default function CustomerDisplayPage() {
             <p className="text-xl md:text-3xl text-secondary font-medium">Please proceed to {state.tokenCalled.doctor}</p>
           </div>
         ) : (
-          <div className="text-center text-muted-foreground">
-            <h1 className="text-4xl md:text-6xl font-bold mb-2 md:mb-4">AMAZ Hospital</h1>
+          <div className="text-center text-muted-foreground flex flex-col items-center">
+            <Image src="/logo.png" alt="AMAZ Hospital" width={400} height={120} className="mb-4 object-contain opacity-80" />
             <p className="text-lg md:text-xl">Waiting for next token...</p>
           </div>
         )}
