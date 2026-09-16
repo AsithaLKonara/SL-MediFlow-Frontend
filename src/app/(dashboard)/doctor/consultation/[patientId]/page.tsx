@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer } from "lucide-react";
 import Link from "next/link";
@@ -64,7 +64,7 @@ export default function ConsultationPage({
   const [visitCompleted, setVisitCompleted] = useState(false);
   const [createdPrescription, setCreatedPrescription] = useState<any>(null);
 
-  const printRef = React.useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: printRef as any,
     documentTitle: `Prescription_${patientId}`
