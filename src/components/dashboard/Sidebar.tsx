@@ -29,28 +29,20 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarProvider";
 
-const roleNavConfig: Record<string, { label: string; href: string; icon: React.ElementType }[]> = {
+type NavItem = { label: string; href: string; icon: React.ElementType; category?: string };
+
+const roleNavConfig: Record<string, NavItem[]> = {
   superadmin: [
-    { href: "/superadmin", label: "Overview", icon: LayoutDashboard },
-    { href: "/superadmin/staff", label: "Staff", icon: Users },
-    { href: "/superadmin/finance", label: "Finance", icon: DollarSign },
-    { href: "/superadmin/departments", label: "Departments", icon: Building2 },
-    { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch },
-    { href: "/superadmin/rbac", label: "Access Control", icon: Shield },
-    { href: "/superadmin/settings", label: "Settings", icon: Settings },
+    { href: "/superadmin", label: "Overview", icon: LayoutDashboard, category: "Dashboard" },
     
-    // Cross-role access for Super Admin
-    { href: "/receptionist/patients", label: "Reception: Patients", icon: UserPlus },
-    { href: "/receptionist/queue", label: "Reception: New Visit", icon: CalendarClock },
-    { href: "/doctor/queue", label: "Doctor: Patient Queue", icon: ClipboardList },
-    { href: "/pharmacist/prescriptions", label: "Pharmacy: Scan RX", icon: Pill },
-    { href: "/labtech/requests", label: "Lab: Test Requests", icon: Microscope },
-    { href: "/cashier/payments", label: "Cashier: Payments", icon: Banknote },
-  ],
-  receptionist: [
-    { href: "/receptionist", label: "Overview", icon: LayoutDashboard },
-    { href: "/receptionist/patients", label: "Patients", icon: UserPlus },
-    { href: "/receptionist/queue", label: "New Visit", icon: CalendarClock },
+    { href: "/superadmin/finance", label: "Finance", icon: DollarSign, category: "Operations" },
+    { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations" },
+
+    { href: "/superadmin/staff", label: "Staff Directory", icon: Users, category: "Management" },
+    { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management" },
+    
+    { href: "/superadmin/rbac", label: "Access Control", icon: Shield, category: "System" },
+    { href: "/superadmin/settings", label: "Settings", icon: Settings, category: "System" },
   ],
   frontdesk: [
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
@@ -64,29 +56,18 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
     { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
     { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
   ],
-  pharmacist: [
-    { href: "/pharmacist", label: "Overview", icon: LayoutDashboard },
-    { href: "/pharmacist/prescriptions", label: "Scan Prescription", icon: Pill },
-    { href: "/pharmacist/inventory", label: "Inventory", icon: PackageSearch },
-  ],
   labtech: [
     { href: "/labtech", label: "Overview", icon: LayoutDashboard },
     { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
     { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
   ],
-  cashier: [
-    { href: "/cashier", label: "Overview", icon: LayoutDashboard },
-    { href: "/cashier/payments", label: "Payments", icon: Banknote },
-  ],
 };
 
 const roleLabelMap: Record<string, string> = {
   superadmin: "Super Admin",
-  receptionist: "Receptionist",
+  frontdesk: "Front Desk",
   doctor: "Doctor",
-  pharmacist: "Pharmacist",
-  labtech: "Lab Technician",
-  cashier: "Cashier",
+  labtech: "Lab",
 };
 
 export function Sidebar() {
@@ -122,28 +103,47 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const isExact = item.href === `/${roleKey}`;
-          const isActive = isExact ? pathname === item.href : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={isCollapsed ? item.label : undefined}
-              className={cn(
-                "flex items-center rounded-md text-sm font-medium transition-all duration-200",
-                isCollapsed ? "justify-center py-3 px-0 mx-2" : "gap-3 px-3 py-2.5",
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <item.icon className={cn(isCollapsed ? "w-6 h-6" : "w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
-              {!isCollapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-4 py-2 overflow-y-auto">
+        {(() => {
+          let currentCategory: string | undefined = undefined;
+
+          return navItems.map((item, index) => {
+            const isExact = item.href === `/${roleKey}`;
+            const isActive = isExact ? pathname === item.href : pathname.startsWith(item.href);
+            
+            const renderCategoryHeader = item.category && item.category !== currentCategory;
+            if (renderCategoryHeader) {
+              currentCategory = item.category;
+            }
+
+            return (
+              <div key={item.href} className={cn(renderCategoryHeader ? "mt-6 mb-2" : "mt-1")}>
+                {renderCategoryHeader && !isCollapsed && (
+                  <h4 className="px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                    {item.category}
+                  </h4>
+                )}
+                {renderCategoryHeader && isCollapsed && (
+                  <div className="w-8 h-[1px] bg-border/50 mx-auto my-3" />
+                )}
+                <Link
+                  href={item.href}
+                  title={isCollapsed ? item.label : undefined}
+                  className={cn(
+                    "flex items-center rounded-md text-sm font-medium transition-all duration-200",
+                    isCollapsed ? "justify-center py-3 px-0 mx-2" : "gap-3 px-3 py-2.5",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <item.icon className={cn(isCollapsed ? "w-6 h-6" : "w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
+                  {!isCollapsed && <span>{item.label}</span>}
+                </Link>
+              </div>
+            );
+          });
+        })()}
       </nav>
 
       <div className={cn("border-t shrink-0 flex flex-col", isCollapsed ? "p-2" : "p-4")}>
