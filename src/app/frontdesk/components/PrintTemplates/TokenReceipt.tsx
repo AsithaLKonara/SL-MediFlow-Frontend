@@ -10,8 +10,11 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
   return (
     <div ref={ref} className="w-[300px] bg-card text-card-foreground text-black p-4 font-sans print:p-0">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-black mb-1">AMAZ HOSPITAL</h1>
-        <p className="text-sm font-medium border-b-2 border-black pb-2">Front Desk Token</p>
+        <img src="/logo.png" alt="AMAZ Hospital" className="w-48 mx-auto mb-2" />
+        <p className="text-xs text-black">0472239090 | www.amazhospital.com</p>
+        <p className="text-[10px] text-black">info@amazhospital.com</p>
+        <p className="text-[10px] text-black mb-2">debarawewa, Tissamaharama</p>
+        <p className="text-sm font-medium border-b-2 border-black pb-2 pt-2">Front Desk Token</p>
       </div>
 
       <div className="text-center mb-6 space-y-1">

@@ -13,9 +13,10 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
         {/* The printable area that react-to-print targets */}
         <div ref={ref} className="w-[300px] p-2 bg-white text-black font-mono text-sm leading-tight">
           <div className="text-center mb-4 border-b-2 border-black pb-2">
-            <h1 className="text-xl font-bold uppercase tracking-widest">AMAZ HOSPITAL</h1>
-            <p className="text-xs">No 123, Galle Road, Colombo</p>
-            <p className="text-xs">Tel: 011-2345678</p>
+            <img src="/logo.png" alt="AMAZ Hospital" className="w-48 mx-auto mb-2" />
+            <p className="text-xs">0472239090 | www.amazhospital.com</p>
+            <p className="text-[10px]">info@amazhospital.com</p>
+            <p className="text-[10px]">debarawewa, Tissamaharama</p>
           </div>
 
           <div className="mb-4 text-xs">
