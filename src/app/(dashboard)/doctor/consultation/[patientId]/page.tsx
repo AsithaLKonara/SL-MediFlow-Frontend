@@ -2,8 +2,11 @@
 
 import { useEffect, useState, use } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer } from "lucide-react";
 import Link from "next/link";
+import { io } from "socket.io-client";
+import { useReactToPrint } from "react-to-print";
+import { PrescriptionPrintTemplate } from "@/components/printing/PrescriptionPrintTemplate";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/dashboard/SidebarProvider";
 import { Button } from "@/components/ui/button";
@@ -59,6 +62,13 @@ export default function ConsultationPage({
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [visitCompleted, setVisitCompleted] = useState(false);
+  const [createdPrescription, setCreatedPrescription] = useState<any>(null);
+
+  const printRef = React.useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: printRef as any,
+    documentTitle: `Prescription_${patientId}`
+  });
 
   // Prescription state
   const [diagnosis, setDiagnosis] = useState("");
@@ -100,6 +110,26 @@ export default function ConsultationPage({
       .then((r) => r.json())
       .then((data) => setAvailableLabTests(data))
       .catch((e) => console.error("Failed to load lab catalog", e));
+
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace('/api', '');
+    const socket = io(socketUrl);
+
+    socket.on("connect", () => {
+      console.log("Doctor connected to websocket");
+    });
+
+    socket.on("lab_result_ready", (data) => {
+      if (data.patientId === patientId) {
+        toast.info(`New Lab Result Ready for ${data.testName}`, {
+          duration: 10000,
+          action: { label: "View", onClick: () => window.open(`/labtech/results/${data.requestId}`) }
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [patientId]);
 
   const handleAddOrUpdateDrug = () => {
@@ -193,8 +223,41 @@ export default function ConsultationPage({
     toast.success("Consultation completed and securely saved.");
     
     if (addedDrugs.length > 0) {
-      toast.success("Prescription forwarded to Pharmacy.");
+      try {
+        const payload = {
+          patientId: patient?.id,
+          patientName: patient?.name,
+          visitId: "V-2026-000521",
+          doctorId: "DOC-123",
+          doctorName: "Dr. Silva",
+          diagnosis,
+          clinicalNotes: notes,
+          items: addedDrugs.map(d => ({
+            medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id,
+            drugName: d.drug,
+            dosage: d.dosage,
+            frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,
+            duration: d.duration,
+            instructions: d.instructions
+          }))
+        };
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const rx = await res.json();
+          setCreatedPrescription(rx);
+          toast.success("Prescription forwarded to Pharmacy in realtime.");
+        }
+      } catch (e) {
+        console.error("Failed to send prescription", e);
+      }
     }
+    
     if (selectedTests.length > 0) {
       try {
         await Promise.all(selectedTests.map(test => 
@@ -216,9 +279,12 @@ export default function ConsultationPage({
       }
     }
 
-    setTimeout(() => {
-      window.location.href = "/doctor/queue";
-    }, 1500);
+    // Delay redirect to allow user to print
+    if (addedDrugs.length === 0) {
+      setTimeout(() => {
+        window.location.href = "/doctor/queue";
+      }, 1500);
+    }
   };
 
   if (loading || !patient) {
@@ -623,6 +689,16 @@ export default function ConsultationPage({
             <span className="text-sm font-medium text-muted-foreground">Consultation in progress...</span>
           </div>
           <div className="flex items-center gap-4">
+            {createdPrescription && (
+              <Button 
+                variant="outline"
+                className="border-primary text-primary"
+                onClick={() => handlePrint()}
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Print Rx Token
+              </Button>
+            )}
             <Button 
               variant="outline" 
               onClick={handleSaveDraft}
@@ -631,19 +707,26 @@ export default function ConsultationPage({
             >
               {savingDraft ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> Save Draft</>}
             </Button>
-            <Button 
-              size="lg" 
-              onClick={handleCompleteConsultation}
-              disabled={visitCompleted}
-              className="bg-primary hover:bg-primary text-white min-w-[220px]"
-            >
-              <CheckCircle2 className="w-5 h-5 mr-2" />
-              {visitCompleted ? "Completed" : "Complete Consultation"}
-            </Button>
+            {createdPrescription ? (
+              <Button size="lg" onClick={() => window.location.href = "/doctor/queue"} className="bg-primary hover:bg-primary text-white">
+                Next Patient
+              </Button>
+            ) : (
+              <Button 
+                size="lg" 
+                onClick={handleCompleteConsultation}
+                disabled={visitCompleted}
+                className="bg-primary hover:bg-primary text-white min-w-[220px]"
+              >
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+                {visitCompleted ? "Completed" : "Complete Consultation"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
-
+      
+      <PrescriptionPrintTemplate ref={printRef} prescription={createdPrescription} />
     </div>
   );
 }

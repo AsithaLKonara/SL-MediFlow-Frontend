@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, PackageCheck, Banknote } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { io } from "socket.io-client";
 
 interface Drug {
   id: string;
@@ -36,36 +37,57 @@ export default function PharmacyDashboardPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Mock Data loading
-    setTimeout(() => {
-      setPrescriptions([
-        {
-          id: "RX-2026-000125",
-          patientId: "AMZ-P-000006",
-          patientName: "Kamal Perera",
-          visitId: "V-2026-000521",
-          doctor: "Dr. Silva",
-          status: "PENDING",
-          drugs: [
-            { id: "D1", name: "Paracetamol 500mg", prescribedQty: 10, dispenseQty: 10, unitPrice: 2.50 },
-            { id: "D2", name: "Amoxicillin 500mg", prescribedQty: 15, dispenseQty: 15, unitPrice: 12.00 },
-          ]
-        },
-        {
-          id: "RX-2026-000122",
-          patientId: "PAT-004",
-          patientName: "Patient B",
-          visitId: "V-2026-000519",
-          doctor: "Dr. Perera",
-          status: "PENDING",
-          drugs: [
-            { id: "D3", name: "Metformin 500mg", prescribedQty: 30, dispenseQty: 30, unitPrice: 8.00 },
-          ]
-        }
-      ]);
-      setLoading(false);
-    }, 500);
+    fetchPrescriptions();
+
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace('/api', '');
+    const socket = io(socketUrl);
+
+    socket.on("connect", () => {
+      console.log("Pharmacist connected to websocket");
+    });
+
+    socket.on("prescription_created", (newRx: Prescription) => {
+      setPrescriptions((prev) => [newRx, ...prev]);
+      toast.info(`New prescription arrived for ${newRx.patientName}`, {
+        duration: 8000,
+        action: { label: "View", onClick: () => setActiveRx(newRx) }
+      });
+      // Play a small audio chime if desired:
+      // new Audio("/chime.mp3").play().catch(()=>null);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
+
+  const fetchPrescriptions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/pending`);
+      if (res.ok) {
+        const data = await res.json();
+        // Map backend PrescriptionItem to Drug interface expected by UI
+        const mapped = data.map((p: any) => ({
+          ...p,
+          drugs: p.items.map((i: any) => ({
+            id: i.id,
+            medicineId: i.medicineId,
+            name: i.drugName,
+            prescribedQty: parseInt(i.duration) * (parseInt(i.frequency) || 1) || 10, // heuristic if not parsed
+            dispenseQty: 0,
+            unitPrice: i.medicine?.stockBatches?.[0]?.unitPrice || 0
+          }))
+        }));
+        setPrescriptions(mapped);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to fetch prescriptions");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,28 +114,45 @@ export default function PharmacyDashboardPage() {
     setSubmitting(true);
     
     try {
-      // Dispense each drug via the Backend API
-      for (const drug of activeRx.drugs) {
-        if (drug.dispenseQty > 0) {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/dispense`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ medicineId: drug.id, quantity: drug.dispenseQty })
-          });
-          
-          if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.error || `Failed to dispense ${drug.name}`);
-          }
-        }
+      const payload = {
+        dispensedItems: activeRx.drugs.map(d => ({
+          itemId: d.id,
+          dispenseQty: d.dispenseQty
+        }))
+      };
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activeRx.id}/dispense`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        // Also add pharmacy charge to centralized billing engine
+        const totalCost = activeRx.drugs.reduce((sum, d) => sum + (d.dispenseQty * d.unitPrice), 0);
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/billing/charge`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visitId: activeRx.visitId,
+            patientId: activeRx.patientId,
+            department: "PHARMACY",
+            referenceId: activeRx.id,
+            description: "Pharmacy Medication Charge",
+            quantity: 1,
+            unitPrice: totalCost
+          })
+        });
+
+        toast.success("Prescription dispensed & bill updated!");
+        setPrescriptions(prev => prev.filter(p => p.id !== activeRx.id));
+        setActiveRx(null);
+      } else {
+        toast.error("Failed to update prescription");
       }
-      
-      setPrescriptions(prev => prev.map(p => p.id === activeRx.id ? { ...p, status: "DISPENSED" } : p));
-      toast.success(`Medicines dispensed. Pharmacy charge added to Visit ${activeRx.visitId}`);
-      setActiveRx(null);
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      toast.error(e.message || "An error occurred during dispensing");
+      toast.error("Network error");
     } finally {
       setSubmitting(false);
     }
