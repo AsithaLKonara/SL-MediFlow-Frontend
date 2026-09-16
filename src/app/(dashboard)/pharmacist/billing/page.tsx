@@ -137,7 +137,7 @@ export default function PharmacistPOSPage() {
       setGenerating(false);
       
       if (action === "SETTLE") {
-        toast.success(`Bill settled. Total: $${total.toFixed(2)}`);
+        toast.success(`Bill settled. Total: LKR ${total.toFixed(2)}`);
       } else {
         toast.success(`Bill routed to Cashier queue.`);
       }
@@ -180,15 +180,15 @@ export default function PharmacistPOSPage() {
                   <tr key={i}>
                     <td className="py-2.5 font-medium">{item.name}</td>
                     <td className="py-2.5 text-right text-muted-foreground">{item.qty}</td>
-                    <td className="py-2.5 text-right text-muted-foreground">${item.unitPrice.toFixed(2)}</td>
-                    <td className="py-2.5 text-right font-semibold">${(item.qty * item.unitPrice).toFixed(2)}</td>
+                    <td className="py-2.5 text-right text-muted-foreground">LKR {item.unitPrice.toFixed(2)}</td>
+                    <td className="py-2.5 text-right font-semibold">LKR {(item.qty * item.unitPrice).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="border-t-2">
                   <td colSpan={3} className="pt-3 text-right font-bold text-lg">Total</td>
-                  <td className="pt-3 text-right font-bold text-xl text-primary">${generatedBill.total.toFixed(2)}</td>
+                  <td className="pt-3 text-right font-bold text-xl text-primary">LKR {generatedBill.total.toFixed(2)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -242,7 +242,7 @@ export default function PharmacistPOSPage() {
                           <p className="font-semibold text-sm">{item.name}</p>
                           {item.category === "Prescription" && <Badge variant="outline" className="text-[10px] py-0 h-4 border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-500/10">Rx</Badge>}
                         </div>
-                        <p className="text-xs text-muted-foreground">${item.unitPrice.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">LKR {item.unitPrice.toFixed(2)}</p>
                       </div>
                       
                       <div className="flex items-center gap-4">
@@ -257,8 +257,7 @@ export default function PharmacistPOSPage() {
                             <Plus className="w-3 h-3" />
                           </Button>
                         </div>
-                        <div className="w-20 text-right font-bold text-sm">
-                          ${(item.qty * item.unitPrice).toFixed(2)}
+                        <div className="w-20 text-right font-bold text-sm">LKR {(item.qty * item.unitPrice).toFixed(2)}
                         </div>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-500/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFromCart(item.id)}>
                           <Trash2 className="w-4 h-4" />
@@ -278,7 +277,7 @@ export default function PharmacistPOSPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-muted-foreground mb-1">Grand Total</p>
-                  <p className="text-4xl font-bold text-primary">${total.toFixed(2)}</p>
+                  <p className="text-4xl font-bold text-primary">LKR {total.toFixed(2)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -332,7 +331,7 @@ export default function PharmacistPOSPage() {
                     </div>
                     <div className="w-full flex justify-between items-center text-xs text-muted-foreground mt-1">
                       <span>Stock: {item.stock}</span>
-                      <span className="font-bold text-primary">${item.unitPrice.toFixed(2)}</span>
+                      <span className="font-bold text-primary">LKR {item.unitPrice.toFixed(2)}</span>
                     </div>
                   </Button>
                 ))

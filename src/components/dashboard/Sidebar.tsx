@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  DollarSign,
+  Banknote,
   Building2,
   Settings,
   LogOut,
@@ -35,7 +35,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
   superadmin: [
     { href: "/superadmin", label: "Overview", icon: LayoutDashboard, category: "Dashboard" },
     
-    { href: "/superadmin/finance", label: "Finance", icon: DollarSign, category: "Operations" },
+    { href: "/superadmin/finance", label: "Finance", icon: Banknote, category: "Operations" },
     { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations" },
 
     { href: "/superadmin/staff", label: "Staff Directory", icon: Users, category: "Management" },

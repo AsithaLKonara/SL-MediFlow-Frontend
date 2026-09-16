@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp } from "lucide-react";
+import { Banknote, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import {
   Table,
@@ -67,10 +67,10 @@ export default function FinancePage() {
         <Card className="border-t-4 border-t-primary shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
+            <Banknote className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.metrics.todayRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">LKR {data.metrics.todayRevenue.toLocaleString()}</div>
             <p className="text-xs text-green-600 dark:text-green-400 flex items-center mt-1 font-medium">
               <ArrowUpRight className="w-3 h-3 mr-1" />
               +5% from yesterday
@@ -84,7 +84,7 @@ export default function FinancePage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.metrics.monthlyRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">LKR {data.metrics.monthlyRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Current month projection</p>
           </CardContent>
         </Card>
@@ -95,7 +95,7 @@ export default function FinancePage() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.metrics.outstandingReceivables.toLocaleString()}</div>
+            <div className="text-2xl font-bold">LKR {data.metrics.outstandingReceivables.toLocaleString()}</div>
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">Requires follow-up</p>
           </CardContent>
         </Card>
@@ -106,7 +106,7 @@ export default function FinancePage() {
             <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.metrics.totalExpenses.toLocaleString()}</div>
+            <div className="text-2xl font-bold">LKR {data.metrics.totalExpenses.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">For current month</p>
           </CardContent>
         </Card>
@@ -127,13 +127,13 @@ export default function FinancePage() {
                 axisLine={false} 
                 tickLine={false} 
                 tick={{fill: '#6B7280'}}
-                tickFormatter={(value) => `$${value/1000}k`}
+                tickFormatter={(value) => `LKR ${value/1000}k`}
                 dx={-10}
               />
               <Tooltip 
                 cursor={{fill: 'transparent'}}
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                formatter={(value: any) => [`$${Number(value).toLocaleString()}`, undefined]}
+                formatter={(value: any) => [`LKR ${Number(value).toLocaleString()}`, undefined]}
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
               <Bar dataKey="income" name="Income" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={32} />
@@ -174,8 +174,7 @@ export default function FinancePage() {
                       {trx.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-bold text-[#3A3435]">
-                    ${trx.amount.toLocaleString()}
+                  <TableCell className="text-right font-bold text-[#3A3435]">LKR {trx.amount.toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Badge 

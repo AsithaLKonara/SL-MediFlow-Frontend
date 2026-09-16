@@ -137,7 +137,7 @@ export default function PharmacistInventoryPage() {
                         {item.stock} {item.unit}s
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">{item.reorderLevel}</TableCell>
-                      <TableCell className="text-right font-medium">${item.unitPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-medium">LKR {item.unitPrice.toFixed(2)}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{new Date(item.expiryDate).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={item.status === "LOW_STOCK" ? "bg-red-500/10 text-red-600 dark:text-red-400 gap-1" : "bg-green-500/10 text-green-600 dark:text-green-400"}>

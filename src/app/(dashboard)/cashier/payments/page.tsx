@@ -74,7 +74,7 @@ export default function CashierPaymentsPage() {
                   <p className="text-sm">{p.description}</p>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleTimeString()}</TableCell>
-                <TableCell className="text-right font-bold text-lg">${p.amount.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-bold text-lg">LKR {p.amount.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                   {isPending ? (
                     <Link href={`/cashier/process/${p.id}`}>

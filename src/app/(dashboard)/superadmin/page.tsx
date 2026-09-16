@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Users, Activity, Stethoscope, TrendingUp, Bell, AlertCircle, Info, AlertTriangle } from "lucide-react";
+import { Banknote, Users, Activity, Stethoscope, TrendingUp, Bell, AlertCircle, Info, AlertTriangle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface SystemAlert {
@@ -76,10 +76,10 @@ export default function SuperAdminDashboard() {
         <Card className="border-t-4 border-t-primary shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
+            <Banknote className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">${metrics.revenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">LKR {metrics.revenue.toLocaleString()}</div>
             <p className="text-xs flex items-center mt-1 text-green-600 dark:text-green-400 font-medium">
               <TrendingUp className="w-3 h-3 mr-1" />
               +{metrics.revenueGrowth}% from last month
@@ -130,12 +130,12 @@ export default function SuperAdminDashboard() {
                   axisLine={false} 
                   tickLine={false} 
                   tick={{fill: '#6B7280'}}
-                  tickFormatter={(value) => `$${value/1000}k`}
+                  tickFormatter={(value) => `LKR ${value/1000}k`}
                   dx={-10}
                 />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Revenue']}
+                  formatter={(value: any) => [`LKR ${Number(value).toLocaleString()}`, 'Revenue']}
                 />
                 <Line type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={3} dot={{r: 4, fill: 'var(--primary)', strokeWidth: 0}} activeDot={{r: 6}} />
               </LineChart>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Banknote, DollarSign, Receipt, CreditCard, Clock } from "lucide-react";
+import { Banknote, Banknote, Receipt, CreditCard, Clock } from "lucide-react";
 import Link from "next/link";
 
 interface Metrics {
@@ -41,10 +41,10 @@ export default function CashierOverview() {
         <Card className="border-t-4 border-t-primary shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
+            <Banknote className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">${metrics.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">LKR {metrics.totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Processed today</p>
           </CardContent>
         </Card>
@@ -77,7 +77,7 @@ export default function CashierOverview() {
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${metrics.cashInDrawer.toLocaleString()}</div>
+            <div className="text-2xl font-bold">LKR {metrics.cashInDrawer.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Current cash balance</p>
           </CardContent>
         </Card>
@@ -110,7 +110,7 @@ export default function CashierOverview() {
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <p className="text-xs text-muted-foreground font-mono">{txn.id}</p>
-                  <p className="font-semibold">${txn.amount.toFixed(2)}</p>
+                  <p className="font-semibold">LKR {txn.amount.toFixed(2)}</p>
                 </div>
               </div>
             </div>
