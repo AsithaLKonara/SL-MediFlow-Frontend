@@ -104,46 +104,41 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-4 py-2 overflow-y-auto">
-        {(() => {
-          let currentCategory: string | undefined = undefined;
-
-          return navItems.map((item, index) => {
-            const isExact = item.href === `/${roleKey}`;
-            const isActive = isExact ? pathname === item.href : pathname.startsWith(item.href);
-            
-            const renderCategoryHeader = item.category && item.category !== currentCategory;
-            if (renderCategoryHeader) {
-              currentCategory = item.category;
-            }
-
-            return (
-              <div key={item.href} className={cn(renderCategoryHeader ? "mt-6 mb-2" : "mt-1")}>
-                {renderCategoryHeader && !isCollapsed && (
-                  <h4 className="px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
-                    {item.category}
-                  </h4>
-                )}
-                {renderCategoryHeader && isCollapsed && (
-                  <div className="w-8 h-[1px] bg-border/50 mx-auto my-3" />
-                )}
-                <Link
-                  href={item.href}
-                  title={isCollapsed ? item.label : undefined}
-                  className={cn(
-                    "flex items-center rounded-md text-sm font-medium transition-all duration-200",
-                    isCollapsed ? "justify-center py-3 px-0 mx-2" : "gap-3 px-3 py-2.5",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <item.icon className={cn(isCollapsed ? "w-6 h-6" : "w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
-                  {!isCollapsed && <span>{item.label}</span>}
-                </Link>
-              </div>
-            );
-          });
-        })()}
+        {Array.from(new Set(navItems.map(i => i.category || ""))).map(category => (
+          <div key={category || "uncategorized"} className={category ? "mt-6 mb-2" : "mt-1"}>
+            {category && !isCollapsed && (
+              <h4 className="px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">
+                {category}
+              </h4>
+            )}
+            {category && isCollapsed && (
+              <div className="w-8 h-[1px] bg-border/50 mx-auto my-3" />
+            )}
+            <div className="space-y-1">
+              {navItems.filter(i => (i.category || "") === category).map(item => {
+                const isExact = item.href === `/${roleKey}`;
+                const isActive = isExact ? pathname === item.href : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={isCollapsed ? item.label : undefined}
+                    className={cn(
+                      "flex items-center rounded-md text-sm font-medium transition-all duration-200",
+                      isCollapsed ? "justify-center py-3 px-0 mx-2" : "gap-3 px-3 py-2.5",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className={cn(isCollapsed ? "w-6 h-6" : "w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
+                    {!isCollapsed && <span>{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className={cn("border-t shrink-0 flex flex-col", isCollapsed ? "p-2" : "p-4")}>

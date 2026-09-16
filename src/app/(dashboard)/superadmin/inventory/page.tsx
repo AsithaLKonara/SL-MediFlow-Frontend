@@ -40,6 +40,19 @@ export default function SuperAdminInventoryPage() {
   const [expiry, setExpiry] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // New drug form state
+  const [isAddDrugOpen, setIsAddDrugOpen] = useState(false);
+  const [newDrug, setNewDrug] = useState({
+    name: "",
+    barcode: "",
+    genericName: "",
+    category: "",
+    form: "",
+    unit: "",
+    reorderLevel: "100"
+  });
+  const [addingDrug, setAddingDrug] = useState(false);
+
   const fetchMedicines = () => {
     setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
@@ -93,6 +106,23 @@ export default function SuperAdminInventoryPage() {
 
   const handleRestock = async () => {
     if (!selectedMed) return;
+    
+    const parsedQty = parseInt(qty);
+    const parsedPrice = parseFloat(price);
+    
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      toast.error("Please enter a valid quantity.");
+      return;
+    }
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      toast.error("Please enter a valid unit price.");
+      return;
+    }
+    if (!expiry || !batchNo) {
+      toast.error("Batch number and expiry date are required.");
+      return;
+    }
+
     setSaving(true);
     
     try {
@@ -103,23 +133,72 @@ export default function SuperAdminInventoryPage() {
           medicineId: selectedMed.id,
           batchNumber: batchNo,
           expiryDate: expiry,
-          initialQuantity: parseInt(qty),
-          unitPrice: parseFloat(price)
+          initialQuantity: parsedQty,
+          unitPrice: parsedPrice
         })
       });
       
+      const data = await res.json();
       if (res.ok) {
         toast.success(`Successfully restocked ${selectedMed.name}`);
         fetchMedicines();
         setIsRestockOpen(false);
       } else {
-        toast.error("Failed to process restock");
+        console.error("Restock failed:", data);
+        toast.error(data.error || "Failed to process restock");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("Network error during restock");
+      toast.error(e.message || "Network error during restock");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddDrug = async () => {
+    if (!newDrug.name || !newDrug.category || !newDrug.form || !newDrug.unit) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
+    
+    const parsedReorder = parseInt(newDrug.reorderLevel);
+    if (isNaN(parsedReorder) || parsedReorder < 0) {
+      toast.error("Please enter a valid reorder level.");
+      return;
+    }
+
+    setAddingDrug(true);
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newDrug.name,
+          barcode: newDrug.barcode || undefined,
+          genericName: newDrug.genericName,
+          category: newDrug.category,
+          form: newDrug.form,
+          unit: newDrug.unit,
+          reorderLevel: parsedReorder
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Successfully added drug master: ${newDrug.name}`);
+        fetchMedicines();
+        setIsAddDrugOpen(false);
+        setNewDrug({ name: "", barcode: "", genericName: "", category: "", form: "", unit: "", reorderLevel: "100" });
+      } else {
+        console.error("Add drug failed:", data);
+        toast.error(data.error || "Failed to add new drug master");
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Network error during add drug");
+    } finally {
+      setAddingDrug(false);
     }
   };
 
@@ -141,7 +220,7 @@ export default function SuperAdminInventoryPage() {
           </h2>
           <p className="text-muted-foreground mt-1">Super Admin oversight for all hospital medical stock levels and analytics.</p>
         </div>
-        <Button onClick={() => toast.info("Master Add New Drug modal coming soon.")} className="bg-primary hover:bg-primary/90 text-white shadow-md">
+        <Button onClick={() => setIsAddDrugOpen(true)} className="bg-primary hover:bg-primary/90 text-white shadow-md">
           <PlusCircle className="w-4 h-4 mr-2" /> Add New Drug Master
         </Button>
       </div>
@@ -265,6 +344,65 @@ export default function SuperAdminInventoryPage() {
             <Button variant="outline" onClick={() => setIsRestockOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={handleRestock} disabled={saving} className="bg-primary hover:bg-primary/90">
               {saving ? "Confirming..." : "Confirm Stock Arrival"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddDrugOpen} onOpenChange={setIsAddDrugOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PlusCircle className="w-5 h-5 text-primary" />
+              Add New Drug Master
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Create a new drug master record. Once created, you can receive stock batches for it.
+            </p>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="drugName">Drug Name (Brand)*</Label>
+                <Input id="drugName" placeholder="e.g. Panadol 500mg" value={newDrug.name} onChange={e => setNewDrug({...newDrug, name: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="genericName">Generic Name</Label>
+                <Input id="genericName" placeholder="e.g. Paracetamol" value={newDrug.genericName} onChange={e => setNewDrug({...newDrug, genericName: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="category">Category*</Label>
+                <Input id="category" placeholder="e.g. Analgesic" value={newDrug.category} onChange={e => setNewDrug({...newDrug, category: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="barcode">Barcode (Optional)</Label>
+                <Input id="barcode" placeholder="Scan or type..." value={newDrug.barcode} onChange={e => setNewDrug({...newDrug, barcode: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="form">Form*</Label>
+                <Input id="form" placeholder="e.g. Tablet, Syrup" value={newDrug.form} onChange={e => setNewDrug({...newDrug, form: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="unit">Unit/Strength*</Label>
+                <Input id="unit" placeholder="e.g. mg, ml, pills" value={newDrug.unit} onChange={e => setNewDrug({...newDrug, unit: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="reorderLevel">Reorder Level*</Label>
+              <Input id="reorderLevel" type="number" value={newDrug.reorderLevel} onChange={e => setNewDrug({...newDrug, reorderLevel: e.target.value})} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsAddDrugOpen(false)} disabled={addingDrug}>Cancel</Button>
+            <Button onClick={handleAddDrug} disabled={addingDrug} className="bg-primary hover:bg-primary/90">
+              {addingDrug ? "Creating..." : "Create Drug Master"}
             </Button>
           </DialogFooter>
         </DialogContent>
