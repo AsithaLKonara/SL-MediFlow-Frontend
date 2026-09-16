@@ -49,9 +49,18 @@ export default function SuperAdminInventoryPage() {
     category: "",
     form: "",
     unit: "",
-    reorderLevel: "100"
+    reorderLevel: "100",
+    baseStock: "",
+    basePrice: ""
   });
   const [addingDrug, setAddingDrug] = useState(false);
+
+  // Generate a random EAN-like barcode automatically when opening the modal
+  const openAddDrugModal = () => {
+    const randomBarcode = "AMZ-" + Math.floor(10000000 + Math.random() * 90000000).toString();
+    setNewDrug(prev => ({ ...prev, barcode: randomBarcode }));
+    setIsAddDrugOpen(true);
+  };
 
   const fetchMedicines = () => {
     setLoading(true);
@@ -180,7 +189,9 @@ export default function SuperAdminInventoryPage() {
           category: newDrug.category,
           form: newDrug.form,
           unit: newDrug.unit,
-          reorderLevel: parsedReorder
+          reorderLevel: parsedReorder,
+          baseStock: newDrug.baseStock ? parseInt(newDrug.baseStock) : undefined,
+          basePrice: newDrug.basePrice ? parseFloat(newDrug.basePrice) : undefined
         })
       });
       
@@ -189,7 +200,7 @@ export default function SuperAdminInventoryPage() {
         toast.success(`Successfully added drug master: ${newDrug.name}`);
         fetchMedicines();
         setIsAddDrugOpen(false);
-        setNewDrug({ name: "", barcode: "", genericName: "", category: "", form: "", unit: "", reorderLevel: "100" });
+        setNewDrug({ name: "", barcode: "", genericName: "", category: "", form: "", unit: "", reorderLevel: "100", baseStock: "", basePrice: "" });
       } else {
         console.error("Add drug failed:", data);
         toast.error(data.error || "Failed to add new drug master");
@@ -220,7 +231,7 @@ export default function SuperAdminInventoryPage() {
           </h2>
           <p className="text-muted-foreground mt-1">Super Admin oversight for all hospital medical stock levels and analytics.</p>
         </div>
-        <Button onClick={() => setIsAddDrugOpen(true)} className="bg-primary hover:bg-primary/90 text-white shadow-md">
+        <Button onClick={openAddDrugModal} className="bg-primary hover:bg-primary/90 text-white shadow-md">
           <PlusCircle className="w-4 h-4 mr-2" /> Add New Drug Master
         </Button>
       </div>
@@ -394,9 +405,19 @@ export default function SuperAdminInventoryPage() {
               </div>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="reorderLevel">Reorder Level*</Label>
-              <Input id="reorderLevel" type="number" value={newDrug.reorderLevel} onChange={e => setNewDrug({...newDrug, reorderLevel: e.target.value})} />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="reorderLevel">Reorder Level*</Label>
+                <Input id="reorderLevel" type="number" value={newDrug.reorderLevel} onChange={e => setNewDrug({...newDrug, reorderLevel: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="baseStock" className="text-muted-foreground">Opening Stock</Label>
+                <Input id="baseStock" type="number" placeholder="Optional" value={newDrug.baseStock} onChange={e => setNewDrug({...newDrug, baseStock: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="basePrice" className="text-muted-foreground">Unit Price (Rs)</Label>
+                <Input id="basePrice" type="number" placeholder="Optional" value={newDrug.basePrice} onChange={e => setNewDrug({...newDrug, basePrice: e.target.value})} />
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
