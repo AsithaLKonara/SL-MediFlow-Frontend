@@ -52,6 +52,12 @@ const roleNavConfig: Record<string, { label: string; href: string; icon: React.E
     { href: "/receptionist/patients", label: "Patients", icon: UserPlus },
     { href: "/receptionist/queue", label: "New Visit", icon: CalendarClock },
   ],
+  frontdesk: [
+    { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users },
+    { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
+    { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch },
+  ],
   doctor: [
     { href: "/doctor", label: "My Dashboard", icon: LayoutDashboard },
     { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList },

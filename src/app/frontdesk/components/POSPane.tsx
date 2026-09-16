@@ -305,8 +305,32 @@ export function POSPane() {
                 </div>
               )}
 
-              <Button className="w-full h-12 text-lg" disabled={!paymentMethod}>
-                Complete Payment
+              <Button 
+                className="w-full h-12 text-lg" 
+                disabled={!paymentMethod || state.checkout?.status === "PAYING"}
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/sell`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ items: cart, paymentMethod })
+                    });
+                    
+                    if (res.ok) {
+                      setCart([]);
+                      handleCloseCheckout();
+                      // Would use a real toast here but sonner is not imported, let's just use alert or rely on parent
+                      alert("Payment Complete! Invoice generated and stock deducted.");
+                    } else {
+                      const error = await res.json();
+                      alert("Failed: " + error.error);
+                    }
+                  } catch (e) {
+                    alert("Network error");
+                  }
+                }}
+              >
+                {state.checkout?.status === "PAYING" ? "Processing..." : "Complete Payment"}
               </Button>
             </div>
           </div>

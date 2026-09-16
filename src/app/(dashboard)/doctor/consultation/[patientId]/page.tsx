@@ -174,9 +174,27 @@ export default function ConsultationPage({
     }, 500);
   };
 
-  const handleCompleteConsultation = () => {
+  const handleCompleteConsultation = async () => {
     if (!diagnosis.trim()) { toast.error("Diagnosis is required to complete consultation."); return; }
     
+    // 1. Add consultation fee to Centralized Billing Engine
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/billing/charge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitId: "V-2026-000521", // Mocking the Visit ID for now since Gihan handles visits
+          patientId: patient?.id,
+          department: "CONSULTATION",
+          description: "Doctor Consultation Fee",
+          quantity: 1,
+          unitPrice: 2500 // Flat fee example
+        })
+      });
+    } catch (e) {
+      console.error("Failed to log consultation fee", e);
+    }
+
     setVisitCompleted(true);
     toast.success("Consultation completed and securely saved.");
     
