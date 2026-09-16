@@ -20,7 +20,10 @@ export default function LabTechOverview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/labtech/metrics").then(r => r.json()).then(d => { setMetrics(d); setLoading(false); });
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/metrics`)
+      .then(r => r.json())
+      .then(d => { setMetrics(d); setLoading(false); })
+      .catch(e => { console.error("Failed to load metrics", e); setLoading(false); });
   }, []);
 
   if (loading || !metrics) return (

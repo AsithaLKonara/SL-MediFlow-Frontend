@@ -40,7 +40,37 @@ export default function LabTechRequestsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/labtech/requests").then(r => r.json()).then(d => { setRequests(d.data); setLoading(false); });
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/requests`)
+      .then(r => r.json())
+      .then((data: any[]) => {
+        const mapped = data.map(req => ({
+          id: req.id,
+          patientId: req.patientId,
+          patientName: `Patient ${req.patientId.slice(0, 4)}`,
+          patientAge: 30,
+          doctor: req.doctorId || "Unknown",
+          clinicalIndication: "Routine Checkup",
+          tests: [
+            {
+              id: req.test.id,
+              name: req.test.name,
+              unit: req.test.unit || "",
+              referenceRange: req.test.referenceRange || "",
+              result: null,
+              status: req.status
+            }
+          ],
+          priority: "ROUTINE",
+          status: req.status,
+          requestedAt: req.requestedAt
+        }));
+        setRequests(mapped);
+        setLoading(false);
+      })
+      .catch(e => {
+        console.error("Failed to fetch requests", e);
+        setLoading(false);
+      });
   }, []);
 
   const active = requests.filter(r => r.status !== "PUBLISHED");

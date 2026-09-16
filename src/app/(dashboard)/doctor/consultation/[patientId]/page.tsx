@@ -44,20 +44,7 @@ interface Patient {
   labResults: LabResult[];
 }
 
-const LAB_TESTS = [
-  "Full Blood Count (FBC)",
-  "HbA1c",
-  "Lipid Profile",
-  "Urine Full Report (UFR)",
-  "Liver Function Test (LFT)",
-  "Renal Function Test (RFT)",
-  "Thyroid Profile",
-  "ECG",
-  "Chest X-Ray",
-  "Blood Glucose (Fasting)",
-  "CRP",
-  "Dengue Antigen",
-];
+
 
 // Medicines are now fetched from the backend API
 
@@ -86,7 +73,9 @@ export default function ConsultationPage({
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
 
   // Lab request state
-  const [selectedTests, setSelectedTests] = useState<string[]>([]);
+  const [selectedTests, setSelectedTests] = useState<any[]>([]);
+  const [availableLabTests, setAvailableLabTests] = useState<any[]>([]);
+  const [isUrgent, setIsUrgent] = useState(false);
   const [labNotes, setLabNotes] = useState("");
 
   const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
@@ -106,6 +95,11 @@ export default function ConsultationPage({
         setAvailableMedicines(mappedItems);
       })
       .catch((e) => console.error("Failed to load medicines", e));
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/catalog`)
+      .then((r) => r.json())
+      .then((data) => setAvailableLabTests(data))
+      .catch((e) => console.error("Failed to load lab catalog", e));
   }, [patientId]);
 
   const handleAddOrUpdateDrug = () => {
@@ -161,9 +155,9 @@ export default function ConsultationPage({
     }
   };
 
-  const toggleTest = (test: string) =>
+  const toggleTest = (test: any) =>
     setSelectedTests((prev) =>
-      prev.includes(test) ? prev.filter((t) => t !== test) : [...prev, test]
+      prev.some(t => t.id === test.id) ? prev.filter((t) => t.id !== test.id) : [...prev, test]
     );
 
   const handleSaveDraft = () => {
@@ -202,7 +196,24 @@ export default function ConsultationPage({
       toast.success("Prescription forwarded to Pharmacy.");
     }
     if (selectedTests.length > 0) {
-      toast.success("Lab orders forwarded to Laboratory.");
+      try {
+        await Promise.all(selectedTests.map(test => 
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/requests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              patientId: patient?.id,
+              visitId: "V-2026-000521",
+              testId: test.id,
+              doctorId: "DOC-123",
+              priority: isUrgent ? "URGENT" : "ROUTINE"
+            })
+          })
+        ));
+        toast.success("Lab orders forwarded to Laboratory.");
+      } catch (e) {
+        console.error("Failed to send lab requests", e);
+      }
     }
 
     setTimeout(() => {
@@ -311,29 +322,52 @@ export default function ConsultationPage({
             </h3>
             
             <div className="flex flex-col gap-2">
-              {LAB_TESTS.map((test) => {
-                const isSelected = selectedTests.includes(test);
+              {availableLabTests.map((test) => {
+                const isSelected = selectedTests.some(t => t.id === test.id);
                 return (
                   <label
-                    key={test}
+                    key={test.id}
                     className={cn(
-                      "flex items-center gap-3 p-2.5 rounded-md border cursor-pointer transition-all",
+                      "flex items-center justify-between p-2.5 rounded-md border cursor-pointer transition-all",
                       isSelected ? "bg-blue-500/10 border-blue-500/20" : "bg-card text-card-foreground border-border/50 hover:bg-muted/30"
                     )}
+                    onClick={(e) => { e.preventDefault(); toggleTest(test); }}
                   >
-                    <div className={cn(
-                      "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
-                      isSelected ? "bg-primary border-blue-600 text-white" : "border-border bg-card text-card-foreground"
-                    )}>
-                      {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                        isSelected ? "bg-primary border-blue-600 text-white" : "border-border bg-card text-card-foreground"
+                      )}>
+                        {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                      </div>
+                      <div>
+                        <span className={cn("text-xs font-bold block", isSelected ? "text-blue-600 dark:text-blue-400" : "text-foreground/80")}>
+                          {test.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground uppercase">{test.category}</span>
+                      </div>
                     </div>
-                    <span className={cn("text-xs font-medium", isSelected ? "text-blue-600 dark:text-blue-400" : "text-foreground/80")}>
-                      {test}
-                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">LKR {test.price.toFixed(2)}</span>
                   </label>
                 );
               })}
             </div>
+
+            {selectedTests.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={isUrgent} 
+                    onChange={e => setIsUrgent(e.target.checked)}
+                    className="w-4 h-4 rounded border-border text-red-600 focus:ring-red-600 focus:ring-offset-background"
+                  />
+                  <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                    Mark Lab Request as URGENT
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
 
         </div>

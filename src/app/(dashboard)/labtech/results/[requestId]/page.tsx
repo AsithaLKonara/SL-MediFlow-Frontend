@@ -52,35 +52,77 @@ export default function LabResultsPage({
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState("");
+  const [reportUrl, setReportUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(false);
 
   useEffect(() => {
-    fetch("/api/labtech/requests").then(r => r.json()).then(d => {
-      const found: LabRequest = d.data.find((x: LabRequest) => x.id === requestId);
-      if (found) {
-        setRequest(found);
-        // Pre-fill any existing results
-        const prefill: Record<number, string> = {};
-        found.tests.forEach((t, i) => { if (t.result) prefill[i] = t.result; });
-        setResults(prefill);
-        if (found.status === "PUBLISHED") setPublished(true);
-      }
-      setLoading(false);
-    });
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/requests`)
+      .then(r => r.json())
+      .then((data: any[]) => {
+        const req = data.find((x: any) => x.id === requestId);
+        if (req) {
+          const mapped: LabRequest = {
+            id: req.id,
+            patientId: req.patientId,
+            patientName: `Patient ${req.patientId.slice(0, 4)}`,
+            patientAge: 30,
+            doctor: req.doctorId || "Unknown",
+            clinicalIndication: "Routine Checkup",
+            tests: [
+              {
+                name: req.test.name,
+                unit: req.test.unit || "",
+                referenceRange: req.test.referenceRange || "",
+                result: null,
+                status: req.status
+              }
+            ],
+            priority: "ROUTINE",
+            status: req.status,
+            requestedAt: req.requestedAt
+          };
+          setRequest(mapped);
+          if (req.status === "COMPLETED") setPublished(true);
+        }
+        setLoading(false);
+      });
   }, [requestId]);
 
-  const handlePublish = (e: React.FormEvent) => {
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!request) return;
     const incomplete = request.tests.some((_, i) => !results[i]?.trim());
     if (incomplete) { toast.error("Please enter results for all tests before publishing."); return; }
+    
     setSaving(true);
-    setTimeout(() => {
+    
+    const apiResults = request.tests.map((t, i) => {
+      const val = results[i];
+      return {
+        biomarker: t.name,
+        value: val,
+        isOutOfRange: isCritical(val, t.referenceRange),
+        notes: notes
+      };
+    });
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/requests/${requestId}/results`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ results: apiResults, reportUrl: reportUrl || undefined })
+      });
+      if (!res.ok) throw new Error("Failed to submit results");
+      
       setSaving(false);
       setPublished(true);
-      toast.success(`Report for ${request.patientName} published. Lab charge added to Central Invoice.`);
-    }, 1000);
+      toast.success(`Report for ${request.patientName} published. Results securely saved.`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to publish report");
+      setSaving(false);
+    }
   };
 
   if (loading || !request) return (
@@ -246,6 +288,18 @@ export default function LabResultsPage({
                     disabled={published}
                     onChange={e => setNotes(e.target.value)}
                   />
+                </div>
+
+                {/* PDF Report Upload (Simulated) */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Attach PDF Report (Optional)</label>
+                  <Input 
+                    placeholder="Enter URL to PDF report (e.g. https://storage.example.com/report.pdf)"
+                    value={reportUrl}
+                    disabled={published}
+                    onChange={e => setReportUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Simulated upload: Paste a link to the finalized PDF report if applicable.</p>
                 </div>
 
                 {!published ? (
