@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet } from "lucide-react";
 import { useCartSync, CartItem } from "../hooks/useCartSync";
 
-export function POSPane() {
+export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clearIncoming?: () => void }) {
   const { updateState, state } = useCartSync(true);
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -21,6 +21,29 @@ export function POSPane() {
       .then((d) => setAvailableMedicines(d))
       .catch((e) => console.error("Failed to load medicines", e));
   }, []);
+
+  useEffect(() => {
+    if (incomingRx && incomingRx.items) {
+      setCart(prev => {
+        const newCart = [...prev];
+        incomingRx.items.forEach((item: any) => {
+          const id = item.medicineId || item.id;
+          const name = item.drugName;
+          const prescribedQty = (parseInt(item.duration) || 1) * (parseInt(item.frequency) || 1) || 10;
+          const price = item.medicine?.stockBatches?.[0]?.unitPrice || 0;
+          
+          const existing = newCart.find(i => i.id === id);
+          if (existing) {
+            existing.qty += prescribedQty;
+          } else {
+            newCart.push({ id, name, qty: prescribedQty, price });
+          }
+        });
+        return newCart;
+      });
+      if (clearIncoming) clearIncoming();
+    }
+  }, [incomingRx, clearIncoming]);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "QR" | null>(null);

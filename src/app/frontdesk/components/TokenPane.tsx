@@ -23,7 +23,7 @@ interface PatientData {
   phone: string;
 }
 
-export function TokenPane() {
+export function TokenPane({ onSendToPOS }: { onSendToPOS?: (rx: any) => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [patient, setPatient] = useState<PatientData>({ fullName: "", age: "", phone: "" });
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -327,7 +327,7 @@ export function TokenPane() {
                         <Button variant="outline" size="sm" className="flex-1 border-primary/30 text-primary hover:bg-primary/10" onClick={() => handlePrintPrescription()}>
                           Print Rx
                         </Button>
-                        <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90">
+                        <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90" onClick={() => onSendToPOS && onSendToPOS(rx)}>
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Send to POS
                         </Button>
