@@ -9,6 +9,7 @@ import { useReactToPrint } from "react-to-print";
 import { PrescriptionPrintTemplate } from "@/components/printing/PrescriptionPrintTemplate";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/dashboard/SidebarProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -35,16 +36,16 @@ interface LabResult {
 
 interface Patient {
   id: string;
-  name: string;
-  dob: string;
+  fullName: string;
+  phone: string;
   age: number;
-  gender: string;
-  contact: string;
-  bloodGroup: string;
-  allergies: string[];
-  chronicConditions: string[];
-  medicalHistory: MedicalHistory[];
-  labResults: LabResult[];
+  dob?: string;
+  gender?: string;
+  bloodGroup?: string;
+  allergies?: string[];
+  chronicConditions?: string[];
+  medicalHistory?: MedicalHistory[];
+  labResults?: LabResult[];
 }
 
 
@@ -58,6 +59,7 @@ export default function ConsultationPage({
 }) {
   const { patientId } = use(params);
   const { isCollapsed } = useSidebar();
+  const { user } = useAuth();
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,9 +93,10 @@ export default function ConsultationPage({
   const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`/api/doctor/patients/${patientId}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/patients/${patientId}`)
       .then((r) => r.json())
-      .then((d) => { setPatient(d); setLoading(false); });
+      .then((d) => { setPatient(d); setLoading(false); })
+      .catch((e) => { console.error("Failed to load patient", e); setLoading(false); });
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
       .then((r) => r.json())
@@ -224,16 +227,22 @@ export default function ConsultationPage({
     
     if (addedDrugs.length > 0) {
       try {
+        console.log("Submitting prescription with patient:", patient);
+        if (!patient?.id) {
+          toast.error("Patient ID is missing. Cannot save prescription.");
+          return;
+        }
+
         const payload = {
-          patientId: patient?.id,
-          patientName: patient?.name,
+          patientId: patient.id,
+          patientName: patient.fullName || "Unknown",
           visitId: "V-2026-000521",
-          doctorId: "DOC-123",
-          doctorName: "Dr. Silva",
+          doctorId: user?.id || "DOC-123",
+          doctorName: user?.fullName || "Dr. Silva",
           diagnosis,
           clinicalNotes: notes,
           items: addedDrugs.map(d => ({
-            medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id,
+            medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id || null,
             drugName: d.drug,
             dosage: d.dosage,
             frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,
@@ -241,6 +250,7 @@ export default function ConsultationPage({
             instructions: d.instructions
           }))
         };
+        console.log("Prescription payload:", payload);
 
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions`, {
           method: "POST",
@@ -257,6 +267,21 @@ export default function ConsultationPage({
         console.error("Failed to send prescription", e);
       }
     }
+
+    // Update Token Status
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/tokens/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: patient?.id,
+          doctorId: user?.id,
+          status: addedDrugs.length > 0 ? "prescription_issued" : "completed"
+        })
+      });
+    } catch (e) {
+      console.error("Failed to update token status", e);
+    }
     
     if (selectedTests.length > 0) {
       try {
@@ -268,7 +293,7 @@ export default function ConsultationPage({
               patientId: patient?.id,
               visitId: "V-2026-000521",
               testId: test.id,
-              doctorId: "DOC-123",
+              doctorId: user?.id || "DOC-123",
               priority: isUrgent ? "URGENT" : "ROUTINE"
             })
           })
@@ -310,11 +335,11 @@ export default function ConsultationPage({
               </Button>
             </Link>
             <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground font-bold text-xl uppercase shrink-0 border">
-              {patient.name?.charAt(0) || "P"}
+              {patient.fullName?.charAt(0) || "P"}
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold tracking-tight text-foreground uppercase">{patient.name || "Unknown Patient"}</h1>
+                <h1 className="text-xl font-bold tracking-tight text-foreground uppercase">{patient.fullName || "Unknown Patient"}</h1>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 flex items-center gap-1.5 border border-green-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                   Active Consultation
@@ -342,27 +367,27 @@ export default function ConsultationPage({
         <div className="lg:col-span-4 space-y-6">
           
           {/* CRITICAL ALERTS */}
-          {(patient.allergies?.length > 0 || patient.chronicConditions?.length > 0) && (
+          {(patient.allergies?.length || patient.chronicConditions?.length) ? (
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <AlertTriangle className="w-3.5 h-3.5" /> Critical Alerts
               </h3>
               
-              {patient.allergies?.length > 0 && (
+              {patient.allergies && patient.allergies.length > 0 && (
                 <div className="bg-red-500/10 border-l-4 border-red-500 p-3 rounded-r-md">
                   <p className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 tracking-wider mb-1">Allergies</p>
                   <p className="text-sm font-semibold text-red-900">{patient.allergies.join(", ")}</p>
                 </div>
               )}
 
-              {patient.chronicConditions?.length > 0 && (
+              {patient.chronicConditions && patient.chronicConditions.length > 0 && (
                 <div className="bg-amber-500/10 border-l-4 border-amber-500 p-3 rounded-r-md">
                   <p className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider mb-1">Conditions</p>
                   <p className="text-sm font-semibold text-amber-900">{patient.chronicConditions.join(", ")}</p>
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
           {/* DEMOGRAPHICS */}
           <div className="bg-card text-card-foreground border rounded-lg p-4">
@@ -372,11 +397,11 @@ export default function ConsultationPage({
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between py-1 border-b border-border/50">
                 <dt className="text-muted-foreground">DOB</dt>
-                <dd className="font-medium text-foreground">{formatSafeDate(patient.dob)}</dd>
+                <dd className="font-medium text-foreground">{patient.dob ? formatSafeDate(patient.dob) : "N/A"}</dd>
               </div>
               <div className="flex justify-between py-1 border-b border-border/50">
                 <dt className="text-muted-foreground">Contact</dt>
-                <dd className="font-medium text-foreground">{patient.contact}</dd>
+                <dd className="font-medium text-foreground">{patient.phone}</dd>
               </div>
             </dl>
           </div>
