@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -22,6 +23,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,10 +56,19 @@ export default function LoginPage() {
         throw new Error(errorData.error || "Login failed");
       }
 
-      if (data.email === "frontdesk@amaz.com") {
-        router.push("/frontdesk");
+      const responseData = await response.json();
+      const user = responseData.user;
+      login(responseData.token, user);
+
+      // Determine correct dashboard path based on role
+      const roleStr = user.role.toLowerCase();
+      
+      if (roleStr === "admin" || roleStr === "superadmin") {
+        router.push("/superadmin");
       } else {
-        router.push("/dashboard");
+        // Automatically route to their role's specific dashboard
+        // e.g., 'FRONTDESK' -> '/frontdesk', 'CASHIER' -> '/cashier'
+        router.push(`/${roleStr}`);
       }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
