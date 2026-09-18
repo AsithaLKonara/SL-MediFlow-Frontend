@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Clock, FileText, FlaskConical, Users } from "lucide-react";
 import Link from "next/link";
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 interface Metrics {
   doctorName: string;
   specialty: string;
@@ -19,14 +21,46 @@ interface Metrics {
 }
 
 export default function DoctorOverview() {
+  const { user } = useAuth();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/doctor/metrics")
+    if (!user) return;
+    
+    // Fetch tokens for this doctor
+    fetch(`http://localhost:5000/api/tokens/queue?doctorId=${user.id}`)
       .then((r) => r.json())
-      .then((d) => { setMetrics(d); setLoading(false); });
-  }, []);
+      .then((tokens: any[]) => { 
+        // Build metrics from real token data
+        const upcoming = tokens
+          .filter(t => t.status !== "completed")
+          .map(t => ({
+             queueNo: t.tokenNumber,
+             patientId: t.patient.id,
+             patientName: t.patient.fullName,
+             age: t.patient.age || 0,
+             reason: "General Consultation",
+             status: t.status
+          }));
+          
+        setMetrics({
+          doctorName: user.fullName,
+          specialty: "General", // Placeholder for now
+          patientsToday: tokens.length,
+          completedConsultations: tokens.filter(t => t.status === "completed").length,
+          pendingQueue: upcoming.length,
+          pendingPrescriptions: 0,
+          pendingLabRequests: 0,
+          upcomingPatients: upcoming
+        });
+        setLoading(false); 
+      })
+      .catch(err => {
+         console.error(err);
+         setLoading(false);
+      });
+  }, [user]);
 
   if (loading || !metrics) {
     return (

@@ -1,34 +1,163 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReactToPrint } from "react-to-print";
-import { useRef } from "react";
 import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 
+interface Doctor {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
+interface PatientData {
+  id?: string;
+  fullName: string;
+  age: string;
+  phone: string;
+}
+
 export function TokenPane() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [patient, setPatient] = useState<PatientData>({ fullName: "", age: "", phone: "" });
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
+  // Data for the printed receipt
+  const [receiptData, setReceiptData] = useState<{
+    tokenNumber: string;
+    doctorName: string;
+    patientName: string;
+    date: string;
+  }>({
+    tokenNumber: "",
+    doctorName: "",
+    patientName: "",
+    date: "",
+  });
+
   const tokenPrintRef = useRef<HTMLDivElement>(null);
-  const handlePrintToken = useReactToPrint({ contentRef: tokenPrintRef });
+  const handlePrintToken = useReactToPrint({ 
+    contentRef: tokenPrintRef,
+    onAfterPrint: () => {
+      // Clear form after print
+      setPatient({ fullName: "", age: "", phone: "" });
+      setSearchQuery("");
+      setSelectedDoctorId(null);
+    }
+  });
 
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
   const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/users?role=DOCTOR")
+      .then(res => res.json())
+      .then(data => setDoctors(data))
+      .catch(err => console.error("Failed to fetch doctors", err));
+  }, []);
+
+  const handleSearchPatient = async () => {
+    if (!searchQuery) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/patients/search?phone=${searchQuery}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPatient({
+          id: data.id,
+          fullName: data.fullName,
+          phone: data.phone,
+          age: data.age?.toString() || ""
+        });
+      } else {
+        // Patient not found, auto fill phone for new registration
+        setPatient(prev => ({ ...prev, phone: searchQuery, fullName: "", age: "", id: undefined }));
+        alert("Patient not found. Please register as new.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleGenerateToken = async () => {
+    if (!patient.fullName || !patient.phone) {
+      alert("Please provide patient name and phone number.");
+      return;
+    }
+    if (!selectedDoctorId) {
+      alert("Please select a doctor.");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // 1. Create or Update Patient
+      const patientRes = await fetch("http://localhost:5000/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: patient.fullName,
+          phone: patient.phone,
+          age: patient.age
+        })
+      });
+      
+      if (!patientRes.ok) throw new Error("Failed to register patient");
+      const patientData = await patientRes.json();
+
+      // 2. Generate Token
+      const tokenRes = await fetch("http://localhost:5000/api/tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: patientData.id,
+          doctorId: selectedDoctorId
+        })
+      });
+
+      if (!tokenRes.ok) throw new Error("Failed to generate token");
+      const tokenData = await tokenRes.json();
+
+      // 3. Populate Receipt Data
+      setReceiptData({
+        tokenNumber: tokenData.tokenNumber,
+        doctorName: tokenData.doctor.fullName,
+        patientName: patientData.fullName,
+        date: new Date().toLocaleDateString()
+      });
+
+      // 4. Print Token (using setTimeout to ensure state updates before printing)
+      setTimeout(() => {
+        handlePrintToken();
+      }, 100);
+
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 relative">
       <div className="hidden">
         <TokenReceipt 
           ref={tokenPrintRef} 
-          tokenNumber="A-102" 
-          doctorName="Dr. Silva" 
-          patientName="John Doe" 
-          date={new Date().toLocaleDateString()} 
+          tokenNumber={receiptData.tokenNumber} 
+          doctorName={receiptData.doctorName} 
+          patientName={receiptData.patientName} 
+          date={receiptData.date} 
         />
         <PrescriptionReceipt 
           ref={prescriptionPrintRef}
@@ -67,10 +196,11 @@ export function TokenPane() {
                   className="pl-9 bg-card border-border"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchPatient()}
                 />
               </div>
-              <Button variant="secondary" className="bg-muted hover:bg-neutral-700">
-                <Search className="w-4 h-4 mr-2" />
+              <Button variant="secondary" className="bg-muted hover:bg-neutral-700" onClick={handleSearchPatient} disabled={isSearching}>
+                {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
                 Search
               </Button>
             </div>
@@ -78,20 +208,36 @@ export function TokenPane() {
             {/* Quick Registration Form */}
             <div className="pt-2 border-t border-border mt-2 space-y-4">
               <h3 className="font-medium text-muted-foreground text-sm flex items-center gap-2">
-                <PlusCircle className="w-4 h-4" /> Quick Register (Optional)
+                <PlusCircle className="w-4 h-4" /> Quick Register
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Full Name</label>
-                  <Input placeholder="John Doe" className="bg-card border-border" />
+                  <Input 
+                    placeholder="John Doe" 
+                    className="bg-card border-border" 
+                    value={patient.fullName}
+                    onChange={(e) => setPatient({...patient, fullName: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Age</label>
-                  <Input type="number" placeholder="45" className="bg-card border-border" />
+                  <Input 
+                    type="number" 
+                    placeholder="45" 
+                    className="bg-card border-border" 
+                    value={patient.age}
+                    onChange={(e) => setPatient({...patient, age: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Phone</label>
-                  <Input placeholder="077..." className="bg-card border-border" />
+                  <Input 
+                    placeholder="077..." 
+                    className="bg-card border-border" 
+                    value={patient.phone}
+                    onChange={(e) => setPatient({...patient, phone: e.target.value})}
+                  />
                 </div>
               </div>
             </div>
@@ -99,29 +245,42 @@ export function TokenPane() {
 
           {/* Doctor Selection & Token Generation */}
           <div className="flex-1 bg-background border border-border rounded-lg p-4 flex flex-col gap-4">
-            <h3 className="font-medium text-muted-foreground text-sm">Issue Token</h3>
+            <h3 className="font-medium text-muted-foreground text-sm">Issue Token (Select Doctor)</h3>
 
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 1, name: "Dr. Silva", spec: "General", queue: 4 },
-                { id: 2, name: "Dr. Perera", spec: "Cardiology", queue: 2 },
-                { id: 3, name: "Dr. Fernando", spec: "Pediatrics", queue: 0 },
-                { id: 4, name: "Dr. Jayawardena", spec: "Neurology", queue: 1 },
-              ].map((doc) => (
+              {doctors.map((doc) => (
                 <button
                   key={doc.id}
-                  className="p-3 border border-border rounded-lg bg-card hover:border-secondary text-left transition-colors flex flex-col gap-1"
+                  onClick={() => setSelectedDoctorId(doc.id)}
+                  className={`p-3 border rounded-lg text-left transition-colors flex items-start gap-2 ${
+                    selectedDoctorId === doc.id 
+                      ? "border-primary bg-primary/10" 
+                      : "border-border bg-card hover:border-secondary"
+                  }`}
                 >
-                  <span className="font-medium text-sm">{doc.name}</span>
-                  <span className="text-xs text-muted-foreground">{doc.spec}</span>
-                  <span className="text-xs font-medium text-primary mt-1">{doc.queue} waiting</span>
+                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border ${selectedDoctorId === doc.id ? "border-primary flex items-center justify-center" : "border-muted-foreground"}`}>
+                    {selectedDoctorId === doc.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-sm">{doc.fullName}</span>
+                    <span className="text-xs text-muted-foreground">Doctor</span>
+                  </div>
                 </button>
               ))}
+              {doctors.length === 0 && (
+                <div className="col-span-2 text-sm text-muted-foreground p-4 text-center">
+                  No doctors available. Ensure you have seeded doctors in the database.
+                </div>
+              )}
             </div>
 
             <div className="mt-auto pt-4 border-t border-border">
-              <Button className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" onClick={() => handlePrintToken()}>
-                <Ticket className="w-5 h-5 mr-2" />
+              <Button 
+                className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
+                onClick={handleGenerateToken}
+                disabled={isGenerating || !selectedDoctorId || !patient.fullName || !patient.phone}
+              >
+                {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Ticket className="w-5 h-5 mr-2" />}
                 Register & Generate Token
               </Button>
             </div>
