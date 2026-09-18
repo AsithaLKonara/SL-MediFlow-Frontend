@@ -28,8 +28,10 @@ export function PhoneBookingPane() {
 
   const [selectedTokenNumber, setSelectedTokenNumber] = useState<number | null>(null);
 
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
   useEffect(() => {
-    fetch("http://localhost:5000/api/booking/doctors")
+    fetch(`${API}/booking/doctors`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setDoctors(res.data);
@@ -47,7 +49,7 @@ export function PhoneBookingPane() {
     }
     
     setIsLoadingDates(true);
-    fetch(`http://localhost:5000/api/booking/available-dates?doctorId=${selectedDocId}`)
+    fetch(`${API}/booking/available-dates?doctorId=${selectedDocId}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) {
@@ -68,7 +70,7 @@ export function PhoneBookingPane() {
     
     // Fetch precise availability with token grid
     try {
-      const res = await fetch(`http://localhost:5000/api/booking/availability?doctorId=${selectedDocId}&date=${d.date}`);
+      const res = await fetch(`${API}/booking/availability?doctorId=${selectedDocId}&date=${d.date}`);
       const result = await res.json();
       if (result.success) {
         setAvailability(result.data);
@@ -81,7 +83,7 @@ export function PhoneBookingPane() {
   const handlePhoneSearch = async () => {
     if (!phone || phone.length < 9) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/reception/patients?q=${phone}`);
+      const res = await fetch(`${API}/reception/patients?q=${phone}`);
       const data = await res.json();
       if (data.success && data.data.length > 0) {
         setFullName(data.data[0].fullName);
@@ -99,7 +101,7 @@ export function PhoneBookingPane() {
 
     setIsBooking(true);
     try {
-      const res = await fetch("http://localhost:5000/api/booking/phone", {
+      const res = await fetch(`${API}/booking/phone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -113,7 +115,7 @@ export function PhoneBookingPane() {
       const result = await res.json();
       if (result.success) {
         toast.success(`Token booked successfully! Token No: ${result.data.tokenNumber}`);
-        // Reset
+        // Reset — also clear dates to avoid stale tiles showing on next selection
         setPhone("");
         setFullName("");
         setDate("");

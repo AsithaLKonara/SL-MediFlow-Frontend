@@ -21,10 +21,12 @@ export function ArrivalsPane() {
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
   const fetchAppointments = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/booking/appointments?date=${date}`);
+      const res = await fetch(`${API}/booking/appointments?date=${date}`);
       const result = await res.json();
       if (result.success) {
         setAppointments(result.data);
@@ -42,7 +44,7 @@ export function ArrivalsPane() {
 
   const handleArrive = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/booking/${id}/arrive`, {
+      const res = await fetch(`${API}/booking/${id}/arrive`, {
         method: "PATCH",
       });
       const result = await res.json();
@@ -85,7 +87,7 @@ export function ArrivalsPane() {
                   <div>
                     <h4 className="font-semibold text-primary">Token: {apt.tokenNumber}</h4>
                     <p className="text-sm font-medium">{apt.Patient.fullName} <span className="text-muted-foreground text-xs">({apt.Patient.phone})</span></p>
-                    <p className="text-xs text-muted-foreground">Dr. {apt.User.fullName}</p>
+                    <p className="text-xs text-muted-foreground">Dr. {apt.User?.fullName ?? 'Walk-in / Lab'}</p>
                   </div>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                     apt.status === "ARRIVED" ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500"

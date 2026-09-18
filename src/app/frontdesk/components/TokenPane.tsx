@@ -24,6 +24,7 @@ export function TokenPane() {
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
   const [patientAge, setPatientAge] = useState("");
+  const [patientLookupResult, setPatientLookupResult] = useState<{found: boolean; message: string} | null>(null);
   
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
@@ -34,19 +35,50 @@ export function TokenPane() {
   const [generatedToken, setGeneratedToken] = useState<any>(null);
   
   const tokenPrintRef = useRef<HTMLDivElement>(null);
-  const handlePrintToken = useReactToPrint({ contentRef: tokenPrintRef });
+  const handlePrintToken = useReactToPrint({ 
+    contentRef: tokenPrintRef,
+    onAfterPrint: () => {
+      // Reset form AFTER print completes, not before
+      setPatientName("");
+      setPatientPhone("");
+      setPatientAge("");
+      setSelectedDocId(null);
+      setIsLabSelected(false);
+      setGeneratedToken(null);
+      setSearchQuery("");
+      setPatientLookupResult(null);
+    }
+  });
 
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
   const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/booking/doctors")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setDoctors(res.data);
       })
       .catch(console.error);
   }, []);
+
+  const handleSearchPatient = async () => {
+    if (!searchQuery || searchQuery.length < 7) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/reception/patients?q=${searchQuery}`);
+      const data = await res.json();
+      if (data.success && data.data.length > 0) {
+        const found = data.data[0];
+        setPatientName(found.fullName);
+        setPatientPhone(found.phone);
+        setPatientLookupResult({ found: true, message: `Patient found: ${found.fullName}` });
+      } else {
+        setPatientLookupResult({ found: false, message: "No patient found. Fill in details to register new patient." });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleGenerateToken = async () => {
     if (!selectedDocId && !isLabSelected) {
@@ -58,7 +90,7 @@ export function TokenPane() {
     try {
       const selectedDoc = doctors.find(d => d.id === selectedDocId);
       
-      const response = await fetch("http://localhost:5000/api/reception/token", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/reception/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,20 +108,10 @@ export function TokenPane() {
       if (response.ok && result.success) {
         toast.success("Token generated successfully! SMS sent if phone provided.");
         setGeneratedToken(result.data);
-        
-        // Print receipt
-        setTimeout(() => {
-          handlePrintToken();
-          // Reset form after printing
-          setPatientName("");
-          setPatientPhone("");
-          setPatientAge("");
-          setSelectedDocId(null);
-          setIsLabSelected(false);
-          setGeneratedToken(null);
-        }, 500);
+        // Print receipt - form reset now happens in onAfterPrint callback
+        setTimeout(() => handlePrintToken(), 300);
       } else {
-        toast.error("Failed to generate token.");
+        toast.error(result.error || "Failed to generate token.");
       }
     } catch (e) {
       console.error(e);
@@ -156,13 +178,20 @@ export function TokenPane() {
                   className="pl-9 bg-card border-border"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={handleSearchPatient}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchPatient()}
                 />
               </div>
-              <Button variant="secondary" className="bg-muted hover:bg-neutral-700">
+              <Button variant="secondary" className="bg-muted hover:bg-neutral-700" onClick={handleSearchPatient}>
                 <Search className="w-4 h-4 mr-2" />
                 Search
               </Button>
             </div>
+            {patientLookupResult && (
+              <p className={`text-xs mt-1 ${patientLookupResult.found ? 'text-green-500' : 'text-yellow-500'}`}>
+                {patientLookupResult.message}
+              </p>
+            )}
 
             {/* Quick Registration Form */}
             <div className="pt-2 border-t border-border mt-2 space-y-4">
@@ -220,7 +249,7 @@ export function TokenPane() {
               <Button 
                 className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
                 onClick={handleGenerateToken}
-                disabled={isGenerating || !selectedDocId}
+                disabled={isGenerating || (!selectedDocId && !isLabSelected)}
               >
                 {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Ticket className="w-5 h-5 mr-2" />}
                 {isGenerating ? "Processing..." : "Register & Generate Token"}

@@ -34,10 +34,12 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
     }
   }, [isOpen]);
 
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
   const fetchTests = async () => {
     setIsLoadingTests(true);
     try {
-      const res = await fetch("http://localhost:5000/api/lab/catalog");
+      const res = await fetch(`${API}/lab/catalog`);
       if (res.ok) {
         const data = await res.json();
         setAvailableTests(data);
@@ -54,7 +56,7 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
     if (!phone || phone.length < 9) return;
     setIsSearching(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/reception/patients?q=${phone}`);
+      const res = await fetch(`${API}/reception/patients?q=${phone}`);
       const data = await res.json();
       if (data.success && data.data.length > 0) {
         setFullName(data.data[0].fullName);
@@ -88,7 +90,7 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("http://localhost:5000/api/lab/requests", {
+      const res = await fetch(`${API}/lab/requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
