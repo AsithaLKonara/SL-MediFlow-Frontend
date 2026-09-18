@@ -30,6 +30,7 @@ export function TokenPane() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [pendingPrescriptions, setPendingPrescriptions] = useState<any[]>([]);
   
   // Data for the printed receipt
   const [receiptData, setReceiptData] = useState<{
@@ -63,7 +64,16 @@ export function TokenPane() {
       .then(res => res.json())
       .then(data => setDoctors(data))
       .catch(err => console.error("Failed to fetch doctors", err));
+      
+    fetchPendingPrescriptions();
   }, []);
+
+  const fetchPendingPrescriptions = () => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/pending`)
+      .then(res => res.json())
+      .then(data => setPendingPrescriptions(data))
+      .catch(err => console.error("Failed to fetch pending prescriptions", err));
+  };
 
   const handleSearchPatient = async () => {
     if (!searchQuery) return;
@@ -291,36 +301,45 @@ export function TokenPane() {
           <div className="flex-1 bg-background border border-border rounded-lg flex flex-col overflow-hidden">
             <div className="p-4 border-b border-border bg-card flex justify-between items-center">
               <h3 className="font-medium">Pending Prescriptions</h3>
-              <span className="text-xs font-medium bg-primary/20 text-primary px-2 py-1 rounded-full">2 New</span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={fetchPendingPrescriptions}>Refresh</Button>
+                {pendingPrescriptions.length > 0 && <span className="text-xs font-medium bg-primary/20 text-primary px-2 py-1 rounded-full">{pendingPrescriptions.length} New</span>}
+              </div>
             </div>
 
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
-                {[
-                  { id: "RX-1001", patient: "Nimal Perera", doctor: "Dr. Silva", time: "2 min ago", status: "PENDING" },
-                  { id: "RX-1002", patient: "Saman Kumara", doctor: "Dr. Fernando", time: "15 min ago", status: "PENDING" },
-                ].map((rx) => (
-                  <div key={rx.id} className="p-4 border border-border rounded-lg bg-card flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-semibold text-primary">{rx.id}</h4>
-                        <p className="text-sm font-medium">{rx.patient}</p>
-                        <p className="text-xs text-muted-foreground">from {rx.doctor}</p>
+                {pendingPrescriptions.map((rx) => {
+                  const minutesAgo = Math.floor((new Date().getTime() - new Date(rx.updatedAt).getTime()) / 60000);
+                  const timeText = minutesAgo < 1 ? "Just now" : `${minutesAgo} min ago`;
+                  return (
+                    <div key={rx.id} className="p-4 border border-border rounded-lg bg-card flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-primary">{rx.id}</h4>
+                          <p className="text-sm font-medium">{rx.patientName}</p>
+                          <p className="text-xs text-muted-foreground">from {rx.doctorName}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{timeText}</span>
                       </div>
-                      <span className="text-xs text-muted-foreground">{rx.time}</span>
-                    </div>
 
-                    <div className="pt-3 border-t border-border flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 border-primary/30 text-primary hover:bg-primary/10" onClick={() => handlePrintPrescription()}>
-                        Print Rx
-                      </Button>
-                      <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Send to POS
-                      </Button>
+                      <div className="pt-3 border-t border-border flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 border-primary/30 text-primary hover:bg-primary/10" onClick={() => handlePrintPrescription()}>
+                          Print Rx
+                        </Button>
+                        <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Send to POS
+                        </Button>
+                      </div>
                     </div>
+                  );
+                })}
+                {pendingPrescriptions.length === 0 && (
+                  <div className="text-center p-8 text-muted-foreground text-sm">
+                    No pending prescriptions at this time.
                   </div>
-                ))}
+                )}
               </div>
             </ScrollArea>
           </div>
