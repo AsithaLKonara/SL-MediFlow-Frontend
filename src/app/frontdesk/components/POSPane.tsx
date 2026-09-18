@@ -14,6 +14,7 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
   const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
+  const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
@@ -24,6 +25,7 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
 
   useEffect(() => {
     if (incomingRx && incomingRx.items) {
+      setActivePrescriptionId(incomingRx.id);
       setCart(prev => {
         const newCart = [...prev];
         incomingRx.items.forEach((item: any) => {
@@ -336,13 +338,13 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/sell`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ items: cart, paymentMethod })
+                      body: JSON.stringify({ items: cart, paymentMethod, prescriptionId: activePrescriptionId })
                     });
                     
                     if (res.ok) {
                       setCart([]);
+                      setActivePrescriptionId(null);
                       handleCloseCheckout();
-                      // Would use a real toast here but sonner is not imported, let's just use alert or rely on parent
                       alert("Payment Complete! Invoice generated and stock deducted.");
                     } else {
                       const error = await res.json();
