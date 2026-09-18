@@ -23,24 +23,48 @@ interface QueueEntry {
   waitingSince: string;
 }
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 const statusConfig: Record<string, { label: string; className: string }> = {
-  WAITING:         { label: "Waiting",         className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-  IN_CONSULTATION: { label: "In Consultation", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  COMPLETED:       { label: "Completed",       className: "bg-green-500/10 text-green-600 dark:text-green-400" },
+  waiting_for_counsiling_payment: { label: "Payment Pending", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  waiting_for_doc:                { label: "Waiting",         className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  in_progress_at_doc:             { label: "In Consultation", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  completed:                      { label: "Completed",       className: "bg-green-500/10 text-green-600 dark:text-green-400" },
 };
 
 export default function DoctorQueuePage() {
+  const { user } = useAuth();
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/doctor/queue").then((r) => r.json()).then((d) => {
-      setQueue(d.data);
-      setLoading(false);
-    });
-  }, []);
+    if (!user) return;
 
-  const waitingCount = queue.filter((q) => q.status === "WAITING").length;
+    fetch(`http://localhost:5000/api/tokens/queue?doctorId=${user.id}`)
+      .then((r) => r.json())
+      .then((tokens: any[]) => {
+        const mappedQueue = tokens.map(t => ({
+          id: t.id,
+          queueNo: t.tokenNumber,
+          patientId: t.patient.id,
+          patientName: t.patient.fullName,
+          age: t.patient.age || 0,
+          gender: "UNKNOWN", // Patient model doesn't have gender yet
+          reason: "General Consultation",
+          priority: "ROUTINE",
+          status: t.status,
+          waitingSince: t.createdAt
+        }));
+        setQueue(mappedQueue);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching queue:", err);
+        setLoading(false);
+      });
+  }, [user]);
+
+  const waitingCount = queue.filter((q) => q.status === "waiting_for_doc" || q.status === "waiting_for_counsiling_payment").length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -80,7 +104,7 @@ export default function DoctorQueuePage() {
                   {queue.map((entry) => {
                     const sc = statusConfig[entry.status] ?? { label: entry.status, className: "bg-muted/50 text-foreground/80" };
                     return (
-                      <TableRow key={entry.id} className={entry.status === "COMPLETED" ? "opacity-50" : ""}>
+                      <TableRow key={entry.id} className={entry.status === "completed" ? "opacity-50" : ""}>
                         <TableCell className="font-mono font-bold text-primary">{entry.queueNo}</TableCell>
                         <TableCell>
                           <div>
@@ -106,7 +130,7 @@ export default function DoctorQueuePage() {
                           <Badge variant="secondary" className={sc.className}>{sc.label}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          {entry.status !== "COMPLETED" ? (
+                          {entry.status !== "completed" ? (
                             <Link href={`/doctor/consultation/${entry.patientId}`}>
                               <Button size="sm" className="bg-primary hover:bg-primary/90 text-white">
                                 Start Consultation
