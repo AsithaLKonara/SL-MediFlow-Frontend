@@ -55,6 +55,7 @@ export default function LabResultsPage({
   const [reportUrl, setReportUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/requests`)
@@ -122,6 +123,36 @@ export default function LabResultsPage({
       console.error(e);
       toast.error("Failed to publish report");
       setSaving(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
+      if (!res.ok) throw new Error("Failed to get presigned URL");
+      const { uploadUrl, fileUrl } = await res.json();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type
+        }
+      });
+
+      if (!uploadRes.ok) throw new Error("Failed to upload to S3");
+
+      setReportUrl(fileUrl);
+      toast.success("File uploaded to AWS S3 successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to upload file");
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -290,16 +321,22 @@ export default function LabResultsPage({
                   />
                 </div>
 
-                {/* PDF Report Upload (Simulated) */}
+                {/* PDF Report Upload */}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Attach PDF Report (Optional)</label>
+                  <label className="text-sm font-medium">Attach PDF Report (AWS S3 Upload)</label>
                   <Input 
-                    placeholder="Enter URL to PDF report (e.g. https://storage.example.com/report.pdf)"
-                    value={reportUrl}
-                    disabled={published}
-                    onChange={e => setReportUrl(e.target.value)}
+                    type="file"
+                    accept="application/pdf,image/*"
+                    disabled={published || uploadingFile}
+                    onChange={handleFileUpload}
                   />
-                  <p className="text-xs text-muted-foreground">Simulated upload: Paste a link to the finalized PDF report if applicable.</p>
+                  {uploadingFile && <p className="text-xs text-blue-500 animate-pulse">Uploading to S3...</p>}
+                  {reportUrl && !uploadingFile && (
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      File uploaded: <a href={reportUrl} target="_blank" rel="noreferrer" className="underline break-all">{reportUrl}</a>
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Select a file to securely upload it to AWS S3.</p>
                 </div>
 
                 {!published ? (

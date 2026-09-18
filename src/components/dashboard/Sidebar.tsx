@@ -88,7 +88,7 @@ export function Sidebar() {
         {isCollapsed ? (
           <Image src="/logo.png" alt="AMAZ" width={32} height={32} className="object-contain" />
         ) : (
-          <Image src="/logo.png" alt="AMAZ Hospital" width={140} height={40} className="object-contain" />
+          <Image src="/logo.png" alt="AMAZ Hospital" width={140} height={40} className="object-contain" priority />
         )}
       </div>
 

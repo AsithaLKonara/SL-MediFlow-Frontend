@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet } from "lucide-react";
+import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2 } from "lucide-react";
 import { useCartSync, CartItem } from "../hooks/useCartSync";
+import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
+import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
 
 export function POSPane() {
   const { updateState, state } = useCartSync(true);
@@ -24,6 +26,9 @@ export function POSPane() {
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "QR" | null>(null);
+  
+  const { showAmount, clearDisplay } = usePoleDisplay(true);
+  const { initiateCardPayment, isProcessing: isCardProcessing } = usePaymentTerminal();
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const total = subtotal;
@@ -107,10 +112,16 @@ export function POSPane() {
   const handleCloseCheckout = () => {
     setIsCheckoutOpen(false);
     setPaymentMethod(null);
+    clearDisplay();
     updateState({
       ...state,
       checkout: { method: null, status: "IDLE" }
     });
+  };
+
+  const handleOpenCheckout = () => {
+    setIsCheckoutOpen(true);
+    showAmount(total);
   };
 
   return (
@@ -235,7 +246,7 @@ export function POSPane() {
           <span>Total</span>
           <span>LKR {total.toFixed(2)}</span>
         </div>
-        <Button className="w-full h-12 text-lg" onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0}>
+        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0}>
           <CreditCard className="w-5 h-5 mr-2" />
           Checkout
         </Button>
@@ -307,8 +318,16 @@ export function POSPane() {
 
               <Button 
                 className="w-full h-12 text-lg" 
-                disabled={!paymentMethod || state.checkout?.status === "PAYING"}
+                disabled={!paymentMethod || state.checkout?.status === "PAYING" || isCardProcessing}
                 onClick={async () => {
+                  if (paymentMethod === "CARD") {
+                    const success = await initiateCardPayment(total);
+                    if (!success) {
+                      alert("Card payment failed or was cancelled.");
+                      return;
+                    }
+                  }
+
                   try {
                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/sell`, {
                       method: "POST",
@@ -319,7 +338,6 @@ export function POSPane() {
                     if (res.ok) {
                       setCart([]);
                       handleCloseCheckout();
-                      // Would use a real toast here but sonner is not imported, let's just use alert or rely on parent
                       alert("Payment Complete! Invoice generated and stock deducted.");
                     } else {
                       const error = await res.json();
@@ -330,7 +348,11 @@ export function POSPane() {
                   }
                 }}
               >
-                {state.checkout?.status === "PAYING" ? "Processing..." : "Complete Payment"}
+                {state.checkout?.status === "PAYING" || isCardProcessing ? (
+                  <span className="flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</span>
+                ) : (
+                  "Complete Payment"
+                )}
               </Button>
             </div>
           </div>

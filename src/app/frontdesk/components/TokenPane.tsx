@@ -1,24 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReactToPrint } from "react-to-print";
-import { useRef } from "react";
+import { toast } from "sonner";
 import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 
 export function TokenPane() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
+  const [patientAge, setPatientAge] = useState("");
+  const [selectedDoc, setSelectedDoc] = useState<{id: number, name: string, spec: string, queue: number} | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   const tokenPrintRef = useRef<HTMLDivElement>(null);
   const handlePrintToken = useReactToPrint({ contentRef: tokenPrintRef });
 
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
   const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
+
+  const handleGenerateToken = async () => {
+    if (!selectedDoc) {
+      toast.error("Please select a doctor first.");
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const response = await fetch("http://localhost:5000/api/reception/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientName: patientName || "Walk-in Patient",
+          patientPhone,
+          doctorName: selectedDoc.name,
+          department: selectedDoc.spec
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        toast.success("Token generated successfully! SMS sent if phone provided.");
+        handlePrintToken();
+        // Reset form
+        setPatientName("");
+        setPatientPhone("");
+        setPatientAge("");
+        setSelectedDoc(null);
+      } else {
+        toast.error("Failed to generate token.");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Error connecting to server.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 relative">
@@ -83,15 +128,15 @@ export function TokenPane() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Full Name</label>
-                  <Input placeholder="John Doe" className="bg-card border-border" />
+                  <Input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="John Doe" className="bg-card border-border" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Age</label>
-                  <Input type="number" placeholder="45" className="bg-card border-border" />
+                  <Input type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="45" className="bg-card border-border" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Phone</label>
-                  <Input placeholder="077..." className="bg-card border-border" />
+                  <label className="text-xs text-muted-foreground">Phone (For SMS)</label>
+                  <Input value={patientPhone} onChange={(e) => setPatientPhone(e.target.value)} placeholder="077..." className="bg-card border-border" />
                 </div>
               </div>
             </div>
@@ -110,7 +155,10 @@ export function TokenPane() {
               ].map((doc) => (
                 <button
                   key={doc.id}
-                  className="p-3 border border-border rounded-lg bg-card hover:border-secondary text-left transition-colors flex flex-col gap-1"
+                  onClick={() => setSelectedDoc(doc)}
+                  className={`p-3 border rounded-lg bg-card hover:border-secondary text-left transition-colors flex flex-col gap-1 ${
+                    selectedDoc?.id === doc.id ? "border-primary ring-1 ring-primary" : "border-border"
+                  }`}
                 >
                   <span className="font-medium text-sm">{doc.name}</span>
                   <span className="text-xs text-muted-foreground">{doc.spec}</span>
@@ -120,9 +168,13 @@ export function TokenPane() {
             </div>
 
             <div className="mt-auto pt-4 border-t border-border">
-              <Button className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" onClick={() => handlePrintToken()}>
-                <Ticket className="w-5 h-5 mr-2" />
-                Register & Generate Token
+              <Button 
+                className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
+                onClick={handleGenerateToken}
+                disabled={isGenerating}
+              >
+                {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Ticket className="w-5 h-5 mr-2" />}
+                {isGenerating ? "Processing..." : "Register & Generate Token"}
               </Button>
             </div>
           </div>

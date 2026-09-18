@@ -18,6 +18,7 @@ export default function AuthLayout({
               width={350} 
               height={100} 
               className="object-contain drop-shadow-md h-20 w-auto object-left" 
+              priority
             />
           </div>
           <h1 className="text-5xl font-extrabold tracking-tight">Welcome <span className="italic font-serif text-primary">Back</span></h1>
