@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, FileText, FlaskConical, Users } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Metrics {
   doctorName: string;
@@ -21,12 +22,39 @@ interface Metrics {
 export default function DoctorOverview() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetch("/api/doctor/metrics")
+    if (!user?.id) return;
+    
+    fetch(`/api/doctor/metrics?doctorId=${user.id}`)
       .then((r) => r.json())
-      .then((d) => { setMetrics(d); setLoading(false); });
-  }, []);
+      .then((d) => { 
+        if (d.error) {
+          console.error(d.error);
+          setMetrics({
+            doctorName: user.fullName || "Doctor",
+            specialty: (user as any).specialty || "General",
+            patientsToday: 0,
+            completedConsultations: 0,
+            pendingQueue: 0,
+            pendingPrescriptions: 0,
+            pendingLabRequests: 0,
+            upcomingPatients: []
+          });
+        } else {
+          setMetrics({
+            ...d,
+            upcomingPatients: d.upcomingPatients || []
+          });
+        }
+        setLoading(false); 
+      })
+      .catch((e) => {
+        console.error("Failed to fetch doctor metrics", e);
+        setLoading(false);
+      });
+  }, [user]);
 
   if (loading || !metrics) {
     return (
