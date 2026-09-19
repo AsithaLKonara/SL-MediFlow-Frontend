@@ -9,6 +9,7 @@ import { useReactToPrint } from "react-to-print";
 import { PrescriptionPrintTemplate } from "@/components/printing/PrescriptionPrintTemplate";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/dashboard/SidebarProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -58,6 +59,7 @@ export default function ConsultationPage({
 }) {
   const { patientId } = use(params);
   const { isCollapsed } = useSidebar();
+  const { user } = useAuth();
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -228,8 +230,8 @@ export default function ConsultationPage({
           patientId: patient?.id,
           patientName: patient?.name,
           visitId: "V-2026-000521",
-          doctorId: "DOC-123",
-          doctorName: "Dr. Silva",
+          doctorId: user?.id || "DOC-123",
+          doctorName: user?.fullName || "Dr. Silva",
           diagnosis,
           clinicalNotes: notes,
           items: addedDrugs.map(d => ({
@@ -268,7 +270,7 @@ export default function ConsultationPage({
               patientId: patient?.id,
               visitId: "V-2026-000521",
               testId: test.id,
-              doctorId: "DOC-123",
+              doctorId: user?.id || "DOC-123",
               priority: isUrgent ? "URGENT" : "ROUTINE"
             })
           })
@@ -284,6 +286,22 @@ export default function ConsultationPage({
       setTimeout(() => {
         window.location.href = "/doctor/queue";
       }, 1500);
+    }
+
+    // 4. Update Token Status
+    try {
+      const finalStatus = addedDrugs.length > 0 ? "prescription_issued" : "COMPLETED";
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/tokens/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: patient?.id,
+          doctorId: user?.id || "DOC-123", // Use real doctor ID
+          status: finalStatus
+        })
+      });
+    } catch (e) {
+      console.error("Failed to update token status", e);
     }
   };
 

@@ -34,7 +34,10 @@ export default function DoctorOverview() {
       .then((tokens: any[]) => { 
         // Build metrics from real token data
         const upcoming = tokens
-          .filter(t => t.status !== "completed")
+          .filter(t => {
+            const s = (t.status || "").toLowerCase();
+            return s !== "completed" && s !== "prescription_issued" && s !== "cancelled";
+          })
           .map(t => ({
              queueNo: t.tokenNumber,
              patientId: t.patient.id,
@@ -48,7 +51,10 @@ export default function DoctorOverview() {
           doctorName: user.fullName,
           specialty: "General", // Placeholder for now
           patientsToday: tokens.length,
-          completedConsultations: tokens.filter(t => t.status === "completed").length,
+          completedConsultations: tokens.filter(t => {
+            const s = (t.status || "").toLowerCase();
+            return s === "completed" || s === "prescription_issued";
+          }).length,
           pendingQueue: upcoming.length,
           pendingPrescriptions: 0,
           pendingLabRequests: 0,

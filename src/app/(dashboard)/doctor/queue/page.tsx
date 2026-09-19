@@ -35,7 +35,11 @@ export default function DoctorQueuePage() {
 
   useEffect(() => {
     fetch("/api/doctor/queue").then((r) => r.json()).then((d) => {
-      setQueue(d.data);
+      const activeQueue = (d.data || []).filter((q: any) => {
+        const s = (q.status || "").toUpperCase();
+        return s !== "COMPLETED" && s !== "PRESCRIPTION_ISSUED" && s !== "CANCELLED";
+      });
+      setQueue(activeQueue);
       setLoading(false);
     });
   }, []);
