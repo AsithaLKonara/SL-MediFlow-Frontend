@@ -9,19 +9,31 @@ import { useCartSync, CartItem } from "../hooks/useCartSync";
 import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
 import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
 
+interface Medicine {
+  id: string;
+  name: string;
+  barcode: string;
+  stockBatches?: { unitPrice: number; currentQuantity?: number }[];
+}
+
 export function POSPane() {
   const { updateState, state } = useCartSync(true);
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
+  const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load medicines");
+        return r.json();
+      })
       .then((d) => setAvailableMedicines(d))
-      .catch((e) => console.error("Failed to load medicines", e));
+      .catch((e) => {
+        console.error("Failed to load medicines", e);
+      });
   }, []);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -46,7 +58,7 @@ export function POSPane() {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  const addToCart = (med: any) => {
+  const addToCart = (med: Medicine) => {
     setCart(prev => {
       const exists = prev.find(i => i.id === med.id);
       if (exists) {
@@ -174,7 +186,7 @@ export function POSPane() {
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-primary">LKR {m.stockBatches?.[0]?.unitPrice || 0}</div>
-                    <div className="text-xs text-muted-foreground">Stock: {m.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0}</div>
+                    <div className="text-xs text-muted-foreground">Stock: {m.stockBatches?.reduce((sum: number, b: { currentQuantity?: number }) => sum + (b.currentQuantity || 0), 0) || 0}</div>
                   </div>
                 </button>
               ))

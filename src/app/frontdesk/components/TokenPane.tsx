@@ -27,6 +27,18 @@ interface LabTest {
   price: number;
 }
 
+interface GeneratedToken {
+  queueNumber: string;
+  doctorName: string;
+  department: string;
+  date: string;
+  patientName: string;
+  patientId?: string;
+  tests?: string[];
+  visitId?: string;
+  invoiceId?: string;
+}
+
 export function TokenPane() {
   const [searchQuery, setSearchQuery] = useState("");
   const [patientName, setPatientName] = useState("");
@@ -40,7 +52,7 @@ export function TokenPane() {
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
   
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedToken, setGeneratedToken] = useState<any>(null);
+  const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
   
   const tokenPrintRef = useRef<HTMLDivElement>(null);
   const handlePrintToken = useReactToPrint({ 
@@ -63,12 +75,21 @@ export function TokenPane() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/catalog`).then(r => r.json())
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`).then(r => {
+        if (!r.ok) throw new Error("Failed to fetch doctors");
+        return r.json();
+      }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/catalog`).then(r => {
+        if (!r.ok) throw new Error("Failed to fetch lab catalog");
+        return r.json();
+      })
     ]).then(([docRes, labRes]) => {
       if (docRes.success) setDoctors(docRes.data);
       if (Array.isArray(labRes)) setLabCatalog(labRes);
-    }).catch(console.error);
+    }).catch((e) => {
+      console.error(e);
+      toast.error("Failed to load initial data. Server might be offline.");
+    });
   }, []);
 
   const handleSearchPatient = async () => {
