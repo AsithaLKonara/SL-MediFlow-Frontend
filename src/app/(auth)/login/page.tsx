@@ -30,12 +30,13 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "admin@amaz.com",
-      password: "ChangeMe123!",
+      password: "password123",
     },
   });
 
@@ -65,9 +66,9 @@ export default function LoginPage() {
       
       if (roleStr === "admin" || roleStr === "superadmin") {
         router.push("/superadmin");
+      } else if (["receptionist", "pharmacist", "cashier"].includes(roleStr)) {
+        router.push("/frontdesk");
       } else {
-        // Automatically route to their role's specific dashboard
-        // e.g., 'FRONTDESK' -> '/frontdesk', 'CASHIER' -> '/cashier'
         router.push(`/${roleStr}`);
       }
     } catch (err: any) {
@@ -75,6 +76,20 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const MOCK_USERS = [
+    { label: "Admin", email: "admin@amaz.com" },
+    { label: "Reception", email: "reception@amaz.com" },
+    { label: "Doctor", email: "doctor@amaz.com" },
+    { label: "Pharmacy", email: "pharmacy@amaz.com" },
+    { label: "LabTech", email: "labtech@amaz.com" },
+    { label: "Cashier", email: "cashier@amaz.com" },
+  ];
+
+  const handleQuickLogin = (email: string) => {
+    setValue("email", email);
+    setValue("password", "password123");
   };
 
   return (
@@ -90,6 +105,25 @@ export default function LoginPage() {
           <p>{error}</p>
         </div>
       )}
+
+      {/* QUICK LOGIN FOR DEVELOPMENT */}
+      <div className="p-4 bg-muted/50 rounded-lg border border-border text-sm">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Quick Login (Dev)</p>
+        <div className="flex flex-wrap gap-2">
+          {MOCK_USERS.map(u => (
+            <Button 
+              key={u.email} 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              className="text-xs h-7"
+              onClick={() => handleQuickLogin(u.email)}
+            >
+              {u.label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-2">
@@ -152,8 +186,6 @@ export default function LoginPage() {
           )}
         </Button>
       </form>
-
-
 
       <p className="text-center text-sm text-muted-foreground mt-8">
         Don&apos;t have an account?{" "}

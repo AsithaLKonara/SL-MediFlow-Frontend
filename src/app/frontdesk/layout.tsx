@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Home } from "lucide-react";
 import { FullScreenButton } from "./components/FullScreenButton";
 import { FrontdeskToggles } from "./components/FrontdeskToggles";
+import { FrontdeskAuthGuard } from "./components/FrontdeskAuthGuard";
 
 export const metadata: Metadata = {
   title: "Front Desk | AMAZ Hospital",
@@ -46,7 +47,9 @@ export default function FrontDeskLayout({
       
       {/* Main Workspace Area - No Sidebar, No margins */}
       <main className="flex-1 flex overflow-hidden">
-        {children}
+        <FrontdeskAuthGuard>
+          {children}
+        </FrontdeskAuthGuard>
       </main>
     </div>
   );
