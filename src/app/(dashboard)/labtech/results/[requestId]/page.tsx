@@ -66,20 +66,19 @@ export default function LabResultsPage({
           const mapped: LabRequest = {
             id: req.id,
             patientId: req.patientId,
-            patientName: `Patient ${req.patientId.slice(0, 4)}`,
+            patientName: req.Patient?.fullName || `Patient ${req.patientId.slice(0, 4)}`,
             patientAge: 30,
-            doctor: req.doctorId || "Unknown",
+            doctor: req.Visit?.User?.fullName || req.doctorId || "Unknown",
             clinicalIndication: "Routine Checkup",
-            tests: [
-              {
-                name: req.test.name,
-                unit: req.test.unit || "",
-                referenceRange: req.test.referenceRange || "",
-                result: null,
-                status: req.status
-              }
-            ],
-            priority: "ROUTINE",
+            tests: (req.items || []).map((item: any) => ({
+              id: item.LabTest?.id,
+              name: item.LabTest?.name,
+              unit: item.LabTest?.unit || "",
+              referenceRange: item.LabTest?.referenceRange || "",
+              result: null,
+              status: req.status
+            })),
+            priority: req.priority || "ROUTINE",
             status: req.status,
             requestedAt: req.requestedAt
           };
