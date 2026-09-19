@@ -1,42 +1,34 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  await new Promise((r) => setTimeout(r, 300));
-  return NextResponse.json({
-    data: [
-      {
-        id: "INV-2026-0001",
-        visitId: "V-2026-000521",
-        patientId: "AMZ-P-000006",
-        patientName: "Kamal Perera",
-        type: "CENTRAL_INVOICE",
-        description: "Visit Invoice",
-        items: [
-          { name: "Doctor Consultation (Dr. Silva)", qty: 1, unitPrice: 2000.00, subtotal: 2000.00 },
-          { name: "Pharmacy Charge (RX-2026-000125)", qty: 1, unitPrice: 1250.00, subtotal: 1250.00 },
-          { name: "Laboratory (Full Blood Count, ECG)", qty: 1, unitPrice: 2300.00, subtotal: 2300.00 },
-        ],
-        amount: 5550.00,
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: "INV-2026-0002",
-        visitId: "V-2026-000519",
-        patientId: "PAT-004",
-        patientName: "Patient B",
-        type: "CENTRAL_INVOICE",
-        description: "Visit Invoice",
-        items: [
-          { name: "Doctor Consultation (Dr. Perera)", qty: 1, unitPrice: 2500.00, subtotal: 2500.00 },
-          { name: "Pharmacy Charge (RX-2026-000122)", qty: 1, unitPrice: 700.00, subtotal: 700.00 },
-        ],
-        amount: 3200.00,
-        status: "COMPLETED",
-        createdAt: "2026-09-15T09:10:00Z",
-      }
-    ],
-  });
+  try {
+    const res = await fetch("http://localhost:5000/api/billing/invoices", {
+      cache: "no-store"
+    });
+    const backendData = await res.json();
+    
+    const data = (Array.isArray(backendData) ? backendData : []).map((inv: any) => ({
+      id: inv.id,
+      visitId: inv.visitId || "Walk-in",
+      patientId: inv.patientId || "Unknown",
+      patientName: inv.Patient?.fullName || "Walk-in Patient",
+      type: "CENTRAL_INVOICE",
+      description: "Visit Invoice",
+      items: (inv.lineItems || []).map((item: any) => ({
+        name: item.description,
+        qty: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: item.total
+      })),
+      amount: inv.totalAmount,
+      status: inv.status,
+      createdAt: inv.createdAt
+    }));
+    
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json({ success: false, data: [] }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
