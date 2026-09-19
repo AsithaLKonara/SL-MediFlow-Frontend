@@ -249,7 +249,7 @@ export function PhoneBookingPane() {
             <option value="">-- Choose Doctor --</option>
             {doctors.map(d => (
               <option key={d.id} value={d.id}>
-                {d.fullName} {d.specialty ? `(${d.specialty})` : ''} {d.roomNumber ? `[Room ${d.roomNumber}]` : ''}
+                {d.fullName} {d.specialty ? `(${d.specialty})` : ''} {d.roomNumber ? `[Room ${d.roomNumber}]` : ''} {(d as any).isArrived ? '(Arrived)' : ''}
               </option>
             ))}
           </select>

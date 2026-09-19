@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Clock, Loader2, UserRound, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface DoctorStatus {
   id: string;
   fullName: string;
-  status: "SCHEDULED" | "ARRIVED";
-  arrivedAt: string | null;
+  specialty?: string;
+  roomNumber?: string;
+  isArrived?: boolean;
 }
 
 export default function DoctorArrivalsPage() {
@@ -25,10 +28,12 @@ export default function DoctorArrivalsPage() {
 
   const fetchDoctors = async () => {
     try {
-      const res = await fetch("/api/receptionist/doctors/today");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to fetch doctors");
-      setDoctors(json.data);
+      // booking.service returns { success: true, data: [...] } or just [...]
+      const data = json.data || json;
+      setDoctors(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -36,12 +41,17 @@ export default function DoctorArrivalsPage() {
     }
   };
 
-  const markArrived = async (id: string) => {
-    setProcessingId(id);
+  const markArrived = async (doctor: DoctorStatus) => {
+    setProcessingId(doctor.id);
     setError(null);
     try {
-      const res = await fetch(`/api/receptionist/doctors/${id}/arrive`, {
-        method: "POST"
+      const el = document.getElementById(`room-${doctor.id}`) as HTMLInputElement;
+      const newRoom = el?.value || doctor.roomNumber || "";
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/reception/doctors/${doctor.id}/arrive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomNumber: newRoom })
       });
       const json = await res.json();
       
@@ -49,12 +59,15 @@ export default function DoctorArrivalsPage() {
         throw new Error(json.error || "Failed to mark arrived");
       }
 
+      toast.success(`${doctor.fullName} marked as Arrived in Room ${newRoom}`);
+
       // Update local state
       setDoctors(docs => docs.map(d => 
-        d.id === id ? { ...d, status: "ARRIVED", arrivedAt: new Date().toISOString() } : d
+        d.id === doctor.id ? { ...d, isArrived: true, roomNumber: newRoom } : d
       ));
     } catch (err: any) {
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setProcessingId(null);
     }
@@ -98,7 +111,7 @@ export default function DoctorArrivalsPage() {
           ) : (
             <div className="divide-y divide-border">
               {doctors.map((doctor) => {
-                const isArrived = doctor.status === "ARRIVED";
+                const isArrived = !!doctor.isArrived;
                 const isProcessing = processingId === doctor.id;
 
                 return (
@@ -109,6 +122,7 @@ export default function DoctorArrivalsPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">{doctor.fullName}</h3>
+                        <p className="text-sm text-muted-foreground mb-1">{doctor.specialty || "General Consultation"}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             isArrived 
@@ -116,39 +130,39 @@ export default function DoctorArrivalsPage() {
                               : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500'
                           }`}>
                             {isArrived ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                            {doctor.status}
+                            {isArrived ? 'ARRIVED' : 'SCHEDULED'}
                           </span>
-                          
-                          {isArrived && doctor.arrivedAt && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              at {new Date(doctor.arrivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {isArrived ? (
-                        <p className="text-sm font-medium text-green-600 dark:text-green-400 px-4">
-                          Arrived
-                        </p>
-                      ) : (
-                        <Button 
-                          onClick={() => markArrived(doctor.id)} 
-                          disabled={isProcessing}
-                          className="w-32"
-                        >
-                          {isProcessing ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Marking...
-                            </>
-                          ) : (
-                            "Mark Arrived"
-                          )}
-                        </Button>
-                      )}
+                      <div className="flex flex-col gap-1 items-end">
+                        <label className="text-xs font-medium text-muted-foreground">Today's Room</label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            id={`room-${doctor.id}`}
+                            defaultValue={doctor.roomNumber || ""}
+                            placeholder="Room #"
+                            className="w-24 h-9"
+                          />
+                          <Button 
+                            onClick={() => markArrived(doctor)} 
+                            disabled={isProcessing}
+                            variant={isArrived ? "outline" : "default"}
+                            className={`w-32 ${isArrived ? "border-green-500 text-green-600 hover:text-green-700" : ""}`}
+                          >
+                            {isProcessing ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Marking...
+                              </>
+                            ) : (
+                              isArrived ? "Update Room" : "Mark Arrived"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
