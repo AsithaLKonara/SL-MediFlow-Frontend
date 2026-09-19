@@ -1,14 +1,35 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return NextResponse.json({
-    data: [
-      { id: "Q-001", queueNo: "OPD-001", patientId: "PAT-2026-001", patientName: "Mrs. Amara Perera", assignedDoctor: "Dr. Sarah Jenkins", registeredAt: "2026-09-15T06:15:00Z", status: "IN_CONSULTATION", priority: "NORMAL" },
-      { id: "Q-002", queueNo: "OPD-002", patientId: "PAT-2026-002", patientName: "Mr. Kamal Jayasuriya", assignedDoctor: "Dr. Robert Chen", registeredAt: "2026-09-15T07:00:00Z", status: "WAITING", priority: "NORMAL" },
-      { id: "Q-003", queueNo: "OPD-003", patientId: "PAT-2026-003", patientName: "Miss Dilini Fernando", assignedDoctor: null, registeredAt: "2026-09-15T07:20:00Z", status: "WAITING", priority: "URGENT" },
-      { id: "Q-004", queueNo: "OPD-004", patientId: "PAT-2026-004", patientName: "Mr. Nimal Silva", assignedDoctor: "Dr. Sarah Jenkins", registeredAt: "2026-09-15T07:45:00Z", status: "WAITING", priority: "NORMAL" },
-      { id: "Q-005", queueNo: "OPD-005", patientId: "PAT-2026-005", patientName: "Mrs. Kumari Dias", assignedDoctor: null, registeredAt: "2026-09-15T08:10:00Z", status: "WAITING", priority: "NORMAL" },
-    ],
-  });
+  try {
+    const res = await fetch("http://localhost:5000/api/booking/appointments", {
+      cache: "no-store"
+    });
+    const json = await res.json();
+    
+    // Map backend Appointment schema to frontend Queue schema
+    if (json.success && Array.isArray(json.data)) {
+      json.data = json.data.map((apt: any) => {
+        // Map backend statuses to frontend expected statuses if necessary
+        let mappedStatus = apt.status;
+        if (mappedStatus === "BOOKED") mappedStatus = "WAITING";
+        if (mappedStatus === "IN_PROGRESS") mappedStatus = "IN_CONSULTATION";
+
+        return {
+          id: apt.id,
+          queueNo: apt.tokenNumber,
+          patientId: apt.patientId,
+          patientName: apt.Patient?.fullName || "Unknown",
+          assignedDoctor: apt.User?.fullName || null,
+          registeredAt: apt.createdAt,
+          status: mappedStatus,
+          priority: "NORMAL" // Hardcoded for now as backend doesn't track priority yet
+        };
+      });
+    }
+    
+    return NextResponse.json(json);
+  } catch (error) {
+    return NextResponse.json({ success: false, data: [] }, { status: 500 });
+  }
 }
