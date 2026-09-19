@@ -5,6 +5,7 @@ import { Home } from "lucide-react";
 import { FullScreenButton } from "./components/FullScreenButton";
 import { FrontdeskToggles } from "./components/FrontdeskToggles";
 import { FrontdeskAuthGuard } from "./components/FrontdeskAuthGuard";
+import { FrontdeskLogoutButton } from "./components/FrontdeskLogoutButton";
 
 export const metadata: Metadata = {
   title: "Front Desk | AMAZ Hospital",
@@ -42,6 +43,7 @@ export default function FrontDeskLayout({
           <div className="h-4 w-px bg-border mx-1" />
           <FrontdeskToggles />
           <FullScreenButton />
+          <FrontdeskLogoutButton />
         </div>
       </header>
       
