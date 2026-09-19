@@ -25,10 +25,18 @@ export default function DashboardLayout({
         
         // Admins can access everything in this simple setup
         if (userRole !== "admin" && userRole !== "superadmin") {
-           // If they are trying to access a path that doesn't match their role, redirect them
-           // Example: frontdesk user should be on /frontdesk
-           if (!pathname.startsWith(`/${userRole}`)) {
-             router.push(`/${userRole}`);
+           // Mapping for roles that use the consolidated Front Desk
+           const frontdeskRoles = ["receptionist", "pharmacist", "cashier"];
+           
+           if (frontdeskRoles.includes(userRole)) {
+             if (!pathname.startsWith(`/frontdesk`)) {
+               router.push(`/frontdesk`);
+             }
+           } else {
+             // For other roles like Doctor, LabTech
+             if (!pathname.startsWith(`/${userRole}`)) {
+               router.push(`/${userRole}`);
+             }
            }
         }
       }

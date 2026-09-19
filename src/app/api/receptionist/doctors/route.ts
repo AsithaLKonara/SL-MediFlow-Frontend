@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return NextResponse.json({
-    data: [
-      { id: "DOC-001", name: "Dr. Sarah Jenkins", specialty: "General Medicine", available: true },
-      { id: "DOC-002", name: "Dr. Robert Chen", specialty: "Cardiology", available: true },
-      { id: "DOC-003", name: "Dr. Priya Ramanathan", specialty: "Pediatrics", available: true },
-      { id: "DOC-004", name: "Dr. Mark Wilson", specialty: "General Medicine", available: false },
-      { id: "DOC-005", name: "Dr. Anika Patel", specialty: "Orthopedics", available: true },
-    ],
-  });
+  try {
+    const res = await fetch("http://localhost:5000/api/booking/doctors", {
+      cache: "no-store"
+    });
+    const json = await res.json();
+    
+    // Map fullName to name to maintain backwards compatibility with existing UI
+    if (json.success && Array.isArray(json.data)) {
+      json.data = json.data.map((doc: any) => ({
+        ...doc,
+        name: doc.fullName
+      }));
+    }
+    
+    return NextResponse.json(json);
+  } catch (error) {
+    return NextResponse.json({ success: false, data: [] }, { status: 500 });
+  }
 }

@@ -4,51 +4,107 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet } from "lucide-react";
-import { useCartSync, CartItem } from "../hooks/useCartSync";
+import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2 } from "lucide-react";
+import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
+import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
+import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
+import { toast } from "sonner";
+import { io } from "socket.io-client";
+import { useRef } from "react";
+import { useReactToPrint } from "react-to-print";
+import { BillPrintTemplate } from "../../../components/printing/BillPrintTemplate";
+import { CheckCircle2, Printer } from "lucide-react";
 
-export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clearIncoming?: () => void }) {
+interface Medicine {
+  id: string;
+  name: string;
+  barcode: string;
+  stockBatches?: { unitPrice: number; currentQuantity?: number }[];
+}
+
+export function POSPane() {
   const { updateState, state } = useCartSync(true);
+  const { onPrescriptionReceived, notifyRxStatus } = useRxToPOS();
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
+  const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const [receivedAmountInput, setReceivedAmountInput] = useState<string>("");
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: "Receipt",
+  });
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load medicines");
+        return r.json();
+      })
       .then((d) => setAvailableMedicines(d))
-      .catch((e) => console.error("Failed to load medicines", e));
+      .catch((e) => {
+        console.error("Failed to load medicines", e);
+      });
   }, []);
 
+  // Listen for websocket pos_payment_success (e.g. for multi-terminal sync)
   useEffect(() => {
-    if (incomingRx && incomingRx.items) {
-      setActivePrescriptionId(incomingRx.id);
-      setCart(prev => {
-        const newCart = [...prev];
-        incomingRx.items.forEach((item: any) => {
-          const id = item.medicineId || item.id;
-          const name = item.drugName;
-          const prescribedQty = (parseInt(item.duration) || 1) * (parseInt(item.frequency) || 1) || 10;
-          const price = item.medicine?.stockBatches?.[0]?.unitPrice || 0;
-          
-          const existing = newCart.find(i => i.id === id);
-          if (existing) {
-            existing.qty += prescribedQty;
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace('/api', '');
+    const socket = io(socketUrl);
+
+    socket.on("connect", () => {
+      console.log("POSPane connected to websocket");
+    });
+
+    socket.on("pos_payment_success", (data) => {
+      // Optional: React to payments made on other terminals if needed
+      console.log("Global payment success event:", data);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // Listen for prescription items pushed from the Rx tab
+  useEffect(() => {
+    onPrescriptionReceived((rxItems, rxId) => {
+      setCart((prev) => {
+        const updated = [...prev];
+        for (const rxItem of rxItems) {
+          const idx = updated.findIndex((i) => i.id === rxItem.id);
+          if (idx >= 0) {
+            updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
           } else {
-            newCart.push({ id, name, qty: prescribedQty, price });
+            updated.push(rxItem);
           }
-        });
-        return newCart;
+        }
+        return updated;
       });
-      if (clearIncoming) clearIncoming();
-    }
-  }, [incomingRx, clearIncoming]);
+      setActivePrescriptionId(rxId);
+      // Mark prescription as IN_PROGRESS on backend
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${rxId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "IN_PROGRESS" }),
+      }).catch((e) => console.error("Failed to update Rx status:", e));
+      // Broadcast status to TokenPane so it can lock the UI
+      notifyRxStatus(rxId, "IN_PROGRESS");
+      toast.success(`${rxItems.length} medicine(s) loaded into POS from prescription.`);
+    });
+  }, [onPrescriptionReceived, notifyRxStatus]);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "QR" | null>(null);
+  
+  const { showAmount, clearDisplay } = usePoleDisplay(true);
+  const { initiateCardPayment, isProcessing: isCardProcessing } = usePaymentTerminal();
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const total = subtotal;
@@ -66,7 +122,7 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  const addToCart = (med: any) => {
+  const addToCart = (med: Medicine) => {
     setCart(prev => {
       const exists = prev.find(i => i.id === med.id);
       if (exists) {
@@ -129,23 +185,71 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
     }
   };
 
-  const handleCloseCheckout = () => {
+  const handleCloseCheckout = (cancelled = false) => {
+    // If cancelled and a prescription was in progress, revert it to PENDING
+    if (cancelled && activePrescriptionId) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PENDING" }),
+      }).catch((e) => console.error("Failed to revert Rx status:", e));
+      notifyRxStatus(activePrescriptionId, "PENDING");
+      setActivePrescriptionId(null);
+    }
     setIsCheckoutOpen(false);
     setPaymentMethod(null);
+    setReceiptData(null);
+    setReceivedAmountInput("");
+    clearDisplay();
     updateState({
       ...state,
       checkout: { method: null, status: "IDLE" }
     });
   };
 
+  const handleCancelPrescription = () => {
+    if (activePrescriptionId) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PENDING" }),
+      }).catch((e) => console.error("Failed to revert Rx status:", e));
+      notifyRxStatus(activePrescriptionId, "PENDING");
+      setActivePrescriptionId(null);
+    }
+    setCart([]);
+    toast.info("Prescription cancelled. Cart cleared.");
+  };
+
+  const handleOpenCheckout = () => {
+    if (cart.length === 0) {
+      toast.error("Cart is empty.");
+      return;
+    }
+    setIsCheckoutOpen(true);
+    showAmount(total);
+  };
+
   return (
     <div className="flex-1 flex h-full flex-col p-4 gap-4">
-      <div className="flex items-center justify-between shrink-0">
-        <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground">
+      <div className="flex justify-between items-center bg-card p-3 border border-border rounded-lg shadow-sm shrink-0">
+        <div className="flex items-center gap-3">
           <ShoppingCart className="w-5 h-5 text-primary" />
-          Point of Sale
-        </h2>
+          <h2 className="font-semibold text-lg flex items-center gap-2">
+            Point of Sale
+            {activePrescriptionId && (
+              <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full animate-pulse">
+                RX ACTIVE
+              </span>
+            )}
+          </h2>
+        </div>
         <div className="flex gap-2">
+          {activePrescriptionId && (
+            <Button variant="outline" size="sm" onClick={handleCancelPrescription} className="border-destructive text-destructive hover:bg-destructive/10">
+              Cancel Rx
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => window.open('/customer-display', '_blank', 'width=1024,height=768')}>
             Open Display
           </Button>
@@ -188,7 +292,7 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-primary">LKR {m.stockBatches?.[0]?.unitPrice || 0}</div>
-                    <div className="text-xs text-muted-foreground">Stock: {m.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0}</div>
+                    <div className="text-xs text-muted-foreground">Stock: {m.stockBatches?.reduce((sum: number, b: { currentQuantity?: number }) => sum + (b.currentQuantity || 0), 0) || 0}</div>
                   </div>
                 </button>
               ))
@@ -260,7 +364,7 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
           <span>Total</span>
           <span>LKR {total.toFixed(2)}</span>
         </div>
-        <Button className="w-full h-12 text-lg" onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0}>
+        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0}>
           <CreditCard className="w-5 h-5 mr-2" />
           Checkout
         </Button>
@@ -270,10 +374,43 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
       {isCheckoutOpen && (
         <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rounded-xl">
           <div className="bg-card border border-border rounded-xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-border bg-muted flex justify-between items-center">
-              <h3 className="font-semibold text-lg">Checkout</h3>
-              <Button variant="ghost" size="sm" onClick={handleCloseCheckout}>Cancel</Button>
-            </div>
+            {receiptData ? (
+              <div className="p-6 flex flex-col items-center justify-center text-center space-y-6">
+                <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mb-2">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground">Payment Successful!</h3>
+                <div className="text-muted-foreground w-full p-4 bg-muted rounded-lg">
+                  <div className="flex justify-between mb-1">
+                    <span>Total Paid</span>
+                    <span className="font-bold text-foreground">LKR {receiptData.total.toFixed(2)}</span>
+                  </div>
+                  {receiptData.change > 0 && (
+                    <div className="flex justify-between text-green-500">
+                      <span>Change Due</span>
+                      <span className="font-bold">LKR {receiptData.change.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between mt-1 text-sm">
+                    <span>Method</span>
+                    <span>{receiptData.paymentMethod}</span>
+                  </div>
+                </div>
+                <div className="flex w-full gap-3 mt-4">
+                  <Button variant="outline" className="flex-1 h-12" onClick={() => handlePrint()}>
+                    <Printer className="w-4 h-4 mr-2" /> Print Receipt
+                  </Button>
+                  <Button className="flex-1 h-12" onClick={() => handleCloseCheckout()}>
+                    New Sale
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-4 border-b border-border bg-muted flex justify-between items-center">
+                  <h3 className="font-semibold text-lg">Checkout</h3>
+                  <Button variant="ghost" size="sm" onClick={() => handleCloseCheckout(true)}>Cancel</Button>
+                </div>
             <div className="p-4 space-y-6">
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">Total Amount</div>
@@ -318,7 +455,13 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
               {(paymentMethod === "CASH" || paymentMethod === "CARD") && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
                   <label className="text-sm font-medium">Received Amount (LKR)</label>
-                  <Input type="number" defaultValue={total} className="text-lg h-12" />
+                  <Input 
+                    type="number" 
+                    value={receivedAmountInput} 
+                    onChange={(e) => setReceivedAmountInput(e.target.value)}
+                    placeholder={total.toString()} 
+                    className="text-lg h-12" 
+                  />
                 </div>
               )}
 
@@ -332,35 +475,87 @@ export function POSPane({ incomingRx, clearIncoming }: { incomingRx?: any, clear
 
               <Button 
                 className="w-full h-12 text-lg" 
-                disabled={!paymentMethod || state.checkout?.status === "PAYING"}
+                disabled={!paymentMethod || isProcessing || state.checkout?.status === "PAYING" || isCardProcessing}
                 onClick={async () => {
+                  if (isProcessing) return;
+                  setIsProcessing(true);
+
+                  if (paymentMethod === "CARD") {
+                    const success = await initiateCardPayment(total);
+                    if (!success) {
+                      alert("Card payment failed or was cancelled.");
+                      setIsProcessing(false);
+                      return;
+                    }
+                  }
+
                   try {
                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/sell`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ items: cart, paymentMethod, prescriptionId: activePrescriptionId })
+                      body: JSON.stringify({ items: cart, paymentMethod })
                     });
                     
                     if (res.ok) {
+                      const responseData = await res.json();
+                      
+                      const parsedReceived = parseFloat(receivedAmountInput) || total;
+                      setReceiptData({
+                        receiptId: responseData.invoiceId || responseData.id || `TXN-${Date.now()}`,
+                        date: new Date(),
+                        items: cart.map(item => ({
+                          name: item.name,
+                          qty: item.qty,
+                          price: item.price,
+                          total: item.qty * item.price
+                        })),
+                        subtotal: total,
+                        total: total,
+                        paymentMethod: paymentMethod,
+                        receivedAmount: (paymentMethod === "CASH" || paymentMethod === "CARD") ? parsedReceived : total,
+                        change: (paymentMethod === "CASH" || paymentMethod === "CARD") ? Math.max(0, parsedReceived - total) : 0
+                      });
+
+                      // Mark prescription DISPENSED if one was active
+                      if (activePrescriptionId) {
+                        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ status: "DISPENSED" }),
+                        }).catch((e) => console.error("Failed to dispense Rx:", e));
+                        notifyRxStatus(activePrescriptionId, "DISPENSED");
+                        setActivePrescriptionId(null);
+                      }
                       setCart([]);
-                      setActivePrescriptionId(null);
-                      handleCloseCheckout();
-                      alert("Payment Complete! Invoice generated and stock deducted.");
+                      toast.success("Payment completed successfully!");
+                      // Notice we do NOT call handleCloseCheckout() here because we want to show the success screen
                     } else {
-                      const error = await res.json();
-                      alert("Failed: " + error.error);
+                      const err = await res.json();
+                      toast.error(err.error || "Payment failed");
                     }
                   } catch (e) {
-                    alert("Network error");
+                    console.error(e);
+                    toast.error("Failed to connect to server");
+                  } finally {
+                    setIsProcessing(false);
                   }
                 }}
               >
-                {state.checkout?.status === "PAYING" ? "Processing..." : "Complete Payment"}
+                {isProcessing || state.checkout?.status === "PAYING" || isCardProcessing ? (
+                  <span className="flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</span>
+                ) : (
+                  "Complete Payment"
+                )}
               </Button>
             </div>
+              </>
+            )}
           </div>
         </div>
       )}
+
+      {/* Hidden print template */}
+      <BillPrintTemplate ref={printRef} receiptData={receiptData} />
     </div>
   );
 }

@@ -65,13 +65,17 @@ export default function LabTechReportsPage() {
                         {new Date(req.requestedAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="font-medium text-[#3A3435]">
-                        Patient {req.patientId.slice(0, 4)}
+                        {req.Patient?.fullName || `Patient ${req.patientId.slice(0, 4)}`}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{req.test.name}</Badge>
+                      <TableCell className="max-w-[200px] truncate">
+                        <div className="flex gap-1 flex-wrap">
+                          {req.items?.map((item: any) => (
+                            <Badge key={item.id} variant="outline">{item.LabTest?.name}</Badge>
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {req.doctorId || "Unknown"}
+                        {req.Visit?.User?.fullName || req.doctorId || "Unknown"}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="bg-green-500/10 text-green-600">

@@ -6,7 +6,10 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
   patientName?: string;
   doctorName: string;
   date: string;
-}>(({ tokenNumber, patientName, doctorName, date }, ref) => {
+  roomNumber?: string;
+}>(({ tokenNumber, patientName, doctorName, date, roomNumber }, ref) => {
+  const numericToken = tokenNumber.replace(/\D/g, '');
+  
   return (
     <div ref={ref} className="w-[300px] bg-card text-card-foreground text-black p-4 font-sans print:p-0">
       <div className="text-center mb-6">
@@ -19,8 +22,15 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
 
       <div className="text-center mb-6 space-y-1">
         <p className="text-sm">Token Number</p>
-        <h2 className="text-7xl font-black tracking-tighter">{tokenNumber}</h2>
+        <h2 className="text-7xl font-black tracking-tighter">{numericToken}</h2>
       </div>
+
+      {roomNumber && (
+        <div className="text-center mb-6 border-2 border-black py-2 bg-black text-white">
+          <p className="text-xs uppercase font-bold tracking-widest">Proceed To</p>
+          <h3 className="text-2xl font-black">ROOM {roomNumber}</h3>
+        </div>
+      )}
 
       <div className="space-y-2 border-t-2 border-dashed border-black pt-4 text-sm">
         <div className="flex justify-between">

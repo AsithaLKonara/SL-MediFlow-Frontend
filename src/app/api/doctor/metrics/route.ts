@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  await new Promise((r) => setTimeout(r, 300));
-  return NextResponse.json({
-    doctorName: "Dr. Sarah Jenkins",
-    specialty: "General Medicine",
-    patientsToday: 12,
-    completedConsultations: 7,
-    pendingQueue: 5,
-    pendingPrescriptions: 3,
-    pendingLabRequests: 2,
-    upcomingPatients: [
-      { queueNo: "OPD-002", patientId: "PAT-2026-002", patientName: "Mr. Kamal Jayasuriya", age: 53, reason: "Chest pain follow-up", status: "WAITING" },
-      { queueNo: "OPD-004", patientId: "PAT-2026-004", patientName: "Mr. Nimal Silva", age: 65, reason: "Routine checkup", status: "WAITING" },
-      { queueNo: "OPD-007", patientId: "PAT-2026-007", patientName: "Mrs. Chamari Wickrama", age: 42, reason: "Fever and cough", status: "WAITING" },
-    ],
-  });
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const doctorId = searchParams.get("doctorId") || "";
+    
+    // We pass doctorId if it exists to filter the metrics for the specific doctor
+    const res = await fetch(`http://localhost:5000/api/doctors/metrics${doctorId ? `?doctorId=${doctorId}` : ''}`, {
+      cache: "no-store"
+    });
+    
+    const json = await res.json();
+    return NextResponse.json(json.data || {});
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to fetch doctor metrics" }, { status: 500 });
+  }
 }

@@ -37,7 +37,7 @@ export default function CustomerDisplayPage() {
           </div>
         ) : (
           <div className="text-center text-muted-foreground flex flex-col items-center">
-            <Image src="/logo.png" alt="AMAZ Hospital" width={400} height={120} className="mb-4 object-contain opacity-80" />
+            <Image src="/logo.png" alt="AMAZ Hospital" width={400} height={120} className="mb-4 object-contain opacity-80" priority />
             <p className="text-lg md:text-xl">Waiting for next token...</p>
           </div>
         )}

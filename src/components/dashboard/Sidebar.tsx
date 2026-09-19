@@ -57,6 +57,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
   ],
   labtech: [
     { href: "/labtech", label: "Overview", icon: LayoutDashboard },
+    { href: "/labtech/queue", label: "Frontdesk Queue", icon: Users },
     { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
     { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
   ],
@@ -88,7 +89,7 @@ export function Sidebar() {
         {isCollapsed ? (
           <Image src="/logo.png" alt="AMAZ" width={32} height={32} className="object-contain" />
         ) : (
-          <Image src="/logo.png" alt="AMAZ Hospital" width={140} height={40} className="object-contain" />
+          <Image src="/logo.png" alt="AMAZ Hospital" width={140} height={40} className="object-contain" priority />
         )}
       </div>
 

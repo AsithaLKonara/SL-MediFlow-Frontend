@@ -1,16 +1,33 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  await new Promise((r) => setTimeout(r, 300));
-  return NextResponse.json({
-    pendingPayments: 14,
-    processedToday: 58,
-    totalRevenue: 24500,
-    cashInDrawer: 3200,
-    recentTransactions: [
-      { id: "TXN-2026-089", patientName: "Mr. Kamal Jayasuriya", type: "Pharmacy Bill", amount: 154.50, status: "COMPLETED", time: "2026-09-15T09:15:00Z" },
-      { id: "TXN-2026-090", patientName: "Mrs. Kumari Dias", type: "Consultation", amount: 50.00, status: "PENDING", time: "2026-09-15T09:20:00Z" },
-      { id: "TXN-2026-091", patientName: "Miss Dilini Fernando", type: "Lab Tests", amount: 120.00, status: "COMPLETED", time: "2026-09-15T09:25:00Z" },
-    ],
-  });
+  try {
+    const res = await fetch("http://localhost:5000/api/finance/dashboard", {
+      cache: "no-store"
+    });
+    const backendData = await res.json();
+    
+    // Map finance dashboard data to cashier metrics
+    const data = {
+      pendingPayments: backendData.metrics?.outstandingReceivables > 0 ? 5 : 0, // Fallback dummy count since finance returns total sum
+      processedToday: 12, // Dummy count as finance API lacks transaction counts
+      totalRevenue: backendData.metrics?.todayRevenue || 0,
+      cashInDrawer: (backendData.metrics?.todayRevenue || 0) * 0.4, // Estimate 40% is cash
+      recentTransactions: (backendData.transactions || [])
+        .filter((t: any) => t.type === "INCOME")
+        .slice(0, 5)
+        .map((t: any) => ({
+          id: t.id || `TXN-${Math.floor(Math.random()*1000)}`,
+          patientName: "Patient", // Unified API doesn't expose patient name yet
+          type: t.category || "General",
+          amount: t.amount || 0,
+          status: t.status || "COMPLETED",
+          time: t.date || new Date().toISOString()
+        }))
+    };
+    
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to fetch cashier metrics" }, { status: 500 });
+  }
 }
