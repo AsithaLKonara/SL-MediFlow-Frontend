@@ -10,6 +10,10 @@ import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
 import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
+import { useRef } from "react";
+import { useReactToPrint } from "react-to-print";
+import { BillPrintTemplate } from "../../../components/printing/BillPrintTemplate";
+import { CheckCircle2, Printer } from "lucide-react";
 
 interface Medicine {
   id: string;
@@ -28,6 +32,14 @@ export function POSPane() {
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const [receivedAmountInput, setReceivedAmountInput] = useState<string>("");
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: "Receipt",
+  });
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
@@ -186,6 +198,8 @@ export function POSPane() {
     }
     setIsCheckoutOpen(false);
     setPaymentMethod(null);
+    setReceiptData(null);
+    setReceivedAmountInput("");
     clearDisplay();
     updateState({
       ...state,
@@ -360,10 +374,43 @@ export function POSPane() {
       {isCheckoutOpen && (
         <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rounded-xl">
           <div className="bg-card border border-border rounded-xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-border bg-muted flex justify-between items-center">
-              <h3 className="font-semibold text-lg">Checkout</h3>
-              <Button variant="ghost" size="sm" onClick={() => handleCloseCheckout(true)}>Cancel</Button>
-            </div>
+            {receiptData ? (
+              <div className="p-6 flex flex-col items-center justify-center text-center space-y-6">
+                <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mb-2">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground">Payment Successful!</h3>
+                <div className="text-muted-foreground w-full p-4 bg-muted rounded-lg">
+                  <div className="flex justify-between mb-1">
+                    <span>Total Paid</span>
+                    <span className="font-bold text-foreground">LKR {receiptData.total.toFixed(2)}</span>
+                  </div>
+                  {receiptData.change > 0 && (
+                    <div className="flex justify-between text-green-500">
+                      <span>Change Due</span>
+                      <span className="font-bold">LKR {receiptData.change.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between mt-1 text-sm">
+                    <span>Method</span>
+                    <span>{receiptData.paymentMethod}</span>
+                  </div>
+                </div>
+                <div className="flex w-full gap-3 mt-4">
+                  <Button variant="outline" className="flex-1 h-12" onClick={() => handlePrint()}>
+                    <Printer className="w-4 h-4 mr-2" /> Print Receipt
+                  </Button>
+                  <Button className="flex-1 h-12" onClick={() => handleCloseCheckout()}>
+                    New Sale
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-4 border-b border-border bg-muted flex justify-between items-center">
+                  <h3 className="font-semibold text-lg">Checkout</h3>
+                  <Button variant="ghost" size="sm" onClick={() => handleCloseCheckout(true)}>Cancel</Button>
+                </div>
             <div className="p-4 space-y-6">
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">Total Amount</div>
@@ -408,7 +455,13 @@ export function POSPane() {
               {(paymentMethod === "CASH" || paymentMethod === "CARD") && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
                   <label className="text-sm font-medium">Received Amount (LKR)</label>
-                  <Input type="number" defaultValue={total} className="text-lg h-12" />
+                  <Input 
+                    type="number" 
+                    value={receivedAmountInput} 
+                    onChange={(e) => setReceivedAmountInput(e.target.value)}
+                    placeholder={total.toString()} 
+                    className="text-lg h-12" 
+                  />
                 </div>
               )}
 
@@ -444,6 +497,25 @@ export function POSPane() {
                     });
                     
                     if (res.ok) {
+                      const responseData = await res.json();
+                      
+                      const parsedReceived = parseFloat(receivedAmountInput) || total;
+                      setReceiptData({
+                        receiptId: responseData.invoiceId || responseData.id || `TXN-${Date.now()}`,
+                        date: new Date(),
+                        items: cart.map(item => ({
+                          name: item.name,
+                          qty: item.qty,
+                          price: item.price,
+                          total: item.qty * item.price
+                        })),
+                        subtotal: total,
+                        total: total,
+                        paymentMethod: paymentMethod,
+                        receivedAmount: (paymentMethod === "CASH" || paymentMethod === "CARD") ? parsedReceived : total,
+                        change: (paymentMethod === "CASH" || paymentMethod === "CARD") ? Math.max(0, parsedReceived - total) : 0
+                      });
+
                       // Mark prescription DISPENSED if one was active
                       if (activePrescriptionId) {
                         await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
@@ -455,8 +527,8 @@ export function POSPane() {
                         setActivePrescriptionId(null);
                       }
                       setCart([]);
-                      handleCloseCheckout();
                       toast.success("Payment completed successfully!");
+                      // Notice we do NOT call handleCloseCheckout() here because we want to show the success screen
                     } else {
                       const err = await res.json();
                       toast.error(err.error || "Payment failed");
@@ -476,9 +548,14 @@ export function POSPane() {
                 )}
               </Button>
             </div>
+              </>
+            )}
           </div>
         </div>
       )}
+
+      {/* Hidden print template */}
+      <BillPrintTemplate ref={printRef} receiptData={receiptData} />
     </div>
   );
 }

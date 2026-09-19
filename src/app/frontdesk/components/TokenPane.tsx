@@ -19,6 +19,7 @@ interface Doctor {
   id: string;
   fullName: string;
   specialty?: string;
+  roomNumber?: string;
 }
 
 interface LabTest {
@@ -59,6 +60,7 @@ interface GeneratedToken {
   tests?: string[];
   visitId?: string;
   invoiceId?: string;
+  roomNumber?: string;
 }
 
 export function TokenPane() {
@@ -200,7 +202,10 @@ export function TokenPane() {
       
       if (response.ok && result.success) {
         toast.success("Token generated successfully! SMS sent if phone provided.");
-        setGeneratedToken(result.data);
+        setGeneratedToken({
+          ...result.data,
+          roomNumber: selectedDoc?.roomNumber || undefined
+        });
         // Print receipt - form reset now happens in onAfterPrint callback
         setTimeout(() => handlePrintToken(), 300);
       } else {
@@ -250,6 +255,7 @@ export function TokenPane() {
             doctorName={generatedToken.doctorName} 
             patientName={generatedToken.patientName} 
             date={new Date().toLocaleDateString()} 
+            roomNumber={generatedToken.roomNumber}
           />
         )}
         <PrescriptionReceipt 
@@ -344,16 +350,47 @@ export function TokenPane() {
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Select Doctor</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {doctors.map((doc) => (
-                    <button
+                    <div
                       key={doc.id}
-                      onClick={() => setSelectedDocId(doc.id === selectedDocId ? null : doc.id)}
-                      className={`p-3 border rounded-lg bg-card hover:border-secondary text-left transition-colors flex flex-col gap-1 ${
-                        selectedDocId === doc.id ? "border-primary ring-1 ring-primary" : "border-border"
+                      className={`p-3 border rounded-lg bg-card transition-colors flex flex-col gap-2 ${
+                        selectedDocId === doc.id ? "border-primary ring-1 ring-primary" : "border-border hover:border-secondary"
                       }`}
                     >
-                      <span className="font-medium text-sm">{doc.fullName}</span>
-                      <span className="text-xs text-muted-foreground">{doc.specialty || "Consultation"}</span>
-                    </button>
+                      <button
+                        onClick={() => setSelectedDocId(doc.id === selectedDocId ? null : doc.id)}
+                        className="text-left flex flex-col gap-1 w-full"
+                      >
+                        <span className="font-medium text-sm">{doc.fullName}</span>
+                        <span className="text-xs text-muted-foreground">{doc.specialty || "Consultation"}</span>
+                      </button>
+                      <div className="flex items-center gap-2 mt-1 pt-2 border-t border-border">
+                        <Input 
+                          placeholder="Room #" 
+                          defaultValue={doc.roomNumber || ""}
+                          className="h-7 text-xs flex-1"
+                          onBlur={async (e) => {
+                            const newRoom = e.target.value;
+                            if (newRoom !== (doc.roomNumber || "")) {
+                              try {
+                                const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/reception/doctors/${doc.id}/room`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ roomNumber: newRoom })
+                                });
+                                if (r.ok) {
+                                  toast.success(`Room updated for ${doc.fullName}`);
+                                  setDoctors(prev => prev.map(d => d.id === doc.id ? { ...d, roomNumber: newRoom } : d));
+                                } else {
+                                  toast.error("Failed to update room");
+                                }
+                              } catch (err) {
+                                toast.error("Network error saving room");
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
