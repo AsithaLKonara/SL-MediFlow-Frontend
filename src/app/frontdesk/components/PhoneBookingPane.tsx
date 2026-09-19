@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Calendar as CalendarIcon, User, Search, Loader2 } from "lucide-react";
+import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { io, Socket } from "socket.io-client";
 
 interface Doctor {
   id: string;
   fullName: string;
+  specialty?: string;
 }
 
 export function PhoneBookingPane() {
@@ -16,8 +18,11 @@ export function PhoneBookingPane() {
   const [selectedDocId, setSelectedDocId] = useState("");
   const [date, setDate] = useState("");
   
-  const [phone, setPhone] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
+  const [patientAge, setPatientAge] = useState("");
+  const [patientLookupResult, setPatientLookupResult] = useState<{found: boolean; message: string} | null>(null);
 
   const [availability, setAvailability] = useState<any>(null);
   const [isChecking, setIsChecking] = useState(false);
@@ -28,7 +33,44 @@ export function PhoneBookingPane() {
 
   const [selectedTokenNumber, setSelectedTokenNumber] = useState<number | null>(null);
 
+  const socketRef = useRef<Socket | null>(null);
+
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '') : "http://localhost:5000";
+
+  // Establish socket connection once
+  useEffect(() => {
+    socketRef.current = io(SOCKET_URL);
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+    };
+  }, []);
+
+  // Listen for real-time availability updates
+  useEffect(() => {
+    if (!socketRef.current || !selectedDocId || !date) return;
+    
+    const room = `doctor_${selectedDocId}_${date}`;
+    socketRef.current.emit("join", room);
+
+    const handleUpdate = (newAvailability: any) => {
+      setAvailability(newAvailability);
+      // If the currently selected token just got booked, deselect it
+      if (selectedTokenNumber) {
+        const token = newAvailability.tokens?.find((t: any) => t.tokenNumber === selectedTokenNumber);
+        if (token && token.status !== "AVAILABLE") {
+          setSelectedTokenNumber(null);
+          toast.warning("The token you had selected was just booked by someone else!");
+        }
+      }
+    };
+
+    socketRef.current.on("availability_updated", handleUpdate);
+
+    return () => {
+      socketRef.current?.off("availability_updated", handleUpdate);
+    };
+  }, [selectedDocId, date, selectedTokenNumber]);
 
   useEffect(() => {
     fetch(`${API}/booking/doctors`)
@@ -80,13 +122,18 @@ export function PhoneBookingPane() {
     }
   };
 
-  const handlePhoneSearch = async () => {
-    if (!phone || phone.length < 9) return;
+  const handleSearchPatient = async () => {
+    if (!searchQuery || searchQuery.length < 7) return;
     try {
-      const res = await fetch(`${API}/reception/patients?q=${phone}`);
+      const res = await fetch(`${API}/reception/patients?q=${searchQuery}`);
       const data = await res.json();
       if (data.success && data.data.length > 0) {
-        setFullName(data.data[0].fullName);
+        const found = data.data[0];
+        setPatientName(found.fullName);
+        setPatientPhone(found.phone);
+        setPatientLookupResult({ found: true, message: `Patient found: ${found.fullName}` });
+      } else {
+        setPatientLookupResult({ found: false, message: "No patient found. Fill in details to register new patient." });
       }
     } catch (e) {
       console.error(e);
@@ -94,7 +141,7 @@ export function PhoneBookingPane() {
   };
 
   const handleBook = async () => {
-    if (!phone || !fullName || !selectedDocId || !date) {
+    if (!patientPhone || !patientName || !selectedDocId || !date) {
       toast.error("Please fill all fields");
       return;
     }
@@ -105,8 +152,9 @@ export function PhoneBookingPane() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          phone, 
-          fullName, 
+          phone: patientPhone, 
+          fullName: patientName, 
+          ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
           doctorId: selectedDocId, 
           date,
           tokenNumber: selectedTokenNumber
@@ -116,8 +164,11 @@ export function PhoneBookingPane() {
       if (result.success) {
         toast.success(`Token booked successfully! Token No: ${result.data.tokenNumber}`);
         // Reset — also clear dates to avoid stale tiles showing on next selection
-        setPhone("");
-        setFullName("");
+        setSearchQuery("");
+        setPatientName("");
+        setPatientPhone("");
+        setPatientAge("");
+        setPatientLookupResult(null);
         setDate("");
         setSelectedDocId("");
         setAvailability(null);
@@ -134,33 +185,50 @@ export function PhoneBookingPane() {
   };
 
   return (
-    <div className="flex-1 flex flex-col gap-4 overflow-auto">
-      <div className="bg-background border border-border rounded-lg p-4 space-y-4">
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2 pb-2">
+        <div className="bg-background border border-border rounded-lg p-4 space-y-4">
         <h3 className="font-medium text-muted-foreground text-sm">Patient Lookup</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Phone Number</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="077..."
-                className="pl-9 bg-card border-border"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onBlur={handlePhoneSearch}
-              />
-            </div>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by phone number..."
+              className="pl-9 bg-card border-border"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onBlur={handleSearchPatient}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchPatient()}
+            />
           </div>
-          <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Full Name</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="John Doe"
-                className="pl-9 bg-card border-border"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
+          <Button variant="secondary" className="bg-muted hover:bg-neutral-700" onClick={handleSearchPatient}>
+            <Search className="w-4 h-4 mr-2" />
+            Search
+          </Button>
+        </div>
+        {patientLookupResult && (
+          <p className={`text-xs mt-1 ${patientLookupResult.found ? 'text-green-500' : 'text-yellow-500'}`}>
+            {patientLookupResult.message}
+          </p>
+        )}
+
+        {/* Quick Registration Form */}
+        <div className="pt-2 border-t border-border mt-2 space-y-4">
+          <h3 className="font-medium text-muted-foreground text-sm flex items-center gap-2">
+            <PlusCircle className="w-4 h-4" /> Quick Register (Optional)
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Full Name</label>
+              <Input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="John Doe" className="bg-card border-border" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Age</label>
+              <Input type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="45" className="bg-card border-border" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Phone (For SMS)</label>
+              <Input value={patientPhone} onChange={(e) => setPatientPhone(e.target.value)} placeholder="077..." className="bg-card border-border" />
             </div>
           </div>
         </div>
@@ -178,7 +246,9 @@ export function PhoneBookingPane() {
           >
             <option value="">-- Choose Doctor --</option>
             {doctors.map(d => (
-              <option key={d.id} value={d.id}>{d.fullName}</option>
+              <option key={d.id} value={d.id}>
+                {d.fullName} {d.specialty ? `(${d.specialty})` : ''}
+              </option>
             ))}
           </select>
         </div>
@@ -222,7 +292,7 @@ export function PhoneBookingPane() {
                   disabled={t.status !== "AVAILABLE"}
                   onClick={() => setSelectedTokenNumber(t.tokenNumber)}
                   className={`h-10 rounded-md text-sm font-medium transition-colors ${
-                    t.status !== "AVAILABLE" ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50' : 
+                    t.status !== "AVAILABLE" ? 'bg-destructive/10 text-destructive border border-destructive/20 cursor-not-allowed' : 
                     selectedTokenNumber === t.tokenNumber ? 'bg-primary text-primary-foreground' : 'bg-card border hover:border-primary'
                   }`}
                 >
@@ -252,8 +322,9 @@ export function PhoneBookingPane() {
           </div>
         )}
       </div>
+      </div>
 
-      <div className="mt-auto">
+      <div className="mt-4 pt-4 border-t border-border">
         <Button 
           className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
           onClick={handleBook}

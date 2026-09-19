@@ -16,13 +16,11 @@ interface LabTest {
 interface ExternalLabRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
+  patientPhone: string;
+  patientName: string;
 }
 
-export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestModalProps) {
-  const [phone, setPhone] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  
+export function ExternalLabRequestModal({ isOpen, onClose, patientPhone, patientName }: ExternalLabRequestModalProps) {
   const [availableTests, setAvailableTests] = useState<LabTest[]>([]);
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
   const [isLoadingTests, setIsLoadingTests] = useState(false);
@@ -52,22 +50,6 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
     }
   };
 
-  const handlePhoneSearch = async () => {
-    if (!phone || phone.length < 9) return;
-    setIsSearching(true);
-    try {
-      const res = await fetch(`${API}/reception/patients?q=${phone}`);
-      const data = await res.json();
-      if (data.success && data.data.length > 0) {
-        setFullName(data.data[0].fullName);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const toggleTest = (id: string) => {
     const newSelected = new Set(selectedTestIds);
     if (newSelected.has(id)) {
@@ -79,7 +61,7 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
   };
 
   const handleSubmit = async () => {
-    if (!phone || !fullName) {
+    if (!patientPhone || !patientName) {
       toast.error("Please enter patient details");
       return;
     }
@@ -94,16 +76,14 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          patientPhone: phone,
-          patientName: fullName,
+          patientPhone: patientPhone,
+          patientName: patientName,
           testIds: Array.from(selectedTestIds)
         })
       });
 
       if (res.ok) {
         toast.success("External Lab Request created successfully!");
-        setPhone("");
-        setFullName("");
         setSelectedTestIds(new Set());
         onClose();
       } else {
@@ -134,37 +114,6 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <div className="bg-background border border-border rounded-lg p-4 space-y-4">
-            <h3 className="font-medium text-sm">Patient Information</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Phone Number</label>
-                <div className="relative flex items-center">
-                  <Phone className="absolute left-3 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="077..."
-                    className="pl-9"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    onBlur={handlePhoneSearch}
-                  />
-                  {isSearching && <Loader2 className="absolute right-3 w-4 h-4 animate-spin text-muted-foreground" />}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="John Doe"
-                    className="pl-9"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
 
           <div className="bg-background border border-border rounded-lg p-4 space-y-4">
             <div className="flex justify-between items-center">
@@ -209,7 +158,7 @@ export function ExternalLabRequestModal({ isOpen, onClose }: ExternalLabRequestM
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || selectedTestIds.size === 0 || !phone || !fullName}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || selectedTestIds.size === 0 || !patientPhone || !patientName}>
             {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Create Request & Add Charge
           </Button>

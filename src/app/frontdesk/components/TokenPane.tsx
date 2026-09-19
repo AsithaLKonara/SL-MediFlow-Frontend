@@ -17,6 +17,14 @@ import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
 interface Doctor {
   id: string;
   fullName: string;
+  specialty?: string;
+}
+
+interface LabTest {
+  id: string;
+  name: string;
+  code: string;
+  price: number;
 }
 
 export function TokenPane() {
@@ -27,9 +35,9 @@ export function TokenPane() {
   const [patientLookupResult, setPatientLookupResult] = useState<{found: boolean; message: string} | null>(null);
   
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [labCatalog, setLabCatalog] = useState<LabTest[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const [isLabSelected, setIsLabSelected] = useState(false);
-  const [isLabModalOpen, setIsLabModalOpen] = useState(false);
+  const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<any>(null);
@@ -43,7 +51,7 @@ export function TokenPane() {
       setPatientPhone("");
       setPatientAge("");
       setSelectedDocId(null);
-      setIsLabSelected(false);
+      setSelectedTestIds(new Set());
       setGeneratedToken(null);
       setSearchQuery("");
       setPatientLookupResult(null);
@@ -54,12 +62,13 @@ export function TokenPane() {
   const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`)
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) setDoctors(res.data);
-      })
-      .catch(console.error);
+    Promise.all([
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`).then(r => r.json()),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/catalog`).then(r => r.json())
+    ]).then(([docRes, labRes]) => {
+      if (docRes.success) setDoctors(docRes.data);
+      if (Array.isArray(labRes)) setLabCatalog(labRes);
+    }).catch(console.error);
   }, []);
 
   const handleSearchPatient = async () => {
@@ -81,8 +90,8 @@ export function TokenPane() {
   };
 
   const handleGenerateToken = async () => {
-    if (!selectedDocId && !isLabSelected) {
-      toast.error("Please select a doctor or the External Lab first.");
+    if (!selectedDocId && selectedTestIds.size === 0) {
+      toast.error("Please select a doctor or at least one lab test.");
       return;
     }
     
@@ -97,9 +106,9 @@ export function TokenPane() {
           patientName: patientName || "Walk-in Patient",
           patientPhone,
           ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
-          doctorId: isLabSelected ? null : selectedDocId,
-          doctorName: isLabSelected ? "Laboratory" : selectedDoc?.fullName,
-          department: isLabSelected ? "LAB" : "CONSULTATION"
+          doctorId: selectedDocId,
+          doctorName: selectedDoc?.fullName,
+          testIds: Array.from(selectedTestIds)
         })
       });
       
@@ -216,40 +225,67 @@ export function TokenPane() {
           </div>
 
           {/* Doctor Selection & Token Generation */}
-          <div className="flex-1 bg-background border border-border rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
-            <h3 className="font-medium text-muted-foreground text-sm">Issue Token</h3>
+          <div className="flex-1 bg-background border border-border rounded-lg flex flex-col overflow-hidden">
+            <div className="flex-1 p-4 flex flex-col gap-4 overflow-y-auto">
+              <h3 className="font-medium text-muted-foreground text-sm">Issue Token</h3>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { setIsLabModalOpen(true); }}
-                className={`p-3 border rounded-lg bg-card hover:border-secondary text-left transition-colors flex flex-col gap-1 border-border`}
-              >
-                <div className="flex items-center gap-2">
-                  <FlaskConical className="w-4 h-4 text-primary" />
-                  <span className="font-medium text-sm">External Lab Request</span>
+              <div className="space-y-4">
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Select Doctor</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {doctors.map((doc) => (
+                    <button
+                      key={doc.id}
+                      onClick={() => setSelectedDocId(doc.id === selectedDocId ? null : doc.id)}
+                      className={`p-3 border rounded-lg bg-card hover:border-secondary text-left transition-colors flex flex-col gap-1 ${
+                        selectedDocId === doc.id ? "border-primary ring-1 ring-primary" : "border-border"
+                      }`}
+                    >
+                      <span className="font-medium text-sm">{doc.fullName}</span>
+                      <span className="text-xs text-muted-foreground">{doc.specialty || "Consultation"}</span>
+                    </button>
+                  ))}
                 </div>
-                <span className="text-xs text-muted-foreground">Select multiple tests directly</span>
-              </button>
-
-              {doctors.map((doc) => (
-                <button
-                  key={doc.id}
-                  onClick={() => { setSelectedDocId(doc.id); setIsLabSelected(false); }}
-                  className={`p-3 border rounded-lg bg-card hover:border-secondary text-left transition-colors flex flex-col gap-1 ${
-                    selectedDocId === doc.id ? "border-primary ring-1 ring-primary" : "border-border"
-                  }`}
-                >
-                  <span className="font-medium text-sm">{doc.fullName}</span>
-                  <span className="text-xs text-muted-foreground">Consultation</span>
-                </button>
-              ))}
+              </div>
+              
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <FlaskConical className="w-4 h-4 text-muted-foreground" />
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add Lab Tests</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2">
+                  {labCatalog.map((test) => (
+                    <button
+                      key={test.id}
+                      onClick={() => {
+                        const newSet = new Set(selectedTestIds);
+                        if (newSet.has(test.id)) newSet.delete(test.id);
+                        else newSet.add(test.id);
+                        setSelectedTestIds(newSet);
+                      }}
+                      className={`flex justify-between items-center p-3 rounded-lg border text-left transition-colors ${
+                        selectedTestIds.has(test.id)
+                          ? "bg-primary/10 border-primary text-primary"
+                          : "bg-card border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div>
+                        <div className="font-medium text-sm">{test.name}</div>
+                        <div className="text-xs opacity-70">{test.code}</div>
+                      </div>
+                      <div className="font-semibold text-sm">Rs. {test.price}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             </div>
 
-            <div className="mt-auto pt-4 border-t border-border">
+            <div className="p-4 border-t border-border bg-background mt-auto">
               <Button 
                 className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
                 onClick={handleGenerateToken}
-                disabled={isGenerating || (!selectedDocId && !isLabSelected)}
+                disabled={isGenerating || (!selectedDocId && selectedTestIds.size === 0)}
               >
                 {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Ticket className="w-5 h-5 mr-2" />}
                 {isGenerating ? "Processing..." : "Register & Generate Token"}
@@ -258,7 +294,7 @@ export function TokenPane() {
           </div>
         </TabsContent>
 
-        <ExternalLabRequestModal isOpen={isLabModalOpen} onClose={() => setIsLabModalOpen(false)} />
+
 
         <TabsContent value="phone-booking" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
           <PhoneBookingPane />
