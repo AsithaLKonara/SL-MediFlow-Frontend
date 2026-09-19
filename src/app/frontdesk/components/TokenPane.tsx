@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReactToPrint } from "react-to-print";
@@ -13,6 +13,7 @@ import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { PhoneBookingPane } from "./PhoneBookingPane";
 import { ArrivalsPane } from "./ArrivalsPane";
 import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
+import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 
 interface Doctor {
   id: string;
@@ -25,6 +26,27 @@ interface LabTest {
   name: string;
   code: string;
   price: number;
+}
+
+interface PrescriptionItem {
+  id: string;
+  medicineId: string | null;
+  drugName: string;
+  dispenseQty: number | null;
+  medicine?: {
+    id: string;
+    name: string;
+    stockBatches?: { unitPrice: number; currentQuantity?: number }[];
+  };
+}
+
+interface Prescription {
+  id: string;
+  patientName: string;
+  doctorName: string;
+  createdAt: string;
+  status: string;
+  items: PrescriptionItem[];
 }
 
 interface GeneratedToken {
@@ -40,6 +62,7 @@ interface GeneratedToken {
 }
 
 export function TokenPane() {
+  const { sendToPOS } = useRxToPOS();
   const [searchQuery, setSearchQuery] = useState("");
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
@@ -50,6 +73,8 @@ export function TokenPane() {
   const [labCatalog, setLabCatalog] = useState<LabTest[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
+  const [pendingPrescriptions, setPendingPrescriptions] = useState<Prescription[]>([]);
+  const [rxLoading, setRxLoading] = useState(false);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
@@ -73,6 +98,21 @@ export function TokenPane() {
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
   const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
 
+  const fetchPendingPrescriptions = useCallback(async () => {
+    setRxLoading(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/pending`);
+      if (!res.ok) throw new Error("Failed to fetch prescriptions");
+      const data: Prescription[] = await res.json();
+      setPendingPrescriptions(data);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load pending prescriptions.");
+    } finally {
+      setRxLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     Promise.all([
       fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`).then(r => {
@@ -90,7 +130,10 @@ export function TokenPane() {
       console.error(e);
       toast.error("Failed to load initial data. Server might be offline.");
     });
-  }, []);
+
+    // Load prescriptions on mount
+    fetchPendingPrescriptions();
+  }, [fetchPendingPrescriptions]);
 
   const handleSearchPatient = async () => {
     if (!searchQuery || searchQuery.length < 7) return;
@@ -149,6 +192,25 @@ export function TokenPane() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleSendToPOS = (rx: Prescription) => {
+    const cartItems: CartItem[] = rx.items
+      .filter((item) => item.medicineId && item.medicine)
+      .map((item) => ({
+        id: item.medicine!.id,
+        name: item.medicine!.name,
+        qty: item.dispenseQty ?? 1,
+        price: item.medicine!.stockBatches?.[0]?.unitPrice ?? 0,
+      }));
+
+    if (cartItems.length === 0) {
+      toast.warning("No medicines with stock info found in this prescription.");
+      return;
+    }
+
+    sendToPOS(cartItems);
+    toast.success(`Prescription sent to POS — ${cartItems.length} item(s) added.`);
   };
 
   return (
@@ -329,30 +391,71 @@ export function TokenPane() {
           <div className="flex-1 bg-background border border-border rounded-lg flex flex-col overflow-hidden">
             <div className="p-4 border-b border-border bg-card flex justify-between items-center">
               <h3 className="font-medium">Pending Prescriptions</h3>
-              <span className="text-xs font-medium bg-primary/20 text-primary px-2 py-1 rounded-full">2 New</span>
+              <div className="flex items-center gap-2">
+                {pendingPrescriptions.length > 0 && (
+                  <span className="text-xs font-medium bg-primary/20 text-primary px-2 py-1 rounded-full">
+                    {pendingPrescriptions.length} New
+                  </span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={fetchPendingPrescriptions}
+                  disabled={rxLoading}
+                  title="Refresh"
+                >
+                  <RefreshCw className={`w-4 h-4 ${rxLoading ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
             </div>
 
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
-                {[
-                  { id: "RX-1001", patient: "Nimal Perera", doctor: "Dr. Silva", time: "2 min ago", status: "PENDING" },
-                  { id: "RX-1002", patient: "Saman Kumara", doctor: "Dr. Fernando", time: "15 min ago", status: "PENDING" },
-                ].map((rx) => (
+                {rxLoading && (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Loading prescriptions...</span>
+                  </div>
+                )}
+                {!rxLoading && pendingPrescriptions.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                    <FileText className="w-8 h-8 opacity-30" />
+                    <p className="text-sm">No pending prescriptions</p>
+                  </div>
+                )}
+                {pendingPrescriptions.map((rx) => (
                   <div key={rx.id} className="p-4 border border-border rounded-lg bg-card flex flex-col gap-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-semibold text-primary">{rx.id}</h4>
-                        <p className="text-sm font-medium">{rx.patient}</p>
-                        <p className="text-xs text-muted-foreground">from {rx.doctor}</p>
+                        <h4 className="font-semibold text-primary text-sm">RX-{rx.id.slice(-6).toUpperCase()}</h4>
+                        <p className="text-sm font-medium">{rx.patientName}</p>
+                        <p className="text-xs text-muted-foreground">from {rx.doctorName}</p>
+                        {rx.items.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {rx.items.length} medicine(s): {rx.items.slice(0, 2).map(i => i.drugName).join(", ")}{rx.items.length > 2 ? "..." : ""}
+                          </p>
+                        )}
                       </div>
-                      <span className="text-xs text-muted-foreground">{rx.time}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(rx.createdAt).toLocaleTimeString("en-LK", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </div>
 
                     <div className="pt-3 border-t border-border flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 border-primary/30 text-primary hover:bg-primary/10" onClick={() => handlePrintPrescription()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
+                        onClick={() => handlePrintPrescription()}
+                      >
                         Print Rx
                       </Button>
-                      <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-primary hover:bg-primary/90"
+                        onClick={() => handleSendToPOS(rx)}
+                      >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Send to POS
                       </Button>

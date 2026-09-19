@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2 } from "lucide-react";
-import { useCartSync, CartItem } from "../hooks/useCartSync";
+import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
 import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
+import { toast } from "sonner";
 
 interface Medicine {
   id: string;
@@ -18,6 +19,7 @@ interface Medicine {
 
 export function POSPane() {
   const { updateState, state } = useCartSync(true);
+  const { onPrescriptionReceived } = useRxToPOS();
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
@@ -35,6 +37,25 @@ export function POSPane() {
         console.error("Failed to load medicines", e);
       });
   }, []);
+
+  // Listen for prescription items pushed from the Rx tab
+  useEffect(() => {
+    onPrescriptionReceived((rxItems) => {
+      setCart((prev) => {
+        const updated = [...prev];
+        for (const rxItem of rxItems) {
+          const idx = updated.findIndex((i) => i.id === rxItem.id);
+          if (idx >= 0) {
+            updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+          } else {
+            updated.push(rxItem);
+          }
+        }
+        return updated;
+      });
+      toast.success(`${rxItems.length} medicine(s) sent to POS from prescription.`);
+    });
+  }, [onPrescriptionReceived]);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "QR" | null>(null);

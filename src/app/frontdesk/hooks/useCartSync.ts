@@ -21,6 +21,7 @@ export type SyncState = {
 };
 
 const CHANNEL_NAME = "AMAZ_FRONTDESK_SYNC";
+const RX_TO_POS_CHANNEL = "AMAZ_RX_TO_POS";
 
 export function useCartSync(isSender = false) {
   const [state, setState] = useState<SyncState>({ cart: [], subtotal: 0, total: 0, checkout: { method: null, status: "IDLE" } });
@@ -56,3 +57,40 @@ export function useCartSync(isSender = false) {
 
   return { state, updateState };
 }
+
+/**
+ * Hook used by TokenPane to push a prescription's medicines into the POSPane cart.
+ * TokenPane calls sendToPOS(); POSPane subscribes with onPrescriptionReceived().
+ */
+export function useRxToPOS() {
+  const [channel, setChannel] = useState<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const bc = new BroadcastChannel(RX_TO_POS_CHANNEL);
+    setChannel(bc);
+    return () => bc.close();
+  }, []);
+
+  const sendToPOS = useCallback(
+    (items: CartItem[]) => {
+      channel?.postMessage({ type: "RX_ITEMS", items });
+    },
+    [channel]
+  );
+
+  const onPrescriptionReceived = useCallback(
+    (handler: (items: CartItem[]) => void) => {
+      if (!channel) return;
+      channel.onmessage = (e) => {
+        if (e.data?.type === "RX_ITEMS") {
+          handler(e.data.items as CartItem[]);
+        }
+      };
+    },
+    [channel]
+  );
+
+  return { sendToPOS, onPrescriptionReceived };
+}
+
