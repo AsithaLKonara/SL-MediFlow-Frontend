@@ -60,8 +60,10 @@ export function useCartSync(isSender = false) {
 
 /**
  * Hook used by TokenPane to push a prescription's medicines into the POSPane cart.
- * TokenPane calls sendToPOS(); POSPane subscribes with onPrescriptionReceived().
+ * Also supports POSPane broadcasting status updates back to TokenPane.
  */
+export type RxStatusUpdate = { rxId: string; status: "IN_PROGRESS" | "DISPENSED" | "PENDING" };
+
 export function useRxToPOS() {
   const [channel, setChannel] = useState<BroadcastChannel | null>(null);
 
@@ -72,25 +74,51 @@ export function useRxToPOS() {
     return () => bc.close();
   }, []);
 
+  /** TokenPane → POSPane: send prescription items */
   const sendToPOS = useCallback(
-    (items: CartItem[]) => {
-      channel?.postMessage({ type: "RX_ITEMS", items });
+    (items: CartItem[], rxId: string) => {
+      channel?.postMessage({ type: "RX_ITEMS", items, rxId });
     },
     [channel]
   );
 
+  /** POSPane listens for incoming prescription */
   const onPrescriptionReceived = useCallback(
-    (handler: (items: CartItem[]) => void) => {
+    (handler: (items: CartItem[], rxId: string) => void) => {
       if (!channel) return;
       channel.onmessage = (e) => {
         if (e.data?.type === "RX_ITEMS") {
-          handler(e.data.items as CartItem[]);
+          handler(e.data.items as CartItem[], e.data.rxId as string);
+        } else if (e.data?.type === "RX_STATUS") {
+          // Ignore status messages on the POSPane side
         }
       };
     },
     [channel]
   );
 
-  return { sendToPOS, onPrescriptionReceived };
+  /** POSPane → TokenPane: broadcast a status update */
+  const notifyRxStatus = useCallback(
+    (rxId: string, status: RxStatusUpdate["status"]) => {
+      channel?.postMessage({ type: "RX_STATUS", rxId, status });
+    },
+    [channel]
+  );
+
+  /** TokenPane listens for status updates from POSPane */
+  const onRxStatusUpdate = useCallback(
+    (handler: (update: RxStatusUpdate) => void) => {
+      if (!channel) return;
+      channel.onmessage = (e) => {
+        if (e.data?.type === "RX_STATUS") {
+          handler({ rxId: e.data.rxId, status: e.data.status });
+        }
+      };
+    },
+    [channel]
+  );
+
+  return { sendToPOS, onPrescriptionReceived, notifyRxStatus, onRxStatusUpdate };
 }
+
 

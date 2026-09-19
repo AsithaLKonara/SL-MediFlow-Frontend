@@ -9,6 +9,7 @@ import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
 import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
 import { toast } from "sonner";
+import { io } from "socket.io-client";
 
 interface Medicine {
   id: string;
@@ -19,12 +20,14 @@ interface Medicine {
 
 export function POSPane() {
   const { updateState, state } = useCartSync(true);
-  const { onPrescriptionReceived } = useRxToPOS();
+  const { onPrescriptionReceived, notifyRxStatus } = useRxToPOS();
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
+  const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
@@ -38,9 +41,28 @@ export function POSPane() {
       });
   }, []);
 
+  // Listen for websocket pos_payment_success (e.g. for multi-terminal sync)
+  useEffect(() => {
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace('/api', '');
+    const socket = io(socketUrl);
+
+    socket.on("connect", () => {
+      console.log("POSPane connected to websocket");
+    });
+
+    socket.on("pos_payment_success", (data) => {
+      // Optional: React to payments made on other terminals if needed
+      console.log("Global payment success event:", data);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   // Listen for prescription items pushed from the Rx tab
   useEffect(() => {
-    onPrescriptionReceived((rxItems) => {
+    onPrescriptionReceived((rxItems, rxId) => {
       setCart((prev) => {
         const updated = [...prev];
         for (const rxItem of rxItems) {
@@ -53,9 +75,18 @@ export function POSPane() {
         }
         return updated;
       });
-      toast.success(`${rxItems.length} medicine(s) sent to POS from prescription.`);
+      setActivePrescriptionId(rxId);
+      // Mark prescription as IN_PROGRESS on backend
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${rxId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "IN_PROGRESS" }),
+      }).catch((e) => console.error("Failed to update Rx status:", e));
+      // Broadcast status to TokenPane so it can lock the UI
+      notifyRxStatus(rxId, "IN_PROGRESS");
+      toast.success(`${rxItems.length} medicine(s) loaded into POS from prescription.`);
     });
-  }, [onPrescriptionReceived]);
+  }, [onPrescriptionReceived, notifyRxStatus]);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "QR" | null>(null);
@@ -142,7 +173,17 @@ export function POSPane() {
     }
   };
 
-  const handleCloseCheckout = () => {
+  const handleCloseCheckout = (cancelled = false) => {
+    // If cancelled and a prescription was in progress, revert it to PENDING
+    if (cancelled && activePrescriptionId) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PENDING" }),
+      }).catch((e) => console.error("Failed to revert Rx status:", e));
+      notifyRxStatus(activePrescriptionId, "PENDING");
+      setActivePrescriptionId(null);
+    }
     setIsCheckoutOpen(false);
     setPaymentMethod(null);
     clearDisplay();
@@ -152,19 +193,49 @@ export function POSPane() {
     });
   };
 
+  const handleCancelPrescription = () => {
+    if (activePrescriptionId) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PENDING" }),
+      }).catch((e) => console.error("Failed to revert Rx status:", e));
+      notifyRxStatus(activePrescriptionId, "PENDING");
+      setActivePrescriptionId(null);
+    }
+    setCart([]);
+    toast.info("Prescription cancelled. Cart cleared.");
+  };
+
   const handleOpenCheckout = () => {
+    if (cart.length === 0) {
+      toast.error("Cart is empty.");
+      return;
+    }
     setIsCheckoutOpen(true);
     showAmount(total);
   };
 
   return (
     <div className="flex-1 flex h-full flex-col p-4 gap-4">
-      <div className="flex items-center justify-between shrink-0">
-        <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground">
+      <div className="flex justify-between items-center bg-card p-3 border border-border rounded-lg shadow-sm shrink-0">
+        <div className="flex items-center gap-3">
           <ShoppingCart className="w-5 h-5 text-primary" />
-          Point of Sale
-        </h2>
+          <h2 className="font-semibold text-lg flex items-center gap-2">
+            Point of Sale
+            {activePrescriptionId && (
+              <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full animate-pulse">
+                RX ACTIVE
+              </span>
+            )}
+          </h2>
+        </div>
         <div className="flex gap-2">
+          {activePrescriptionId && (
+            <Button variant="outline" size="sm" onClick={handleCancelPrescription} className="border-destructive text-destructive hover:bg-destructive/10">
+              Cancel Rx
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => window.open('/customer-display', '_blank', 'width=1024,height=768')}>
             Open Display
           </Button>
@@ -291,7 +362,7 @@ export function POSPane() {
           <div className="bg-card border border-border rounded-xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-border bg-muted flex justify-between items-center">
               <h3 className="font-semibold text-lg">Checkout</h3>
-              <Button variant="ghost" size="sm" onClick={handleCloseCheckout}>Cancel</Button>
+              <Button variant="ghost" size="sm" onClick={() => handleCloseCheckout(true)}>Cancel</Button>
             </div>
             <div className="p-4 space-y-6">
               <div className="text-center">
@@ -351,12 +422,16 @@ export function POSPane() {
 
               <Button 
                 className="w-full h-12 text-lg" 
-                disabled={!paymentMethod || state.checkout?.status === "PAYING" || isCardProcessing}
+                disabled={!paymentMethod || isProcessing || state.checkout?.status === "PAYING" || isCardProcessing}
                 onClick={async () => {
+                  if (isProcessing) return;
+                  setIsProcessing(true);
+
                   if (paymentMethod === "CARD") {
                     const success = await initiateCardPayment(total);
                     if (!success) {
                       alert("Card payment failed or was cancelled.");
+                      setIsProcessing(false);
                       return;
                     }
                   }
@@ -369,19 +444,32 @@ export function POSPane() {
                     });
                     
                     if (res.ok) {
+                      // Mark prescription DISPENSED if one was active
+                      if (activePrescriptionId) {
+                        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ status: "DISPENSED" }),
+                        }).catch((e) => console.error("Failed to dispense Rx:", e));
+                        notifyRxStatus(activePrescriptionId, "DISPENSED");
+                        setActivePrescriptionId(null);
+                      }
                       setCart([]);
                       handleCloseCheckout();
-                      alert("Payment Complete! Invoice generated and stock deducted.");
+                      toast.success("Payment completed successfully!");
                     } else {
-                      const error = await res.json();
-                      alert("Failed: " + error.error);
+                      const err = await res.json();
+                      toast.error(err.error || "Payment failed");
                     }
                   } catch (e) {
-                    alert("Network error");
+                    console.error(e);
+                    toast.error("Failed to connect to server");
+                  } finally {
+                    setIsProcessing(false);
                   }
                 }}
               >
-                {state.checkout?.status === "PAYING" || isCardProcessing ? (
+                {isProcessing || state.checkout?.status === "PAYING" || isCardProcessing ? (
                   <span className="flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</span>
                 ) : (
                   "Complete Payment"

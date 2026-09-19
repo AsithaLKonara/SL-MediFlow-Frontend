@@ -68,6 +68,7 @@ export function PhoneBookingPane() {
     socketRef.current.on("availability_updated", handleUpdate);
 
     return () => {
+      socketRef.current?.emit("leave", room);
       socketRef.current?.off("availability_updated", handleUpdate);
     };
   }, [selectedDocId, date, selectedTokenNumber]);

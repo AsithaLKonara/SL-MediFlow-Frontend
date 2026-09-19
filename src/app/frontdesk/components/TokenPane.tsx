@@ -62,7 +62,7 @@ interface GeneratedToken {
 }
 
 export function TokenPane() {
-  const { sendToPOS } = useRxToPOS();
+  const { sendToPOS, onRxStatusUpdate } = useRxToPOS();
   const [searchQuery, setSearchQuery] = useState("");
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
@@ -75,6 +75,8 @@ export function TokenPane() {
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
   const [pendingPrescriptions, setPendingPrescriptions] = useState<Prescription[]>([]);
   const [rxLoading, setRxLoading] = useState(false);
+  /** ID of the prescription currently locked in the POS */
+  const [inPosPrescriptionId, setInPosPrescriptionId] = useState<string | null>(null);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
@@ -134,6 +136,24 @@ export function TokenPane() {
     // Load prescriptions on mount
     fetchPendingPrescriptions();
   }, [fetchPendingPrescriptions]);
+
+  // Listen for status updates from POSPane (via BroadcastChannel)
+  useEffect(() => {
+    onRxStatusUpdate((update) => {
+      if (update.status === "IN_PROGRESS") {
+        setInPosPrescriptionId(update.rxId);
+      } else if (update.status === "DISPENSED") {
+        // Remove from list and clear lock
+        setPendingPrescriptions((prev) => prev.filter((rx) => rx.id !== update.rxId));
+        setInPosPrescriptionId(null);
+        toast.success("Prescription dispensed & payment complete.");
+      } else if (update.status === "PENDING") {
+        // Checkout cancelled — unlock
+        setInPosPrescriptionId(null);
+        toast.info("Checkout cancelled — prescription returned to pending.");
+      }
+    });
+  }, [onRxStatusUpdate]);
 
   const handleSearchPatient = async () => {
     if (!searchQuery || searchQuery.length < 7) return;
@@ -195,6 +215,11 @@ export function TokenPane() {
   };
 
   const handleSendToPOS = (rx: Prescription) => {
+    if (inPosPrescriptionId) {
+      toast.error("A prescription is already in the POS. Complete checkout first.");
+      return;
+    }
+
     const cartItems: CartItem[] = rx.items
       .filter((item) => item.medicineId && item.medicine)
       .map((item) => ({
@@ -205,12 +230,14 @@ export function TokenPane() {
       }));
 
     if (cartItems.length === 0) {
-      toast.warning("No medicines with stock info found in this prescription.");
+      toast.warning("No medicines with stock info found in this prescription. Prices may not be available yet.");
       return;
     }
 
-    sendToPOS(cartItems);
-    toast.success(`Prescription sent to POS — ${cartItems.length} item(s) added.`);
+    // Optimistically lock UI immediately (POSPane will also broadcast IN_PROGRESS back)
+    setInPosPrescriptionId(rx.id);
+    sendToPOS(cartItems, rx.id);
+    toast.success(`${cartItems.length} medicine(s) sent to POS — complete checkout to dispense.`);
   };
 
   return (
@@ -424,44 +451,73 @@ export function TokenPane() {
                     <p className="text-sm">No pending prescriptions</p>
                   </div>
                 )}
-                {pendingPrescriptions.map((rx) => (
-                  <div key={rx.id} className="p-4 border border-border rounded-lg bg-card flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-semibold text-primary text-sm">RX-{rx.id.slice(-6).toUpperCase()}</h4>
-                        <p className="text-sm font-medium">{rx.patientName}</p>
-                        <p className="text-xs text-muted-foreground">from {rx.doctorName}</p>
-                        {rx.items.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {rx.items.length} medicine(s): {rx.items.slice(0, 2).map(i => i.drugName).join(", ")}{rx.items.length > 2 ? "..." : ""}
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(rx.createdAt).toLocaleTimeString("en-LK", { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
+                {pendingPrescriptions.map((rx) => {
+                  const isInPos = inPosPrescriptionId === rx.id;
+                  const isLocked = inPosPrescriptionId !== null && !isInPos;
 
-                    <div className="pt-3 border-t border-border flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
-                        onClick={() => handlePrintPrescription()}
-                      >
-                        Print Rx
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-primary hover:bg-primary/90"
-                        onClick={() => handleSendToPOS(rx)}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Send to POS
-                      </Button>
+                  return (
+                    <div
+                      key={rx.id}
+                      className={`p-4 border rounded-lg flex flex-col gap-3 transition-colors ${
+                        isInPos
+                          ? "border-primary/50 bg-primary/5"
+                          : isLocked
+                          ? "border-border bg-card opacity-50"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-primary text-sm">
+                              RX-{rx.id.slice(-6).toUpperCase()}
+                            </h4>
+                            {isInPos && (
+                              <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full animate-pulse">
+                                IN POS
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium">{rx.patientName}</p>
+                          <p className="text-xs text-muted-foreground">from {rx.doctorName}</p>
+                          {rx.items.length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {rx.items.length} medicine(s):{" "}
+                              {rx.items.slice(0, 2).map((i) => i.drugName).join(", ")}
+                              {rx.items.length > 2 ? "..." : ""}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(rx.createdAt).toLocaleTimeString("en-LK", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="pt-3 border-t border-border flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
+                          onClick={() => handlePrintPrescription()}
+                        >
+                          Print Rx
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-primary hover:bg-primary/90"
+                          onClick={() => handleSendToPOS(rx)}
+                          disabled={isLocked || isInPos}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          {isInPos ? "Active in POS" : "Send to POS"}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>

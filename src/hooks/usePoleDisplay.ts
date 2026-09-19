@@ -34,7 +34,11 @@ export function usePoleDisplay(enabled: boolean = true) {
 
       // You would configure the bridge with a specific printer name for the pole display
       await clientRef.current.print({ type: 'escpos', printer: 'PoleDisplay', data: Buffer.from(builder.build()).toString('base64') });
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes("Failed to fetch") || error instanceof TypeError) {
+        console.warn("Pole display skipped: Bridge service not reachable at 127.0.0.1:18181");
+        return;
+      }
       console.error("Pole display error:", error);
     }
   };
@@ -46,7 +50,10 @@ export function usePoleDisplay(enabled: boolean = true) {
       const builder = new EscPosBuilder();
       builder.init();
       await clientRef.current.print({ type: 'escpos', printer: 'PoleDisplay', data: Buffer.from(builder.build()).toString('base64') });
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes("Failed to fetch") || error instanceof TypeError) {
+        return; // silently ignore when bridge is not running
+      }
       console.error("Pole display clear error:", error);
     }
   };
