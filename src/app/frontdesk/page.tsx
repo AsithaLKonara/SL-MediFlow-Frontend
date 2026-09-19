@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MonitorPlay, Package, LogOut } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck } from "lucide-react";
 
 export default function FrontDeskDashboard() {
   const { shift, isLoaded, openShift, closeShift } = useShift();
@@ -75,6 +75,17 @@ export default function FrontDeskDashboard() {
             <div className="text-center">
               <h2 className="text-xl font-bold">Inventory</h2>
               <p className="text-muted-foreground text-sm mt-1">Manage pharmacy stock</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => router.push('/frontdesk/arrivals')}
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-green-500 hover:text-green-600 text-foreground rounded-2xl p-8 transition-colors group text-left h-48"
+          >
+            <UserCheck className="w-12 h-12 opacity-50 group-hover:opacity-100 group-hover:text-green-600" />
+            <div className="text-center">
+              <h2 className="text-xl font-bold">Doctor Arrivals</h2>
+              <p className="text-muted-foreground text-sm mt-1">Mark daily doctor attendance</p>
             </div>
           </button>
         </div>

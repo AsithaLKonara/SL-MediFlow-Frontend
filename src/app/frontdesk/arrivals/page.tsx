@@ -1,0 +1,162 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CheckCircle2, Clock, Loader2, UserRound, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface DoctorStatus {
+  id: string;
+  fullName: string;
+  status: "SCHEDULED" | "ARRIVED";
+  arrivedAt: string | null;
+}
+
+export default function DoctorArrivalsPage() {
+  const router = useRouter();
+  const [doctors, setDoctors] = useState<DoctorStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      const res = await fetch("/api/receptionist/doctors/today");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to fetch doctors");
+      setDoctors(json.data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const markArrived = async (id: string) => {
+    setProcessingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/receptionist/doctors/${id}/arrive`, {
+        method: "POST"
+      });
+      const json = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to mark arrived");
+      }
+
+      // Update local state
+      setDoctors(docs => docs.map(d => 
+        d.id === id ? { ...d, status: "ARRIVED", arrivedAt: new Date().toISOString() } : d
+      ));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  return (
+    <div className="flex-1 p-8 h-[calc(100vh-56px)] overflow-y-auto animate-in fade-in bg-muted/10">
+      <div className="max-w-4xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Button variant="outline" size="icon" onClick={() => router.push('/frontdesk')}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Doctor Arrivals</h1>
+            <p className="text-muted-foreground">Manage daily doctor attendance and trigger patient notifications.</p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-destructive/15 text-destructive text-sm p-4 rounded-md flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {error}
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
+              <p>Loading schedule...</p>
+            </div>
+          ) : doctors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground text-center">
+              <UserRound className="w-12 h-12 mb-4 opacity-20" />
+              <p className="text-lg font-medium text-foreground">No doctors scheduled</p>
+              <p>There are no doctors scheduled for today's sessions.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {doctors.map((doctor) => {
+                const isArrived = doctor.status === "ARRIVED";
+                const isProcessing = processingId === doctor.id;
+
+                return (
+                  <div key={doctor.id} className={`flex items-center justify-between p-6 transition-colors ${isArrived ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-full ${isArrived ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        <UserRound className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">{doctor.fullName}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            isArrived 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500'
+                          }`}>
+                            {isArrived ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                            {doctor.status}
+                          </span>
+                          
+                          {isArrived && doctor.arrivedAt && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              at {new Date(doctor.arrivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {isArrived ? (
+                        <p className="text-sm font-medium text-green-600 dark:text-green-400 px-4">
+                          Arrived
+                        </p>
+                      ) : (
+                        <Button 
+                          onClick={() => markArrived(doctor.id)} 
+                          disabled={isProcessing}
+                          className="w-32"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Marking...
+                            </>
+                          ) : (
+                            "Mark Arrived"
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
