@@ -172,7 +172,7 @@ export function POSPane() {
 
   const handlePaymentMethodSelect = (method: "CASH" | "CARD" | "BANK" | "QR") => {
     setPaymentMethod(method);
-    if (method === "BANK" || method === "QR") {
+    if (method === "QR") {
       updateState({
         ...state,
         checkout: { method, status: "PAYING" }
@@ -463,7 +463,7 @@ export function POSPane() {
 
               <Button 
                 className="w-full h-12 text-lg" 
-                disabled={!paymentMethod || isProcessing || state.checkout?.status === "PAYING" || isCardProcessing}
+                disabled={!paymentMethod || isProcessing || isCardProcessing}
                 onClick={async () => {
                   if (isProcessing) return;
                   setIsProcessing(true);
@@ -529,7 +529,7 @@ export function POSPane() {
                   }
                 }}
               >
-                {isProcessing || state.checkout?.status === "PAYING" || isCardProcessing ? (
+                {isProcessing || isCardProcessing ? (
                   <span className="flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</span>
                 ) : (
                   "Complete Payment"
