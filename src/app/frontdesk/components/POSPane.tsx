@@ -441,18 +441,12 @@ export function POSPane() {
                   >
                     <Building className="w-5 h-5" /> Bank Transfer
                   </Button>
-                  <Button
-                    variant={paymentMethod === "QR" ? "default" : "outline"}
-                    className="h-14 flex flex-col gap-1"
-                    onClick={() => handlePaymentMethodSelect("QR")}
-                  >
-                    <QrCode className="w-5 h-5" /> QR Pay
-                  </Button>
+
                 </div>
               </div>
 
               {/* Dynamic Payment Details Input based on selection */}
-              {(paymentMethod === "CASH" || paymentMethod === "CARD") && (
+              {(paymentMethod === "CASH" || paymentMethod === "BANK") && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
                   <label className="text-sm font-medium">Received Amount (LKR)</label>
                   <Input 
@@ -465,13 +459,7 @@ export function POSPane() {
                 </div>
               )}
 
-              {(paymentMethod === "BANK" || paymentMethod === "QR") && (
-                <div className="p-4 bg-primary/10 text-primary border border-primary/20 rounded-lg text-center animate-in slide-in-from-top-2">
-                  <Wallet className="w-8 h-8 mx-auto mb-2 opacity-80" />
-                  <p className="font-medium text-sm">Waiting for customer payment...</p>
-                  <p className="text-xs opacity-80 mt-1">Details are shown on the Customer Display.</p>
-                </div>
-              )}
+
 
               <Button 
                 className="w-full h-12 text-lg" 
@@ -512,8 +500,8 @@ export function POSPane() {
                         subtotal: total,
                         total: total,
                         paymentMethod: paymentMethod,
-                        receivedAmount: (paymentMethod === "CASH" || paymentMethod === "CARD") ? parsedReceived : total,
-                        change: (paymentMethod === "CASH" || paymentMethod === "CARD") ? Math.max(0, parsedReceived - total) : 0
+                        receivedAmount: (paymentMethod === "CASH" || paymentMethod === "BANK") ? parsedReceived : total,
+                        change: (paymentMethod === "CASH" || paymentMethod === "BANK") ? Math.max(0, parsedReceived - total) : 0
                       });
 
                       // Mark prescription DISPENSED if one was active
