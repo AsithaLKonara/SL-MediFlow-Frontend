@@ -96,7 +96,7 @@ export default function LabQueuePage() {
                   
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      WAITING
+                      {token.status.replace(/_/g, ' ')}
                     </Badge>
                     <Button onClick={() => toast.info("Opening test entry form for " + token.Patient.fullName + "... (Coming soon)")} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
                       Call Patient & Enter Tests <ArrowRight className="w-4 h-4 ml-2" />
