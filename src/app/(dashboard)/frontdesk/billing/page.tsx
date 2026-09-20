@@ -174,7 +174,7 @@ export default function CentralizedBillingPage() {
                 {invoice.status === "DRAFT" && (
                   <div className="bg-muted/30 p-6 border-t mt-4">
                     <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Settle Invoice</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
                       <Button variant={paymentMethod === "CASH" ? "default" : "outline"} className="h-14" onClick={() => setPaymentMethod("CASH")}>
                         <Banknote className="w-4 h-4 mr-2" /> Cash
                       </Button>
@@ -183,9 +183,6 @@ export default function CentralizedBillingPage() {
                       </Button>
                       <Button variant={paymentMethod === "BANK" ? "default" : "outline"} className="h-14" onClick={() => setPaymentMethod("BANK")}>
                         <Building className="w-4 h-4 mr-2" /> Bank
-                      </Button>
-                      <Button variant={paymentMethod === "QR" ? "default" : "outline"} className="h-14" onClick={() => setPaymentMethod("QR")}>
-                        <QrCode className="w-4 h-4 mr-2" /> QR
                       </Button>
                     </div>
                     <Button 
