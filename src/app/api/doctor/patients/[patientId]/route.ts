@@ -6,7 +6,7 @@ export async function GET(
 ) {
   const { patientId } = await params;
   try {
-    const res = await fetch(`http://localhost:5000/api/reception/patients/${patientId}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/patients/${patientId}`, {
       cache: "no-store"
     });
     if (!res.ok) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const res = await fetch("http://localhost:5000/api/booking/appointments", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/appointments`, {
       cache: "no-store"
     });
     const json = await res.json();

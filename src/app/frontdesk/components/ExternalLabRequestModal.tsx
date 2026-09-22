@@ -32,7 +32,7 @@ export function ExternalLabRequestModal({ isOpen, onClose, patientPhone, patient
     }
   }, [isOpen]);
 
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const API = process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`;
 
   const fetchTests = async () => {
     setIsLoadingTests(true);

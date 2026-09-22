@@ -64,7 +64,7 @@ export default function SuperAdminInventoryPage() {
 
   const fetchMedicines = () => {
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines`)
       .then(r => r.json())
       .then(data => {
         const mappedItems = data.map((med: any) => {
@@ -135,7 +135,7 @@ export default function SuperAdminInventoryPage() {
     setSaving(true);
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/stock`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/stock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +179,7 @@ export default function SuperAdminInventoryPage() {
     setAddingDrug(true);
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

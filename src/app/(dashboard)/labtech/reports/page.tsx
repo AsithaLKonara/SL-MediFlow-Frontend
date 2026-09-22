@@ -12,7 +12,7 @@ export default function LabTechReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/reports`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/reports`)
       .then(r => r.json())
       .then(data => {
         setReports(data);

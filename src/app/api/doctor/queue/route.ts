@@ -6,7 +6,7 @@ export async function GET(req: Request) {
     const doctorId = searchParams.get("doctorId") || "";
     
     // We pass doctorId if it exists to filter the appointments
-    const res = await fetch(`http://localhost:5000/api/booking/appointments${doctorId ? `?doctorId=${doctorId}` : ''}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/appointments${doctorId ? `?doctorId=${doctorId}` : ''}`, {
       cache: "no-store"
     });
     

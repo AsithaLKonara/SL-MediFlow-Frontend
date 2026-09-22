@@ -59,7 +59,7 @@ export default function StaffManagementPage() {
     roomNumber: ""
   });
 
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const API = process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`;
 
   const fetchStaff = () => {
     fetch(`${API}/admin/staff`)

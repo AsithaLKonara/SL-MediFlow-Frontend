@@ -58,7 +58,7 @@ export default function LabResultsPage({
   const [uploadingFile, setUploadingFile] = useState(false);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/requests`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/requests`)
       .then(r => r.json())
       .then((data: any[]) => {
         const req = data.find((x: any) => x.id === requestId);
@@ -108,7 +108,7 @@ export default function LabResultsPage({
     });
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/requests/${requestId}/results`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/requests/${requestId}/results`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ results: apiResults, reportUrl: reportUrl || undefined })
@@ -131,7 +131,7 @@ export default function LabResultsPage({
 
     setUploadingFile(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
       if (!res.ok) throw new Error("Failed to get presigned URL");
       const { uploadUrl, fileUrl } = await res.json();
 
