@@ -31,7 +31,8 @@ export default function DoctorOverview() {
     // Fetch tokens for this doctor
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/appointments?doctorId=${user.id}`)
       .then((r) => r.json())
-      .then((tokens: any[]) => { 
+      .then((res: any) => { 
+        const tokens = Array.isArray(res) ? res : (res.data || []);
         // Build metrics from real token data
         const upcoming = tokens
           .filter(t => {
