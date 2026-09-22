@@ -97,7 +97,7 @@ export default function ConsultationPage({
       .then((r) => r.json())
       .then((d) => { setPatient(d); setLoading(false); });
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then((r) => r.json())
       .then((data) => {
         const mappedItems = data.map((med: any) => {
@@ -108,12 +108,12 @@ export default function ConsultationPage({
       })
       .catch((e) => console.error("Failed to load medicines", e));
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/catalog`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`)
       .then((r) => r.json())
       .then((data) => setAvailableLabTests(data))
       .catch((e) => console.error("Failed to load lab catalog", e));
 
-    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`).replace('/api', '');
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL).replace('/api', '');
     const socket = io(socketUrl);
 
     socket.on("connect", () => {
@@ -205,7 +205,7 @@ export default function ConsultationPage({
     
     // 1. Add consultation fee to Centralized Billing Engine
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/billing/charge`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/charge`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -244,7 +244,7 @@ export default function ConsultationPage({
           }))
         };
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -263,7 +263,7 @@ export default function ConsultationPage({
     if (selectedTests.length > 0) {
       try {
         await Promise.all(selectedTests.map(test => 
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/requests`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -291,7 +291,7 @@ export default function ConsultationPage({
     // 4. Update Token Status
     try {
       const finalStatus = addedDrugs.length > 0 ? "prescription_issued" : "COMPLETED";
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/tokens/status`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

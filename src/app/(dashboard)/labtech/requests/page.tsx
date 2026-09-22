@@ -40,7 +40,7 @@ export default function LabTechRequestsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/requests`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`)
       .then(r => r.json())
       .then((data: any[]) => {
         const mapped = data.map(req => ({

@@ -28,7 +28,7 @@ export default function DoctorArrivalsPage() {
 
   const fetchDoctors = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/booking/doctors`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/doctors`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to fetch doctors");
       // booking.service returns { success: true, data: [...] } or just [...]
@@ -48,7 +48,7 @@ export default function DoctorArrivalsPage() {
       const el = document.getElementById(`room-${doctor.id}`) as HTMLInputElement;
       const newRoom = el?.value || doctor.roomNumber || "";
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/reception/doctors/${doctor.id}/arrive`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/doctors/${doctor.id}/arrive`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomNumber: newRoom })

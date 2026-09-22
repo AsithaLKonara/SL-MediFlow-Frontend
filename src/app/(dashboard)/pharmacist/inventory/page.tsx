@@ -30,7 +30,7 @@ export default function PharmacistInventoryPage() {
   const [restocking, setRestocking] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then(r => r.json())
       .then(data => {
         const mappedItems = data.map((med: any) => {

@@ -22,7 +22,7 @@ export default function CentralizedBillingPage() {
     setLoading(true);
     try {
       // Allow searching by Visit ID directly
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/billing/invoices?visitId=${searchQuery}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices?visitId=${searchQuery}`);
       if (res.ok) {
         const data = await res.json();
         setInvoice(data);
@@ -43,7 +43,7 @@ export default function CentralizedBillingPage() {
     setProcessing(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/billing/invoices/${invoice.id}/pay`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices/${invoice.id}/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: invoice.totalAmount, method: paymentMethod })

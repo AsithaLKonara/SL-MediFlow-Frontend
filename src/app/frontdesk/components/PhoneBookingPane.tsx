@@ -36,7 +36,7 @@ export function PhoneBookingPane() {
 
   const socketRef = useRef<Socket | null>(null);
 
-  const API = process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`;
+  const API = process.env.NEXT_PUBLIC_API_URL;
   const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '') : "http://localhost:5000";
 
   // Establish socket connection once

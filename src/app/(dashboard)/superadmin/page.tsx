@@ -14,7 +14,7 @@ export default function SuperadminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/admin/dashboard`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/dashboard`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setStats(data.data);

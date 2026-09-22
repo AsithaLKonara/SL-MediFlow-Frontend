@@ -42,7 +42,7 @@ export function POSPane() {
   });
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load medicines");
         return r.json();
@@ -55,7 +55,7 @@ export function POSPane() {
 
   // Listen for websocket pos_payment_success (e.g. for multi-terminal sync)
   useEffect(() => {
-    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`).replace('/api', '');
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL).replace('/api', '');
     const socket = io(socketUrl);
 
     socket.on("connect", () => {
@@ -89,7 +89,7 @@ export function POSPane() {
       });
       setActivePrescriptionId(rxId);
       // Mark prescription as IN_PROGRESS on backend
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${rxId}/status`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "IN_PROGRESS" }),
@@ -156,7 +156,7 @@ export function POSPane() {
       } else {
         // Fallback to fetch directly
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines?barcode=${code}`);
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?barcode=${code}`);
           const data = await res.json();
           if (data && data.length > 0) {
             addToCart(data[0]);
@@ -188,7 +188,7 @@ export function POSPane() {
   const handleCloseCheckout = (cancelled = false) => {
     // If cancelled and a prescription was in progress, revert it to PENDING
     if (cancelled && activePrescriptionId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${activePrescriptionId}/status`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PENDING" }),
@@ -209,7 +209,7 @@ export function POSPane() {
 
   const handleCancelPrescription = () => {
     if (activePrescriptionId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${activePrescriptionId}/status`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PENDING" }),
@@ -478,7 +478,7 @@ export function POSPane() {
                   }
 
                   try {
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/sell`, {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ items: cart, paymentMethod })
@@ -506,7 +506,7 @@ export function POSPane() {
 
                       // Mark prescription DISPENSED if one was active
                       if (activePrescriptionId) {
-                        await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${activePrescriptionId}/status`, {
+                        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ status: "DISPENSED" }),
