@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const res = await fetch("http://localhost:5000/api/pharmacy/medicines", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
       cache: "no-store"
     });
     const backendData = await res.json();

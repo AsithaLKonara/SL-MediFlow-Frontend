@@ -105,7 +105,7 @@ export function TokenPane() {
   const fetchPendingPrescriptions = useCallback(async () => {
     setRxLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/pending`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/pending`);
       if (!res.ok) throw new Error("Failed to fetch prescriptions");
       const data: Prescription[] = await res.json();
       setPendingPrescriptions(data);
@@ -119,11 +119,11 @@ export function TokenPane() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/booking/doctors`).then(r => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/booking/doctors`).then(r => {
         if (!r.ok) throw new Error("Failed to fetch doctors");
         return r.json();
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/catalog`).then(r => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/catalog`).then(r => {
         if (!r.ok) throw new Error("Failed to fetch lab catalog");
         return r.json();
       })
@@ -160,7 +160,7 @@ export function TokenPane() {
   const handleSearchPatient = async () => {
     if (!searchQuery || searchQuery.length < 7) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/reception/patients?q=${searchQuery}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/reception/patients?q=${searchQuery}`);
       const data = await res.json();
       if (data.success && data.data.length > 0) {
         const found = data.data[0];
@@ -185,7 +185,7 @@ export function TokenPane() {
     try {
       const selectedDoc = doctors.find(d => d.id === selectedDocId);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/reception/token`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/reception/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

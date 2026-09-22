@@ -39,7 +39,7 @@ export default function PharmacyDashboardPage() {
   useEffect(() => {
     fetchPrescriptions();
 
-    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace('/api', '');
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`).replace('/api', '');
     const socket = io(socketUrl);
 
     socket.on("connect", () => {
@@ -64,7 +64,7 @@ export default function PharmacyDashboardPage() {
   const fetchPrescriptions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/pending`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/pending`);
       if (res.ok) {
         const data = await res.json();
         // Map backend PrescriptionItem to Drug interface expected by UI
@@ -121,7 +121,7 @@ export default function PharmacyDashboardPage() {
         }))
       };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activeRx.id}/dispense`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${activeRx.id}/dispense`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -130,7 +130,7 @@ export default function PharmacyDashboardPage() {
       if (res.ok) {
         // Also add pharmacy charge to centralized billing engine
         const totalCost = activeRx.drugs.reduce((sum, d) => sum + (d.dispenseQty * d.unitPrice), 0);
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/billing/charge`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/billing/charge`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

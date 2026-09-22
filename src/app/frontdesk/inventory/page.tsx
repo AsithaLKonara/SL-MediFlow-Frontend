@@ -25,7 +25,7 @@ export default function FrontDeskInventoryPage() {
   const router = useRouter();
 
   const fetchMedicines = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines`)
       .then(r => r.json())
       .then(data => {
         const mappedItems = data.map((med: any) => {
@@ -67,7 +67,7 @@ export default function FrontDeskInventoryPage() {
     if (!selectedMed) return;
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/stock`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/stock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

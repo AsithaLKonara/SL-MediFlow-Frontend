@@ -24,7 +24,7 @@ export default function LabQueuePage() {
   const [loading, setLoading] = useState(true);
 
   const fetchQueue = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/lab/queue`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/lab/queue`)
       .then(r => r.json())
       .then((data) => {
         if (data.success) {

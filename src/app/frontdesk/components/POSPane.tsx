@@ -42,7 +42,7 @@ export function POSPane() {
   });
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load medicines");
         return r.json();
@@ -55,7 +55,7 @@ export function POSPane() {
 
   // Listen for websocket pos_payment_success (e.g. for multi-terminal sync)
   useEffect(() => {
-    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace('/api', '');
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`).replace('/api', '');
     const socket = io(socketUrl);
 
     socket.on("connect", () => {
@@ -89,7 +89,7 @@ export function POSPane() {
       });
       setActivePrescriptionId(rxId);
       // Mark prescription as IN_PROGRESS on backend
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${rxId}/status`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${rxId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "IN_PROGRESS" }),
@@ -156,7 +156,7 @@ export function POSPane() {
       } else {
         // Fallback to fetch directly
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/medicines?barcode=${code}`);
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/medicines?barcode=${code}`);
           const data = await res.json();
           if (data && data.length > 0) {
             addToCart(data[0]);
@@ -172,7 +172,7 @@ export function POSPane() {
 
   const handlePaymentMethodSelect = (method: "CASH" | "CARD" | "BANK" | "QR") => {
     setPaymentMethod(method);
-    if (method === "BANK" || method === "QR") {
+    if (method === "QR") {
       updateState({
         ...state,
         checkout: { method, status: "PAYING" }
@@ -188,7 +188,7 @@ export function POSPane() {
   const handleCloseCheckout = (cancelled = false) => {
     // If cancelled and a prescription was in progress, revert it to PENDING
     if (cancelled && activePrescriptionId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${activePrescriptionId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PENDING" }),
@@ -209,7 +209,7 @@ export function POSPane() {
 
   const handleCancelPrescription = () => {
     if (activePrescriptionId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${activePrescriptionId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PENDING" }),
@@ -441,18 +441,12 @@ export function POSPane() {
                   >
                     <Building className="w-5 h-5" /> Bank Transfer
                   </Button>
-                  <Button
-                    variant={paymentMethod === "QR" ? "default" : "outline"}
-                    className="h-14 flex flex-col gap-1"
-                    onClick={() => handlePaymentMethodSelect("QR")}
-                  >
-                    <QrCode className="w-5 h-5" /> QR Pay
-                  </Button>
+
                 </div>
               </div>
 
               {/* Dynamic Payment Details Input based on selection */}
-              {(paymentMethod === "CASH" || paymentMethod === "CARD") && (
+              {(paymentMethod === "CASH" || paymentMethod === "BANK") && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
                   <label className="text-sm font-medium">Received Amount (LKR)</label>
                   <Input 
@@ -465,17 +459,11 @@ export function POSPane() {
                 </div>
               )}
 
-              {(paymentMethod === "BANK" || paymentMethod === "QR") && (
-                <div className="p-4 bg-primary/10 text-primary border border-primary/20 rounded-lg text-center animate-in slide-in-from-top-2">
-                  <Wallet className="w-8 h-8 mx-auto mb-2 opacity-80" />
-                  <p className="font-medium text-sm">Waiting for customer payment...</p>
-                  <p className="text-xs opacity-80 mt-1">Details are shown on the Customer Display.</p>
-                </div>
-              )}
+
 
               <Button 
                 className="w-full h-12 text-lg" 
-                disabled={!paymentMethod || isProcessing || state.checkout?.status === "PAYING" || isCardProcessing}
+                disabled={!paymentMethod || isProcessing || isCardProcessing}
                 onClick={async () => {
                   if (isProcessing) return;
                   setIsProcessing(true);
@@ -490,7 +478,7 @@ export function POSPane() {
                   }
 
                   try {
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pharmacy/sell`, {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/pharmacy/sell`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ items: cart, paymentMethod })
@@ -512,13 +500,13 @@ export function POSPane() {
                         subtotal: total,
                         total: total,
                         paymentMethod: paymentMethod,
-                        receivedAmount: (paymentMethod === "CASH" || paymentMethod === "CARD") ? parsedReceived : total,
-                        change: (paymentMethod === "CASH" || paymentMethod === "CARD") ? Math.max(0, parsedReceived - total) : 0
+                        receivedAmount: (paymentMethod === "CASH" || paymentMethod === "BANK") ? parsedReceived : total,
+                        change: (paymentMethod === "CASH" || paymentMethod === "BANK") ? Math.max(0, parsedReceived - total) : 0
                       });
 
                       // Mark prescription DISPENSED if one was active
                       if (activePrescriptionId) {
-                        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/prescriptions/${activePrescriptionId}/status`, {
+                        await fetch(`${process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`}/prescriptions/${activePrescriptionId}/status`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ status: "DISPENSED" }),
@@ -541,7 +529,7 @@ export function POSPane() {
                   }
                 }}
               >
-                {isProcessing || state.checkout?.status === "PAYING" || isCardProcessing ? (
+                {isProcessing || isCardProcessing ? (
                   <span className="flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</span>
                 ) : (
                   "Complete Payment"
