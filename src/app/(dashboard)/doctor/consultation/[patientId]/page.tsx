@@ -291,7 +291,7 @@ export default function ConsultationPage({
     // 4. Update Token Status
     try {
       const finalStatus = addedDrugs.length > 0 ? "prescription_issued" : "COMPLETED";
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/status`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

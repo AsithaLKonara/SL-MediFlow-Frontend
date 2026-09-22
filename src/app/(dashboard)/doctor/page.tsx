@@ -29,7 +29,7 @@ export default function DoctorOverview() {
     if (!user) return;
     
     // Fetch tokens for this doctor
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user.id}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/appointments?doctorId=${user.id}`)
       .then((r) => r.json())
       .then((tokens: any[]) => { 
         // Build metrics from real token data
