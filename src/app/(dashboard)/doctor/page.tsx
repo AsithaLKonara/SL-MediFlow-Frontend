@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, FileText, FlaskConical, Users } from "lucide-react";
 import Link from "next/link";
+
 import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Metrics {
@@ -20,39 +21,50 @@ interface Metrics {
 }
 
 export default function DoctorOverview() {
+  const { user } = useAuth();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user) return;
     
-    fetch(`/api/doctor/metrics?doctorId=${user.id}`)
+    // Fetch tokens for this doctor
+    fetch(`http://localhost:5000/api/tokens/queue?doctorId=${user.id}`)
       .then((r) => r.json())
-      .then((d) => { 
-        if (d.error) {
-          console.error(d.error);
-          setMetrics({
-            doctorName: user.fullName || "Doctor",
-            specialty: (user as any).specialty || "General",
-            patientsToday: 0,
-            completedConsultations: 0,
-            pendingQueue: 0,
-            pendingPrescriptions: 0,
-            pendingLabRequests: 0,
-            upcomingPatients: []
-          });
-        } else {
-          setMetrics({
-            ...d,
-            upcomingPatients: d.upcomingPatients || []
-          });
-        }
+      .then((tokens: any[]) => { 
+        // Build metrics from real token data
+        const upcoming = tokens
+          .filter(t => {
+            const s = (t.status || "").toLowerCase();
+            return s !== "completed" && s !== "prescription_issued" && s !== "cancelled";
+          })
+          .map(t => ({
+             queueNo: t.tokenNumber,
+             patientId: t.patient.id,
+             patientName: t.patient.fullName,
+             age: t.patient.age || 0,
+             reason: "General Consultation",
+             status: t.status
+          }));
+          
+        setMetrics({
+          doctorName: user.fullName,
+          specialty: "General", // Placeholder for now
+          patientsToday: tokens.length,
+          completedConsultations: tokens.filter(t => {
+            const s = (t.status || "").toLowerCase();
+            return s === "completed" || s === "prescription_issued";
+          }).length,
+          pendingQueue: upcoming.length,
+          pendingPrescriptions: 0,
+          pendingLabRequests: 0,
+          upcomingPatients: upcoming
+        });
         setLoading(false); 
       })
-      .catch((e) => {
-        console.error("Failed to fetch doctor metrics", e);
-        setLoading(false);
+      .catch(err => {
+         console.error(err);
+         setLoading(false);
       });
   }, [user]);
 
