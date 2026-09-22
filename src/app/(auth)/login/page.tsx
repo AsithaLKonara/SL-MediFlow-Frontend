@@ -52,12 +52,19 @@ export default function LoginPage() {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Login failed");
+      let responseData;
+      const text = await response.text();
+      try {
+        responseData = JSON.parse(text);
+      } catch (e) {
+        console.error("Non-JSON response from server:", text.substring(0, 200));
+        throw new Error("Server returned an invalid response (not JSON). Is the backend running at " + process.env.NEXT_PUBLIC_API_URL + "?");
       }
 
-      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.error || "Login failed");
+      }
+
       const user = responseData.user;
       login(responseData.token, user);
 
