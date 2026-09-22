@@ -113,7 +113,7 @@ export default function ConsultationPage({
       .then((data) => setAvailableLabTests(data))
       .catch((e) => console.error("Failed to load lab catalog", e));
 
-    const socketUrl = (process.env.NEXT_PUBLIC_API_URL).replace('/api', '');
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace('/api', '');
     const socket = io(socketUrl);
 
     socket.on("connect", () => {

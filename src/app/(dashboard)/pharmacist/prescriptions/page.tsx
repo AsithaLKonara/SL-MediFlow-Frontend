@@ -39,7 +39,7 @@ export default function PharmacyDashboardPage() {
   useEffect(() => {
     fetchPrescriptions();
 
-    const socketUrl = (process.env.NEXT_PUBLIC_API_URL).replace('/api', '');
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace('/api', '');
     const socket = io(socketUrl);
 
     socket.on("connect", () => {

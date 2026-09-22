@@ -55,7 +55,7 @@ export function POSPane() {
 
   // Listen for websocket pos_payment_success (e.g. for multi-terminal sync)
   useEffect(() => {
-    const socketUrl = (process.env.NEXT_PUBLIC_API_URL).replace('/api', '');
+    const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace('/api', '');
     const socket = io(socketUrl);
 
     socket.on("connect", () => {
