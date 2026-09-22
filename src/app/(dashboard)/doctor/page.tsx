@@ -32,7 +32,7 @@ export default function DoctorOverview() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user.id}`)
       .then((r) => r.json())
       .then((res: any) => { 
-        const tokens = Array.isArray(res) ? res : (res.data || []);
+        const tokens: any[] = Array.isArray(res) ? res : (res.data || []);
         // Build metrics from real token data
         const upcoming = tokens
           .filter(t => {
