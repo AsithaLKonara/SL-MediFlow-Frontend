@@ -39,14 +39,17 @@ export default function DoctorOverview() {
             const s = (t.status || "").toLowerCase();
             return s !== "completed" && s !== "prescription_issued" && s !== "cancelled";
           })
-          .map(t => ({
+                    .map(t => {
+            const p = t.Patient || t.patient || {};
+            return {
              queueNo: t.tokenNumber,
-             patientId: t.patient.id,
-             patientName: t.patient.fullName,
-             age: t.patient.age || 0,
-             reason: "General Consultation",
+             patientId: p.id || t.patientId,
+             patientName: p.fullName || "Unknown",
+             age: p.age || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
+             reason: t.department || "General Consultation",
              status: t.status
-          }));
+            };
+          });
           
         setMetrics({
           doctorName: user.fullName,
