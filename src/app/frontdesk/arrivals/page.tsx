@@ -13,6 +13,8 @@ interface DoctorStatus {
   specialty?: string;
   roomNumber?: string;
   isArrived?: boolean;
+  isLeft?: boolean;
+  outTime?: string;
 }
 
 export default function DoctorArrivalsPage() {
@@ -38,6 +40,39 @@ export default function DoctorArrivalsPage() {
       setError(err.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  
+  const markOut = async (doctor: DoctorStatus) => {
+    setProcessingId(doctor.id + "-out");
+    setError(null);
+    try {
+      const el = document.getElementById(`outTime-${doctor.id}`) as HTMLInputElement;
+      const outTime = el?.value || "";
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/doctors/${doctor.id}/out`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outTime })
+      });
+      const json = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to mark out");
+      }
+
+      toast.success(`${doctor.fullName} marked as Left`);
+
+      // Update local state to hide or mark as left
+      setDoctors(docs => docs.map(d => 
+        d.id === doctor.id ? { ...d, isArrived: false, isLeft: true } : d
+      ));
+    } catch (err: any) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -112,7 +147,7 @@ export default function DoctorArrivalsPage() {
             <div className="divide-y divide-border">
               {doctors.map((doctor) => {
                 const isArrived = !!doctor.isArrived;
-                const isProcessing = processingId === doctor.id;
+                const isProcessing = processingId === doctor.id || processingId === doctor.id + "-out";
 
                 return (
                   <div key={doctor.id} className={`flex items-center justify-between p-6 transition-colors ${isArrived ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
@@ -124,13 +159,15 @@ export default function DoctorArrivalsPage() {
                         <h3 className="font-semibold text-lg">{doctor.fullName}</h3>
                         <p className="text-sm text-muted-foreground mb-1">{doctor.specialty || "General Consultation"}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            isArrived 
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500'
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            doctor.isLeft 
+                              ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                              : isArrived 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500'
                           }`}>
-                            {isArrived ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                            {isArrived ? 'ARRIVED' : 'SCHEDULED'}
+                            {doctor.isLeft ? <UserRound className="w-3.5 h-3.5" /> : (isArrived ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />)}
+                            {doctor.isLeft ? 'LEFT' : (isArrived ? 'ARRIVED' : 'SCHEDULED')}
                           </span>
                         </div>
                       </div>
@@ -148,11 +185,11 @@ export default function DoctorArrivalsPage() {
                           />
                           <Button 
                             onClick={() => markArrived(doctor)} 
-                            disabled={isProcessing}
+                            disabled={isProcessing || doctor.isLeft}
                             variant={isArrived ? "outline" : "default"}
                             className={`w-32 ${isArrived ? "border-green-500 text-green-600 hover:text-green-700" : ""}`}
                           >
-                            {isProcessing ? (
+                            {isProcessing && !processingId?.endsWith("-out") ? (
                               <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                 Marking...
@@ -163,6 +200,32 @@ export default function DoctorArrivalsPage() {
                           </Button>
                         </div>
                       </div>
+
+                      {/* Out Time UI */}
+                      {isArrived && (
+                        <div className="flex flex-col gap-1 items-end border-l pl-3 ml-1">
+                          <label className="text-xs font-medium text-muted-foreground">Out Time</label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              id={`outTime-${doctor.id}`}
+                              type="time"
+                              className="w-32 h-9"
+                            />
+                            <Button 
+                              onClick={() => markOut(doctor)} 
+                              disabled={processingId === doctor.id + "-out"}
+                              variant="destructive"
+                              className="w-24"
+                            >
+                              {processingId === doctor.id + "-out" ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                "Mark Out"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
