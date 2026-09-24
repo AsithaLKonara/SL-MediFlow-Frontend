@@ -130,6 +130,27 @@ export default function DoctorArrivalsPage() {
           </div>
         )}
 
+        
+        {/* Occupied Rooms Indicator */}
+        {!isLoading && doctors.some(d => d.isArrived && !d.isLeft && d.roomNumber) && (
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden mb-6 p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              Currently Occupied Rooms
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              {doctors.filter(d => d.isArrived && !d.isLeft && d.roomNumber).map(doc => (
+                <div key={doc.id} className="bg-muted/50 border border-border rounded-lg px-4 py-2 flex flex-col items-center min-w-[100px]">
+                  <span className="text-xl font-bold text-foreground">{doc.roomNumber}</span>
+                  <span className="text-xs text-muted-foreground truncate max-w-[120px]" title={doc.fullName}>
+                    {doc.fullName}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           {isLoading ? (
