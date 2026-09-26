@@ -211,7 +211,7 @@ export default function DoctorArrivalsPage() {
                             id={`start-${doctor.id}`}
                             type="time"
                             defaultValue={doctor.expectedStartTime || ""}
-                            className="w-24 h-9"
+                            className="w-[120px] h-9"
                             disabled={isArrived}
                           />
                           <span className="text-muted-foreground text-xs">to</span>
@@ -219,7 +219,7 @@ export default function DoctorArrivalsPage() {
                             id={`end-${doctor.id}`}
                             type="time"
                             defaultValue={doctor.expectedEndTime || ""}
-                            className="w-24 h-9"
+                            className="w-[120px] h-9"
                             disabled={isArrived}
                           />
                         </div>
