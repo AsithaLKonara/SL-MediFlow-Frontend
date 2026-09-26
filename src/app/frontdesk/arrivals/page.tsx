@@ -79,6 +79,13 @@ export default function DoctorArrivalsPage() {
   };
 
   
+  
+  const handleInputChange = (id: string, field: string, value: string) => {
+    setDoctors(docs => docs.map(d => 
+      d.id === id ? { ...d, [field]: value } : d
+    ));
+  };
+
   const autoUpdateShift = async (doctor: DoctorStatus, field: 'start' | 'end', value: string) => {
     try {
       const payload = field === 'start' ? { startTime: value } : { endTime: value };
@@ -91,11 +98,7 @@ export default function DoctorArrivalsPage() {
         throw new Error("Failed to auto-save shift time");
       }
       
-      setDoctors(docs => docs.map(d => 
-        d.id === doctor.id 
-          ? { ...d, [field === 'start' ? 'expectedStartTime' : 'expectedEndTime']: value }
-          : d
-      ));
+
     } catch (err: any) {
       console.error(err);
       toast.error("Could not auto-save time");
@@ -234,7 +237,8 @@ export default function DoctorArrivalsPage() {
                           <Input 
                             id={`start-${doctor.id}`}
                             type="time"
-                            defaultValue={doctor.expectedStartTime || ""}
+                            value={doctor.expectedStartTime || ""}
+                            onChange={(e) => handleInputChange(doctor.id, "expectedStartTime", e.target.value)}
                             className="w-[120px] h-9"
                             disabled={isArrived}
                             onBlur={(e) => autoUpdateShift(doctor, "end", e.target.value)}
@@ -244,7 +248,8 @@ export default function DoctorArrivalsPage() {
                           <Input 
                             id={`end-${doctor.id}`}
                             type="time"
-                            defaultValue={doctor.expectedEndTime || ""}
+                            value={doctor.expectedEndTime || ""}
+                            onChange={(e) => handleInputChange(doctor.id, "expectedEndTime", e.target.value)}
                             className="w-[120px] h-9"
                             disabled={isArrived}
                           />
@@ -256,7 +261,8 @@ export default function DoctorArrivalsPage() {
                         <div className="flex items-center gap-2">
                           <Input 
                             id={`room-${doctor.id}`}
-                            defaultValue={doctor.roomNumber || ""}
+                            value={doctor.roomNumber || ""}
+                            onChange={(e) => handleInputChange(doctor.id, "roomNumber", e.target.value)}
                             placeholder="Room #"
                             className="w-24 h-9"
                           />
