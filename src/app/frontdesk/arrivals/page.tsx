@@ -15,6 +15,8 @@ interface DoctorStatus {
   isArrived?: boolean;
   isLeft?: boolean;
   outTime?: string;
+  expectedStartTime?: string;
+  expectedEndTime?: string;
 }
 
 export default function DoctorArrivalsPage() {
@@ -81,12 +83,17 @@ export default function DoctorArrivalsPage() {
     setError(null);
     try {
       const el = document.getElementById(`room-${doctor.id}`) as HTMLInputElement;
+      const startEl = document.getElementById(`start-${doctor.id}`) as HTMLInputElement;
+      const endEl = document.getElementById(`end-${doctor.id}`) as HTMLInputElement;
+      
       const newRoom = el?.value || doctor.roomNumber || "";
+      const startTime = startEl?.value || doctor.expectedStartTime || "";
+      const endTime = endEl?.value || doctor.expectedEndTime || "";
       
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/doctors/${doctor.id}/arrive`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomNumber: newRoom })
+        body: JSON.stringify({ roomNumber: newRoom, startTime, endTime })
       });
       const json = await res.json();
       
@@ -98,7 +105,7 @@ export default function DoctorArrivalsPage() {
 
       // Update local state
       setDoctors(docs => docs.map(d => 
-        d.id === doctor.id ? { ...d, isArrived: true, roomNumber: newRoom } : d
+        d.id === doctor.id ? { ...d, isArrived: true, roomNumber: newRoom, expectedStartTime: startTime, expectedEndTime: endTime } : d
       ));
     } catch (err: any) {
       setError(err.message);
@@ -195,7 +202,30 @@ export default function DoctorArrivalsPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="flex flex-col gap-1 items-end">
+                      
+                      {/* Shift Period UI */}
+                      <div className="flex flex-col gap-1 items-start mr-2">
+                        <label className="text-xs font-medium text-muted-foreground">Shift Period</label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            id={`start-${doctor.id}`}
+                            type="time"
+                            defaultValue={doctor.expectedStartTime || ""}
+                            className="w-24 h-9"
+                            disabled={isArrived}
+                          />
+                          <span className="text-muted-foreground text-xs">to</span>
+                          <Input 
+                            id={`end-${doctor.id}`}
+                            type="time"
+                            defaultValue={doctor.expectedEndTime || ""}
+                            className="w-24 h-9"
+                            disabled={isArrived}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1 items-end border-l pl-4 border-border">
                         <label className="text-xs font-medium text-muted-foreground">Today's Room</label>
                         <div className="flex items-center gap-2">
                           <Input 
@@ -216,7 +246,7 @@ export default function DoctorArrivalsPage() {
                                 Marking...
                               </>
                             ) : (
-                              isArrived ? "Update Room" : "Mark Arrived"
+                              isArrived ? "Update" : "Mark Arrived"
                             )}
                           </Button>
                         </div>
