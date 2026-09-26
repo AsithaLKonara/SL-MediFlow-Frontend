@@ -78,6 +78,30 @@ export default function DoctorArrivalsPage() {
     }
   };
 
+  
+  const autoUpdateShift = async (doctor: DoctorStatus, field: 'start' | 'end', value: string) => {
+    try {
+      const payload = field === 'start' ? { startTime: value } : { endTime: value };
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/doctors/${doctor.id}/shift`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        throw new Error("Failed to auto-save shift time");
+      }
+      
+      setDoctors(docs => docs.map(d => 
+        d.id === doctor.id 
+          ? { ...d, [field === 'start' ? 'expectedStartTime' : 'expectedEndTime']: value }
+          : d
+      ));
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Could not auto-save time");
+    }
+  };
+
   const markArrived = async (doctor: DoctorStatus) => {
     setProcessingId(doctor.id);
     setError(null);
@@ -213,6 +237,8 @@ export default function DoctorArrivalsPage() {
                             defaultValue={doctor.expectedStartTime || ""}
                             className="w-[120px] h-9"
                             disabled={isArrived}
+                            onBlur={(e) => autoUpdateShift(doctor, "end", e.target.value)}
+                            onBlur={(e) => autoUpdateShift(doctor, "start", e.target.value)}
                           />
                           <span className="text-muted-foreground text-xs">to</span>
                           <Input 
