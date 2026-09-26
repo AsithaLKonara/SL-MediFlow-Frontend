@@ -241,7 +241,6 @@ export default function DoctorArrivalsPage() {
                             onChange={(e) => handleInputChange(doctor.id, "expectedStartTime", e.target.value)}
                             className="w-[120px] h-9"
                             disabled={isArrived}
-                            onBlur={(e) => autoUpdateShift(doctor, "end", e.target.value)}
                             onBlur={(e) => autoUpdateShift(doctor, "start", e.target.value)}
                           />
                           <span className="text-muted-foreground text-xs">to</span>
@@ -252,6 +251,7 @@ export default function DoctorArrivalsPage() {
                             onChange={(e) => handleInputChange(doctor.id, "expectedEndTime", e.target.value)}
                             className="w-[120px] h-9"
                             disabled={isArrived}
+                            onBlur={(e) => autoUpdateShift(doctor, "end", e.target.value)}
                           />
                         </div>
                       </div>
