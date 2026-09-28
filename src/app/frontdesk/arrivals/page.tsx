@@ -116,6 +116,13 @@ export default function DoctorArrivalsPage() {
       const newRoom = el?.value || doctor.roomNumber || "";
       const startTime = startEl?.value || doctor.expectedStartTime || "";
       const endTime = endEl?.value || doctor.expectedEndTime || "";
+
+      if (!newRoom || newRoom.trim() === "") {
+        toast.error("Room number is mandatory");
+        setProcessingId(null);
+        return;
+      }
+
       
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/doctors/${doctor.id}/arrive`, {
         method: "POST",
