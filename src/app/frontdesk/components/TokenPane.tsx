@@ -254,7 +254,7 @@ export function TokenPane() {
       .map((item) => ({
         id: item.medicine!.id,
         name: item.medicine!.name,
-        qty: item.dispenseQty ?? 1,
+        qty: item.dispenseQty || 1,
         price: item.medicine!.stockBatches?.[0]?.unitPrice ?? 0,
       }));
 
