@@ -81,6 +81,14 @@ export function TokenPane() {
   const [rxLoading, setRxLoading] = useState(false);
   /** ID of the prescription currently locked in the POS */
   const [inPosPrescriptionId, setInPosPrescriptionId] = useState<string | null>(null);
+  const [selectedRxForPrint, setSelectedRxForPrint] = useState<Prescription | null>(null);
+
+  const handlePrintClick = (rx: Prescription) => {
+    setSelectedRxForPrint(rx);
+    setTimeout(() => {
+      handlePrintPrescription();
+    }, 150); // slight delay for React to render the ref
+  };
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
@@ -284,18 +292,20 @@ export function TokenPane() {
             invoice={generatedToken.invoice}
           />
         )}
-        <PrescriptionReceipt 
-          ref={prescriptionPrintRef}
-          patientName="Nimal Perera"
-          patientAge="45"
-          patientPhone="0771234567"
-          doctorName="Dr. Silva"
-          date={new Date().toLocaleDateString()}
-          medicines={[
-            { name: "Paracetamol 500mg", dosage: "2 pills after meals" },
-            { name: "Amoxicillin 250mg", dosage: "1 pill before meals" }
-          ]}
-        />
+        {selectedRxForPrint && (
+          <PrescriptionReceipt 
+            ref={prescriptionPrintRef}
+            patientName={selectedRxForPrint.patientName}
+            patientAge="N/A"
+            patientPhone="N/A"
+            doctorName={selectedRxForPrint.doctorName}
+            date={new Date(selectedRxForPrint.createdAt).toLocaleDateString()}
+            medicines={selectedRxForPrint.items.map(item => ({
+              name: item.drugName,
+              dosage: item.dispenseQty ? `Dispense: ${item.dispenseQty}` : 'As prescribed'
+            }))}
+          />
+        )}
       </div>
       <Tabs defaultValue="reception" className="flex flex-col h-full">
         <TabsList className="grid w-full grid-cols-4 mb-4 bg-background border border-border h-12 p-1">
@@ -545,7 +555,7 @@ export function TokenPane() {
                           variant="outline"
                           size="sm"
                           className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
-                          onClick={() => handlePrintPrescription()}
+                          onClick={() => handlePrintClick(rx)}
                         >
                           Print Rx
                         </Button>
