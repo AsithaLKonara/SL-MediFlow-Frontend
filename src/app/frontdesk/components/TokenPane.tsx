@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
+import { BillReceipt } from "./PrintTemplates/BillReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { PhoneBookingPane } from "./PhoneBookingPane";
 import { ArrivalsPane } from "./ArrivalsPane";
@@ -61,6 +62,7 @@ interface GeneratedToken {
   visitId?: string;
   invoiceId?: string;
   roomNumber?: string;
+  invoice?: any;
 }
 
 export function TokenPane() {
@@ -84,10 +86,9 @@ export function TokenPane() {
   const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
   
   const tokenPrintRef = useRef<HTMLDivElement>(null);
-  const handlePrintToken = useReactToPrint({ 
-    contentRef: tokenPrintRef,
-    onAfterPrint: () => {
-      // Reset form AFTER print completes, not before
+  const billPrintRef = useRef<HTMLDivElement>(null);
+  
+  const resetForm = () => {
       setPatientName("");
       setPatientPhone("");
       setPatientAge("");
@@ -96,7 +97,16 @@ export function TokenPane() {
       setGeneratedToken(null);
       setSearchQuery("");
       setPatientLookupResult(null);
-    }
+  };
+
+  const handlePrintToken = useReactToPrint({ 
+    contentRef: tokenPrintRef,
+    onAfterPrint: resetForm
+  });
+
+  const handlePrintBill = useReactToPrint({
+    contentRef: billPrintRef,
+    onAfterPrint: resetForm
   });
 
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
@@ -207,7 +217,13 @@ export function TokenPane() {
           roomNumber: selectedDoc?.roomNumber || undefined
         });
         // Print receipt - form reset now happens in onAfterPrint callback
-        setTimeout(() => handlePrintToken(), 300);
+        setTimeout(() => {
+          if (result.data.invoice) {
+            handlePrintBill();
+          } else {
+            handlePrintToken();
+          }
+        }, 300);
       } else {
         toast.error(result.error || "Failed to generate token.");
       }
@@ -248,7 +264,7 @@ export function TokenPane() {
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 relative">
       <div className="hidden">
-        {generatedToken && (
+        {generatedToken && !generatedToken.invoice && (
           <TokenReceipt 
             ref={tokenPrintRef} 
             tokenNumber={generatedToken.queueNumber} 
@@ -256,6 +272,16 @@ export function TokenPane() {
             patientName={generatedToken.patientName} 
             date={new Date().toLocaleDateString()} 
             roomNumber={generatedToken.roomNumber}
+          />
+        )}
+        {generatedToken && generatedToken.invoice && (
+          <BillReceipt
+            ref={billPrintRef}
+            queueNumber={generatedToken.queueNumber}
+            doctorName={generatedToken.doctorName}
+            patientName={generatedToken.patientName}
+            date={new Date().toISOString()}
+            invoice={generatedToken.invoice}
           />
         )}
         <PrescriptionReceipt 
