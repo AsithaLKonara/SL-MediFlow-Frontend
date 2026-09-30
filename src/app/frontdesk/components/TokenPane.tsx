@@ -12,7 +12,6 @@ import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
 import { BillReceipt } from "./PrintTemplates/BillReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { PhoneBookingPane } from "./PhoneBookingPane";
-import { ArrivalsPane } from "./ArrivalsPane";
 import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
 import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 
@@ -308,7 +307,7 @@ export function TokenPane() {
         )}
       </div>
       <Tabs defaultValue="reception" className="flex flex-col h-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4 bg-background border border-border h-12 p-1">
+        <TabsList className="grid w-full grid-cols-3 mb-4 bg-background border border-border h-12 p-1">
           <TabsTrigger value="reception" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
             <Users className="w-4 h-4 mr-2 hidden sm:block" />
             Walk-in
@@ -316,10 +315,6 @@ export function TokenPane() {
           <TabsTrigger value="phone-booking" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
             <Phone className="w-4 h-4 mr-2 hidden sm:block" />
             Booking
-          </TabsTrigger>
-          <TabsTrigger value="arrivals" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
-            <CheckCircle className="w-4 h-4 mr-2 hidden sm:block" />
-            Arrivals
           </TabsTrigger>
           <TabsTrigger value="prescriptions" className="h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <FileText className="w-4 h-4 mr-2 hidden sm:block" />
@@ -462,10 +457,6 @@ export function TokenPane() {
 
         <TabsContent value="phone-booking" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
           <PhoneBookingPane />
-        </TabsContent>
-
-        <TabsContent value="arrivals" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
-          <ArrivalsPane />
         </TabsContent>
 
         <TabsContent value="prescriptions" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
