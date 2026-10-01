@@ -9,9 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
+import { BillReceipt } from "./PrintTemplates/BillReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { PhoneBookingPane } from "./PhoneBookingPane";
-import { ArrivalsPane } from "./ArrivalsPane";
 import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
 import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 
@@ -61,6 +61,7 @@ interface GeneratedToken {
   visitId?: string;
   invoiceId?: string;
   roomNumber?: string;
+  invoice?: any;
 }
 
 export function TokenPane() {
@@ -79,15 +80,22 @@ export function TokenPane() {
   const [rxLoading, setRxLoading] = useState(false);
   /** ID of the prescription currently locked in the POS */
   const [inPosPrescriptionId, setInPosPrescriptionId] = useState<string | null>(null);
+  const [selectedRxForPrint, setSelectedRxForPrint] = useState<Prescription | null>(null);
+
+  const handlePrintClick = (rx: Prescription) => {
+    setSelectedRxForPrint(rx);
+    setTimeout(() => {
+      handlePrintPrescription();
+    }, 150); // slight delay for React to render the ref
+  };
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
   
   const tokenPrintRef = useRef<HTMLDivElement>(null);
-  const handlePrintToken = useReactToPrint({ 
-    contentRef: tokenPrintRef,
-    onAfterPrint: () => {
-      // Reset form AFTER print completes, not before
+  const billPrintRef = useRef<HTMLDivElement>(null);
+  
+  const resetForm = () => {
       setPatientName("");
       setPatientPhone("");
       setPatientAge("");
@@ -96,7 +104,16 @@ export function TokenPane() {
       setGeneratedToken(null);
       setSearchQuery("");
       setPatientLookupResult(null);
-    }
+  };
+
+  const handlePrintToken = useReactToPrint({ 
+    contentRef: tokenPrintRef,
+    onAfterPrint: resetForm
+  });
+
+  const handlePrintBill = useReactToPrint({
+    contentRef: billPrintRef,
+    onAfterPrint: resetForm
   });
 
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
@@ -207,7 +224,13 @@ export function TokenPane() {
           roomNumber: selectedDoc?.roomNumber || undefined
         });
         // Print receipt - form reset now happens in onAfterPrint callback
-        setTimeout(() => handlePrintToken(), 300);
+        setTimeout(() => {
+          if (result.data.invoice) {
+            handlePrintBill();
+          } else {
+            handlePrintToken();
+          }
+        }, 300);
       } else {
         toast.error(result.error || "Failed to generate token.");
       }
@@ -230,7 +253,7 @@ export function TokenPane() {
       .map((item) => ({
         id: item.medicine!.id,
         name: item.medicine!.name,
-        qty: item.dispenseQty ?? 1,
+        qty: item.dispenseQty || 1,
         price: item.medicine!.stockBatches?.[0]?.unitPrice ?? 0,
       }));
 
@@ -248,7 +271,7 @@ export function TokenPane() {
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 relative">
       <div className="hidden">
-        {generatedToken && (
+        {generatedToken && !generatedToken.invoice && (
           <TokenReceipt 
             ref={tokenPrintRef} 
             tokenNumber={generatedToken.queueNumber} 
@@ -258,21 +281,33 @@ export function TokenPane() {
             roomNumber={generatedToken.roomNumber}
           />
         )}
-        <PrescriptionReceipt 
-          ref={prescriptionPrintRef}
-          patientName="Nimal Perera"
-          patientAge="45"
-          patientPhone="0771234567"
-          doctorName="Dr. Silva"
-          date={new Date().toLocaleDateString()}
-          medicines={[
-            { name: "Paracetamol 500mg", dosage: "2 pills after meals" },
-            { name: "Amoxicillin 250mg", dosage: "1 pill before meals" }
-          ]}
-        />
+        {generatedToken && generatedToken.invoice && (
+          <BillReceipt
+            ref={billPrintRef}
+            queueNumber={generatedToken.queueNumber}
+            doctorName={generatedToken.doctorName}
+            patientName={generatedToken.patientName}
+            date={new Date().toISOString()}
+            invoice={generatedToken.invoice}
+          />
+        )}
+        {selectedRxForPrint && (
+          <PrescriptionReceipt 
+            ref={prescriptionPrintRef}
+            patientName={selectedRxForPrint.patientName}
+            patientAge="N/A"
+            patientPhone="N/A"
+            doctorName={selectedRxForPrint.doctorName}
+            date={new Date(selectedRxForPrint.createdAt).toLocaleDateString()}
+            medicines={selectedRxForPrint.items.map(item => ({
+              name: item.drugName,
+              dosage: item.dispenseQty ? `Dispense: ${item.dispenseQty}` : 'As prescribed'
+            }))}
+          />
+        )}
       </div>
       <Tabs defaultValue="reception" className="flex flex-col h-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4 bg-background border border-border h-12 p-1">
+        <TabsList className="grid w-full grid-cols-3 mb-4 bg-background border border-border h-12 p-1">
           <TabsTrigger value="reception" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
             <Users className="w-4 h-4 mr-2 hidden sm:block" />
             Walk-in
@@ -280,10 +315,6 @@ export function TokenPane() {
           <TabsTrigger value="phone-booking" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
             <Phone className="w-4 h-4 mr-2 hidden sm:block" />
             Booking
-          </TabsTrigger>
-          <TabsTrigger value="arrivals" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
-            <CheckCircle className="w-4 h-4 mr-2 hidden sm:block" />
-            Arrivals
           </TabsTrigger>
           <TabsTrigger value="prescriptions" className="h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <FileText className="w-4 h-4 mr-2 hidden sm:block" />
@@ -410,7 +441,8 @@ export function TokenPane() {
 
             <div className="p-4 border-t border-border bg-background mt-auto">
               <Button 
-                className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
+                variant="secondary"
+                className="w-full h-12 text-lg hover:bg-secondary/90" 
                 onClick={handleGenerateToken}
                 disabled={isGenerating || (!selectedDocId && selectedTestIds.size === 0)}
               >
@@ -425,10 +457,6 @@ export function TokenPane() {
 
         <TabsContent value="phone-booking" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
           <PhoneBookingPane />
-        </TabsContent>
-
-        <TabsContent value="arrivals" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
-          <ArrivalsPane />
         </TabsContent>
 
         <TabsContent value="prescriptions" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
@@ -518,7 +546,7 @@ export function TokenPane() {
                           variant="outline"
                           size="sm"
                           className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
-                          onClick={() => handlePrintPrescription()}
+                          onClick={() => handlePrintClick(rx)}
                         >
                           Print Rx
                         </Button>

@@ -201,8 +201,6 @@ export default function ConsultationPage({
   };
 
   const handleCompleteConsultation = async () => {
-    if (!diagnosis.trim()) { toast.error("Diagnosis is required to complete consultation."); return; }
-    
     // 1. Add consultation fee to Centralized Billing Engine
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/charge`, {
