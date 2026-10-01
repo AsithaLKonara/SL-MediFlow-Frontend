@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Microscope, FileCheck, Clock, AlertTriangle, FlaskConical } from "lucide-react";
+import { Microscope, FileCheck, Clock, AlertTriangle, FlaskConical, Search, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface Metrics {
   pendingRequests: number;
@@ -18,6 +21,32 @@ interface Metrics {
 export default function LabTechOverview() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tokenSearch, setTokenSearch] = useState("");
+  const [searching, setSearching] = useState(false);
+  const router = useRouter();
+
+  const handleTokenSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tokenSearch.trim()) return;
+
+    setSearching(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/token/${tokenSearch.trim()}`);
+      const data = await res.json();
+      
+      if (data.success && data.data.LabRequests && data.data.LabRequests.length > 0) {
+        // Navigate to the first pending request for this token
+        const reqId = data.data.LabRequests[0].id;
+        router.push(`/labtech/results/${reqId}`);
+      } else {
+        toast.error("No pending lab requests found for this token today.");
+      }
+    } catch (error) {
+      toast.error("Failed to find token.");
+    } finally {
+      setSearching(false);
+    }
+  };
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/metrics`)
@@ -34,9 +63,25 @@ export default function LabTechOverview() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Laboratory Overview</h2>
-        <p className="text-muted-foreground mt-2">Today's diagnostic workload and testing summary.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Laboratory Overview</h2>
+          <p className="text-muted-foreground mt-2">Today's diagnostic workload and testing summary.</p>
+        </div>
+        
+        <form onSubmit={handleTokenSearch} className="flex items-center gap-2 max-w-sm w-full bg-white p-2 rounded-lg border shadow-sm">
+          <Search className="w-5 h-5 text-muted-foreground ml-2" />
+          <Input 
+            value={tokenSearch} 
+            onChange={(e) => setTokenSearch(e.target.value)} 
+            placeholder="Scan or Enter Token (e.g. A-12)" 
+            className="border-0 focus-visible:ring-0 shadow-none flex-1 text-lg"
+            autoFocus
+          />
+          <Button type="submit" disabled={searching || !tokenSearch.trim()}>
+            {searching ? "..." : <ArrowRight className="w-5 h-5" />}
+          </Button>
+        </form>
       </div>
 
       {/* KPI Cards */}
