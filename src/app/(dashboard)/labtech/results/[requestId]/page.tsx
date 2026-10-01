@@ -50,15 +50,36 @@ interface LabRequest {
 // ---------- Helpers ----------
 
 function getFlag(result: string, referenceRange: string): "H" | "L" | "N" | "" | null {
-  if (!result) return "";
+  if (!result || !referenceRange) return "";
   const numMatch = result.match(/[\d.]+/);
-  const refMatch = referenceRange.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/);
-  if (!numMatch || !refMatch) return "N";
+  if (!numMatch) return "N";
+  
   const val = parseFloat(numMatch[0]);
-  const low = parseFloat(refMatch[1]);
-  const high = parseFloat(refMatch[2]);
-  if (val < low) return "L";
-  if (val > high) return "H";
+
+  // Handle Range: "4.0 - 11.0"
+  const refMatch = referenceRange.match(/([\d.]+)\s*[-–]\s*([\d.]+)/);
+  if (refMatch) {
+    const low = parseFloat(refMatch[1]);
+    const high = parseFloat(refMatch[2]);
+    if (val < low) return "L";
+    if (val > high) return "H";
+    return "N";
+  }
+
+  // Handle Less Than: "< 200"
+  const lessMatch = referenceRange.match(/<\s*([\d.]+)/);
+  if (lessMatch) {
+    if (val >= parseFloat(lessMatch[1])) return "H";
+    return "N";
+  }
+
+  // Handle Greater Than: "> 40"
+  const greaterMatch = referenceRange.match(/>\s*([\d.]+)/);
+  if (greaterMatch) {
+    if (val <= parseFloat(greaterMatch[1])) return "L";
+    return "N";
+  }
+
   return "N";
 }
 
