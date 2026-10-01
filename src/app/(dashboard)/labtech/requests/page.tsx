@@ -29,10 +29,10 @@ interface LabRequest {
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  PENDING:     { label: "Pending",     className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-  IN_PROGRESS: { label: "In Progress", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  COMPLETED:   { label: "Completed",   className: "bg-muted/50 text-foreground/80" },
-  PUBLISHED:   { label: "Published",   className: "bg-green-500/10 text-green-600 dark:text-green-400" },
+  PENDING:     { label: "Pending",                 className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  SAVED:       { label: "Saved (Not Published)",   className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  IN_PROGRESS: { label: "In Progress",             className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  COMPLETED:   { label: "Published",               className: "bg-green-500/10 text-green-600 dark:text-green-400" },
 };
 
 export default function LabTechRequestsPage() {
@@ -71,8 +71,8 @@ export default function LabTechRequestsPage() {
       });
   }, []);
 
-  const active = requests.filter(r => r.status !== "PUBLISHED");
-  const published = requests.filter(r => r.status === "PUBLISHED");
+  const active = requests.filter(r => r.status === "PENDING" || r.status === "SAVED" || r.status === "IN_PROGRESS");
+  const published = requests.filter(r => r.status === "COMPLETED");
 
   if (loading) return (
     <div className="flex h-[80vh] items-center justify-center">
@@ -103,10 +103,10 @@ export default function LabTechRequestsPage() {
             <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
               <Clock className="w-3 h-3" />{new Date(req.requestedAt).toLocaleTimeString()}
             </p>
-            {req.status !== "PUBLISHED" && (
+            {req.status !== "COMPLETED" && (
               <Link href={`/labtech/results/${req.id}`}>
                 <Button size="sm" className="bg-primary hover:bg-primary/90 text-white mt-2">
-                  {req.status === "PENDING" ? "Start Processing" : "Enter Results"}
+                  {req.status === "PENDING" ? "Start Processing" : "Edit Results"}
                 </Button>
               </Link>
             )}

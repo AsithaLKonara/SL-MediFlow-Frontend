@@ -15,7 +15,7 @@ interface Metrics {
   inProgressTests: number;
   publishedToday: number;
   criticalResults: number;
-  urgentRequests: { id: string; patientName: string; doctor: string; tests: string[]; priority: string; requestedAt: string }[];
+  urgentRequests: { id: string; patientName: string; doctor: string; tests: string[]; priority: string; status: string; requestedAt: string }[];
 }
 
 export default function LabTechOverview() {
@@ -167,7 +167,7 @@ export default function LabTechOverview() {
                 </div>
                 <Link href={`/labtech/results/${req.id}`}>
                   <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white shrink-0">
-                    Process Now
+                    {req.status === "PENDING" ? "Process Now" : "Edit Results"}
                   </Button>
                 </Link>
               </div>
