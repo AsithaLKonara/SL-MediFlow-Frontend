@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, MonitorPlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { Lock, Unlock } from "lucide-react";
 
 import { DoctorSelector } from "./components/DoctorSelector";
 import { OperationalWorkspace } from "./components/workspace/OperationalWorkspace";
@@ -25,6 +27,31 @@ export default function EnhancedDoctorArrivalsPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const isNurse = user?.role?.toLowerCase() === "nurse";
+  
+  const [assignedDoctorId, setAssignedDoctorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      const saved = localStorage.getItem(`assignedDoctorId_${user.id}`);
+      if (saved) setAssignedDoctorId(saved);
+    }
+  }, [user?.id]);
+
+  const handleAssignNurse = () => {
+    if (selectedDoctorId && user?.id) {
+      localStorage.setItem(`assignedDoctorId_${user.id}`, selectedDoctorId);
+      setAssignedDoctorId(selectedDoctorId);
+    }
+  };
+
+  const handleUnassignNurse = () => {
+    if (user?.id) {
+      localStorage.removeItem(`assignedDoctorId_${user.id}`);
+      setAssignedDoctorId(null);
+    }
+  };
 
   // We are currently using mock data or the real API if available
   useEffect(() => {
@@ -53,7 +80,19 @@ export default function EnhancedDoctorArrivalsPage() {
     }
   };
 
-  const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
+  // If nurse is assigned, they only see that doctor
+  const displayedDoctors = isNurse && assignedDoctorId 
+    ? doctors.filter(d => d.id === assignedDoctorId) 
+    : doctors;
+
+  const selectedDoctor = displayedDoctors.find(d => d.id === selectedDoctorId) || displayedDoctors[0];
+
+  // Effect to sync selected if locked
+  useEffect(() => {
+    if (isNurse && assignedDoctorId && selectedDoctorId !== assignedDoctorId) {
+      setSelectedDoctorId(assignedDoctorId);
+    }
+  }, [isNurse, assignedDoctorId, selectedDoctorId]);
 
   return (
     <div className="flex-1 p-6 h-[calc(100vh-56px)] overflow-y-auto bg-background animate-in fade-in">
@@ -71,11 +110,24 @@ export default function EnhancedDoctorArrivalsPage() {
 
         {/* Row 1: Doctor Control & High-Level Actions */}
         <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-card border border-border p-4 rounded-xl shadow-sm">
-          <DoctorSelector 
-            doctors={doctors} 
-            selectedId={selectedDoctorId} 
-            onSelect={setSelectedDoctorId} 
-          />
+          <div className="flex items-center gap-4">
+            <DoctorSelector 
+              doctors={displayedDoctors} 
+              selectedId={selectedDoctor?.id || null} 
+              onSelect={setSelectedDoctorId} 
+            />
+            {isNurse && (
+              assignedDoctorId ? (
+                <Button variant="outline" size="sm" onClick={handleUnassignNurse} className="gap-2 text-destructive">
+                  <Lock className="w-4 h-4" /> Unassign
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" onClick={handleAssignNurse} className="gap-2 text-primary" disabled={!selectedDoctorId}>
+                  <Unlock className="w-4 h-4" /> Assign Myself
+                </Button>
+              )
+            )}
+          </div>
           <Button 
             variant="outline" 
             className="w-full md:w-auto bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 gap-2 font-medium"

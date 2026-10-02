@@ -1,13 +1,15 @@
 import React from "react";
+import Barcode from "react-barcode";
 
 export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
+  prescriptionId?: string;
   patientName: string;
   patientAge: string;
   patientPhone: string;
   doctorName: string;
   medicines: { name: string; dosage: string }[];
   date: string;
-}>(({ patientName, patientAge, patientPhone, doctorName, medicines, date }, ref) => {
+}>(({ prescriptionId, patientName, patientAge, patientPhone, doctorName, medicines, date }, ref) => {
   return (
     <div ref={ref} className="w-[300px] bg-card text-card-foreground text-black p-4 font-sans print:p-0">
       <div className="text-center mb-4">
@@ -53,7 +55,12 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
         </div>
       </div>
 
-      <div className="mt-12 text-center border-t-2 border-black pt-8">
+      <div className="mt-12 text-center border-t-2 border-black pt-8 flex flex-col items-center">
+        {prescriptionId && (
+          <div className="mb-4 w-full flex justify-center overflow-hidden">
+            <Barcode value={prescriptionId} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+          </div>
+        )}
         <p className="text-xs italic mb-2">(Doctor's Signature / Seal)</p>
         <p className="text-xs font-bold uppercase mt-4">Not valid without certification</p>
       </div>

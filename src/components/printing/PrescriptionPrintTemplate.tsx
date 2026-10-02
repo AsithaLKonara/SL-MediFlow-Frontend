@@ -1,4 +1,5 @@
 import React from "react";
+import Barcode from "react-barcode";
 
 interface PrintProps {
   prescription: any;
@@ -54,7 +55,12 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
             ))}
           </div>
 
-          <div className="text-center mt-6 pt-2 border-t border-dashed border-black">
+          <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
+            {prescription.id && (
+              <div className="mb-2 w-full flex justify-center overflow-hidden">
+                <Barcode value={prescription.id} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+              </div>
+            )}
             <p className="text-xs italic">Wishing you a speedy recovery!</p>
             <p className="text-[10px] mt-1">Generated electronically.</p>
           </div>

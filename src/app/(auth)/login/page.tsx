@@ -73,6 +73,8 @@ export default function LoginPage() {
       
       if (roleStr === "admin" || roleStr === "superadmin") {
         router.push("/superadmin");
+      } else if (roleStr === "nurse") {
+        router.push("/frontdesk/arrivals");
       } else if (["receptionist", "pharmacist", "cashier"].includes(roleStr)) {
         router.push("/frontdesk");
       } else {
@@ -89,6 +91,7 @@ export default function LoginPage() {
     { label: "Super Admin", email: "admin@amaz.com" },
     { label: "Frontdesk", email: "reception@amaz.com" },
     { label: "Doctor", email: "doctor@amaz.com" },
+    { label: "Nurse", email: "nurse@amaz.com" },
     { label: "Lab", email: "labtech@amaz.com" },
   ];
 

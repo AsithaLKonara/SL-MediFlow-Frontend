@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2 } from "lucide-react";
 import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
+import { useBarcodeScanner } from "../hooks/useBarcodeScanner";
 import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
 import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
 import { toast } from "sonner";
@@ -144,29 +145,89 @@ export function POSPane() {
     }, 100);
   };
 
-  const handleBarcodeScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const processBarcode = async (code: string) => {
+    if (!code) return;
+
+    // Check if it's a UUID (e.g. prescription ID or invoice ID) - length 36
+    if (code.length === 36) {
+      // First check if it's a prescription
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}`);
+        if (res.ok) {
+          const rx = await res.json();
+          // Similar to handleSendToPOS in TokenPane, we could load it here, but that might be complex
+          // For now, let's show a toast that it's a prescription and they should load it from the Rx tab.
+          // Or even better, load the prescription items into the cart automatically.
+          if (rx && rx.items) {
+             const cartItems: CartItem[] = rx.items
+               .filter((item: any) => item.medicineId && item.medicine)
+               .map((item: any) => ({
+                 id: item.medicine.id,
+                 name: item.medicine.name,
+                 qty: item.dispenseQty || 1,
+                 price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
+               }));
+             
+             if (cartItems.length > 0) {
+               setCart(prev => {
+                 const updated = [...prev];
+                 for (const rxItem of cartItems) {
+                   const idx = updated.findIndex((i) => i.id === rxItem.id);
+                   if (idx >= 0) {
+                     updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+                   } else {
+                     updated.push(rxItem);
+                   }
+                 }
+                 return updated;
+               });
+               setActivePrescriptionId(code);
+               
+               fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
+                 method: "PATCH",
+                 headers: { "Content-Type": "application/json" },
+                 body: JSON.stringify({ status: "IN_PROGRESS" }),
+               }).catch(console.error);
+               notifyRxStatus(code, "IN_PROGRESS");
+               toast.success(`Prescription ${code.substring(0,8)} loaded into POS via barcode scan.`);
+             }
+             return; // Done processing
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    const match = availableMedicines.find(m => m.barcode === code || m.name.toLowerCase() === code.toLowerCase());
+    if (match) {
+      addToCart(match);
+      toast.success(`Added ${match.name}`);
+    } else {
+      // Fallback to fetch directly
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?barcode=${code}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          addToCart(data[0]);
+          toast.success(`Added ${data[0].name}`);
+        } else {
+          toast.error(`No item found for barcode ${code}`);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  useBarcodeScanner((barcode) => {
+    processBarcode(barcode);
+  });
+
+  const handleBarcodeScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const code = searchInput.trim();
-      if (!code) return;
-
-      const match = availableMedicines.find(m => m.barcode === code || m.name.toLowerCase() === code.toLowerCase());
-      if (match) {
-        addToCart(match);
-      } else {
-        // Fallback to fetch directly
-        try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?barcode=${code}`);
-          const data = await res.json();
-          if (data && data.length > 0) {
-            addToCart(data[0]);
-          } else {
-            // Not found
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      processBarcode(searchInput.trim());
     }
   };
 

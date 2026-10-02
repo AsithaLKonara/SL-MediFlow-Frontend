@@ -71,7 +71,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("user", JSON.stringify(newUser));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Attempt to close shift if applicable
+    if (user && token) {
+      const roleStr = user.role.toLowerCase();
+      if (roleStr === "doctor") {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/doctors/${user.id}/out`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } catch (e) {
+          console.error("Failed to checkout doctor shift", e);
+        }
+      }
+      // For Nurse and Receptionist, we could add similar logic if backend supports it.
+    }
+
     setToken(null);
     setUser(null);
     localStorage.removeItem("token");

@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import Barcode from 'react-barcode';
 
 export interface BillReceiptProps {
   queueNumber: string;
@@ -83,7 +84,10 @@ export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
           </div>
         </div>
 
-        <div className="mt-12 text-center border-t-2 border-black pt-4">
+        <div className="mt-12 text-center border-t-2 border-black pt-4 flex flex-col items-center">
+          <div className="mb-2 w-full flex justify-center overflow-hidden">
+            <Barcode value={invoice.id} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+          </div>
           <p className="text-xs italic mb-2">Please proceed to the respective department.</p>
           <p className="text-xs font-bold uppercase mt-2">Thank you!</p>
         </div>

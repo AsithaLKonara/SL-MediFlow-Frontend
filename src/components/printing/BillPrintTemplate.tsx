@@ -1,4 +1,5 @@
 import React from "react";
+import Barcode from "react-barcode";
 
 interface BillItem {
   name: string;
@@ -66,11 +67,18 @@ export const BillPrintTemplate = React.forwardRef<HTMLDivElement, PrintProps>(
               </thead>
               <tbody>
                 {receiptData.items.map((item, idx) => (
-                  <tr key={idx} className="align-top">
-                    <td className="py-1 pr-1 truncate max-w-[140px]">{item.name}</td>
-                    <td className="py-1 text-center">{item.qty}</td>
-                    <td className="py-1 text-right">{item.total.toFixed(2)}</td>
-                  </tr>
+                  <React.Fragment key={idx}>
+                    <tr className="align-top">
+                      <td className="pt-1 pr-1 truncate max-w-[140px]">{item.name}</td>
+                      <td className="pt-1 text-center">{item.qty}</td>
+                      <td className="pt-1 text-right">{item.total.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className="pb-1 text-[10px] text-gray-600">
+                        {item.qty} x Rs. {item.price.toFixed(2)}
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -106,7 +114,12 @@ export const BillPrintTemplate = React.forwardRef<HTMLDivElement, PrintProps>(
             )}
           </div>
 
-          <div className="text-center mt-6 pt-2 border-t border-dashed border-black">
+          <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
+            {receiptData.receiptId && (
+              <div className="mb-2 w-full flex justify-center overflow-hidden">
+                <Barcode value={receiptData.receiptId} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+              </div>
+            )}
             <p className="text-xs font-bold">Thank you for your business!</p>
             <p className="text-[10px] mt-1">Wishing you good health.</p>
           </div>

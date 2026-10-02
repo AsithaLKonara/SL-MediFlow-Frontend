@@ -35,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <SidebarProvider>
               <VirtualKeyboardProvider>
                 {children}
-                <Toaster />
+                <Toaster position="top-right" />
               </VirtualKeyboardProvider>
             </SidebarProvider>
           </ThemeProvider>

@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReactToPrint } from "react-to-print";
@@ -51,6 +52,7 @@ interface Prescription {
 }
 
 interface GeneratedToken {
+  id: string;
   queueNumber: string;
   doctorName: string;
   department: string;
@@ -76,6 +78,7 @@ export function TokenPane() {
   const [labCatalog, setLabCatalog] = useState<LabTest[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
+  const [customLabPrices, setCustomLabPrices] = useState<Record<string, number>>({});
   const [pendingPrescriptions, setPendingPrescriptions] = useState<Prescription[]>([]);
   const [rxLoading, setRxLoading] = useState(false);
   /** ID of the prescription currently locked in the POS */
@@ -101,6 +104,7 @@ export function TokenPane() {
       setPatientAge("");
       setSelectedDocId(null);
       setSelectedTestIds(new Set());
+      setCustomLabPrices({});
       setGeneratedToken(null);
       setSearchQuery("");
       setPatientLookupResult(null);
@@ -211,7 +215,8 @@ export function TokenPane() {
           ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
           doctorId: selectedDocId,
           doctorName: selectedDoc?.fullName,
-          testIds: Array.from(selectedTestIds)
+          testIds: Array.from(selectedTestIds),
+          customLabPrices
         })
       });
       
@@ -274,6 +279,7 @@ export function TokenPane() {
         {generatedToken && !generatedToken.invoice && (
           <TokenReceipt 
             ref={tokenPrintRef} 
+            tokenId={generatedToken.id}
             tokenNumber={generatedToken.queueNumber} 
             doctorName={generatedToken.doctorName} 
             patientName={generatedToken.patientName} 
@@ -294,6 +300,7 @@ export function TokenPane() {
         {selectedRxForPrint && (
           <PrescriptionReceipt 
             ref={prescriptionPrintRef}
+            prescriptionId={selectedRxForPrint.id}
             patientName={selectedRxForPrint.patientName}
             patientAge="N/A"
             patientPhone="N/A"
@@ -376,67 +383,227 @@ export function TokenPane() {
             <div className="flex-1 p-4 flex flex-col gap-4 overflow-y-auto">
               <h3 className="font-medium text-muted-foreground text-sm">Issue Token</h3>
 
-              <div className="space-y-4">
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Select Doctor</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {doctors.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className={`p-3 border rounded-lg bg-card transition-colors flex flex-col gap-2 ${
-                        selectedDocId === doc.id ? "border-primary ring-1 ring-primary" : "border-border hover:border-secondary"
-                      }`}
-                    >
-                      <button
-                        onClick={() => setSelectedDocId(doc.id === selectedDocId ? null : doc.id)}
-                        className="text-left flex flex-col gap-1 w-full"
-                      >
-                        <span className="font-medium text-sm">{doc.fullName}</span>
-                        <span className="text-xs text-muted-foreground">{doc.specialty || "Consultation"}</span>
-                      </button>
-                      <div className="flex items-center justify-between gap-2 mt-1 pt-2 border-t border-border text-xs text-muted-foreground">
-                        <span>Room: {doc.roomNumber || "N/A"}</span>
-                        {/* We don't have isArrived exposed yet in the interface but it comes from backend */}
-                        {(doc as any).isArrived && (
-                          <span className="text-green-500 font-medium">Arrived</span>
-                        )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Select Doctor Tile */}
+                <Dialog>
+                  <DialogTrigger className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Stethoscope className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-foreground">Select Doctor</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {selectedDocId 
+                          ? doctors.find(d => d.id === selectedDocId)?.fullName 
+                          : "Assign a doctor"}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <FlaskConical className="w-4 h-4 text-muted-foreground" />
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add Lab Tests</h4>
-                </div>
-                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2">
-                  {labCatalog.map((test) => (
-                    <button
-                      key={test.id}
-                      onClick={() => {
-                        const newSet = new Set(selectedTestIds);
-                        if (newSet.has(test.id)) newSet.delete(test.id);
-                        else newSet.add(test.id);
-                        setSelectedTestIds(newSet);
-                      }}
-                      className={`flex justify-between items-center p-3 rounded-lg border text-left transition-colors ${
-                        selectedTestIds.has(test.id)
-                          ? "bg-primary/10 border-primary text-primary"
-                          : "bg-card border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <div>
-                        <div className="font-medium text-sm">{test.name}</div>
-                        <div className="text-xs opacity-70">{test.code}</div>
+                  </DialogTrigger>
+                  <DialogContent className="w-[95vw] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl h-[85vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">Select Doctor</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-2 overflow-y-auto p-2 flex-1 min-h-0">
+                      {doctors.map((doc) => (
+                        <button
+                          key={doc.id}
+                          onClick={() => setSelectedDocId(doc.id === selectedDocId ? null : doc.id)}
+                          className={`w-full p-4 border rounded-lg transition-colors flex items-center justify-between gap-4 outline-none text-left ${
+                            selectedDocId === doc.id ? "border-primary ring-1 ring-primary bg-primary/5" : "bg-card border-border hover:border-secondary"
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${selectedDocId === doc.id ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+                              <UserRound className="w-5 h-5" />
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-semibold text-base">{doc.fullName}</span>
+                              <span className="text-sm text-muted-foreground">{doc.specialty || "Consultation"}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-6">
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="text-xs text-muted-foreground">Room</span>
+                              <span className="font-medium">{doc.roomNumber || "N/A"}</span>
+                            </div>
+                            {(doc as any).isArrived ? (
+                              <div className="px-3 py-1 bg-green-500/10 text-green-600 rounded-full text-xs font-semibold">Arrived</div>
+                            ) : (
+                              <div className="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-semibold">Scheduled</div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
+                      <div className="text-sm text-muted-foreground">
+                        {selectedDocId ? doctors.find(d => d.id === selectedDocId)?.fullName : "No doctor selected"}
                       </div>
-                      <div className="font-semibold text-sm">Rs. {test.price}</div>
-                    </button>
-                  ))}
-                </div>
+                      <DialogClose render={<Button variant="default" />}>
+                        Select Doctor
+                      </DialogClose>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Add Lab Tests Tile */}
+                <Dialog>
+                  <DialogTrigger className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
+                    <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <FlaskConical className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-foreground">Add Lab Tests</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {selectedTestIds.size > 0 
+                          ? `${selectedTestIds.size} test(s) selected` 
+                          : "Select tests"}
+                      </div>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="w-[95vw] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl h-[85vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">Add Lab Tests</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto p-2 flex-1 min-h-0 content-start">
+                      {labCatalog.map((test) => {
+                        const isSelected = selectedTestIds.has(test.id);
+                        return (
+                          <div
+                            key={test.id}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).tagName === 'INPUT') return;
+                              const newSet = new Set(selectedTestIds);
+                              if (newSet.has(test.id)) newSet.delete(test.id);
+                              else {
+                                newSet.add(test.id);
+                                if (customLabPrices[test.id] === undefined) {
+                                  setCustomLabPrices(prev => ({...prev, [test.id]: test.price}));
+                                }
+                              }
+                              setSelectedTestIds(newSet);
+                            }}
+                            className={`flex justify-between items-center p-4 rounded-lg border text-left transition-colors cursor-pointer outline-none ${
+                              isSelected
+                                ? "bg-primary/10 border-primary ring-1 ring-primary text-primary"
+                                : "bg-card border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0 pr-4">
+                              <div className="font-semibold text-sm truncate" title={test.name}>{test.name}</div>
+                              <div className="text-xs opacity-70 mt-0.5">{test.code}</div>
+                            </div>
+                            <div className="font-bold text-sm shrink-0 flex items-center gap-2">
+                              {isSelected ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-normal">Rs.</span>
+                                  <Input 
+                                    type="number" 
+                                    className="w-20 h-7 text-sm px-2 text-right bg-background text-foreground"
+                                    value={customLabPrices[test.id] !== undefined ? customLabPrices[test.id] : test.price}
+                                    onChange={(e) => setCustomLabPrices(prev => ({...prev, [test.id]: Number(e.target.value)}))}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              ) : (
+                                <span>Rs. {test.price}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
+                      <div className="text-sm text-muted-foreground font-medium">
+                        {selectedTestIds.size} test(s) selected
+                      </div>
+                      <DialogClose render={<Button variant="default" />}>
+                        Select Tests
+                      </DialogClose>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Extra Services Tile */}
+                <Dialog>
+                  <DialogTrigger className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
+                    <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <FilePlus2 className="w-6 h-6 text-purple-500" />
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-foreground">Extra Services</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Addons & extras
+                      </div>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Extra Services</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
+                      <FilePlus2 className="w-12 h-12 mb-4 opacity-20" />
+                      <p>Extra services module is not yet implemented.</p>
+                      <p className="text-xs mt-2">Check back in a future update.</p>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
-            </div>
+
+              {/* Selected Items Summary */}
+              {(selectedDocId || selectedTestIds.size > 0) && (
+                <div className="mt-4 flex flex-col gap-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Selected Items</h4>
+                  
+                  {selectedDocId && (
+                    <div className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Stethoscope className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">{doctors.find(d => d.id === selectedDocId)?.fullName}</span>
+                          <span className="text-xs text-muted-foreground">Doctor Consultation</span>
+                        </div>
+                      </div>
+                      <button onClick={() => setSelectedDocId(null)} className="text-xs text-destructive hover:underline p-1 outline-none">Remove</button>
+                    </div>
+                  )}
+
+                  {Array.from(selectedTestIds).map(testId => {
+                    const test = labCatalog.find(t => t.id === testId);
+                    if (!test) return null;
+                    const finalPrice = customLabPrices[test.id] !== undefined ? customLabPrices[test.id] : test.price;
+                    return (
+                      <div key={test.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                        <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                            <FlaskConical className="w-4 h-4 text-blue-500" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-sm truncate" title={test.name}>{test.name}</span>
+                            <span className="text-xs text-muted-foreground">Lab Test</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0">
+                          <span className="font-semibold text-sm">Rs. {finalPrice}</span>
+                          <button 
+                            onClick={() => {
+                              const newSet = new Set(selectedTestIds);
+                              newSet.delete(test.id);
+                              setSelectedTestIds(newSet);
+                            }} 
+                            className="text-xs text-destructive hover:underline p-1 outline-none"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="p-4 border-t border-border bg-background mt-auto">
