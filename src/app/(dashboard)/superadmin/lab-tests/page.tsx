@@ -19,6 +19,7 @@ interface LabTest {
   price: number;
   category: string;
   sampleType: string;
+  roomNumber?: string;
   isActive: boolean;
 }
 
@@ -31,7 +32,7 @@ export default function LabTestTemplatesPage() {
   
   // New test state
   const [isNewOpen, setIsNewOpen] = useState(false);
-  const [newTest, setNewTest] = useState({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood" });
+  const [newTest, setNewTest] = useState({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomNumber: "" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function LabTestTemplatesPage() {
       
       toast.success("Lab test template created successfully!");
       setIsNewOpen(false);
-      setNewTest({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood" });
+      setNewTest({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomNumber: "" });
       fetchTests();
     } catch (error: any) {
       toast.error(error.message);
@@ -136,6 +137,10 @@ export default function LabTestTemplatesPage() {
                   <Input value={newTest.sampleType} onChange={e => setNewTest({...newTest, sampleType: e.target.value})} placeholder="e.g. EDTA Blood, Serum" />
                 </div>
               </div>
+              <div className="grid gap-2">
+                <Label>Room Number</Label>
+                <Input value={newTest.roomNumber} onChange={e => setNewTest({...newTest, roomNumber: e.target.value})} placeholder="e.g. LAB-01" />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsNewOpen(false)}>Cancel</Button>
@@ -158,6 +163,7 @@ export default function LabTestTemplatesPage() {
                 <TableHead>Test Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Sample Type</TableHead>
+                <TableHead>Room</TableHead>
                 <TableHead className="text-right">Price</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
@@ -172,6 +178,7 @@ export default function LabTestTemplatesPage() {
                   </TableCell>
                   <TableCell>{test.category}</TableCell>
                   <TableCell>{test.sampleType}</TableCell>
+                  <TableCell>{test.roomNumber || "-"}</TableCell>
                   <TableCell className="text-right font-medium">Rs. {test.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <Link href={`${pathname}/${test.id}`}>
@@ -184,7 +191,7 @@ export default function LabTestTemplatesPage() {
               ))}
               {tests.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No lab tests found. Create one to get started.
                   </TableCell>
                 </TableRow>

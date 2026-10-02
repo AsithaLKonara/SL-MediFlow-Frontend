@@ -36,7 +36,11 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                 <p className="text-xs mt-1">Dr. {tokenData.doctorName}</p>
               )}
               {tokenData.roomNumber && (
-                <p className="text-sm font-bold mt-2 border border-black inline-block px-3 py-1">Room: {tokenData.roomNumber}</p>
+                <div className="mt-3">
+                  <p className="text-xl font-black border-2 border-black inline-block px-4 py-1 uppercase tracking-widest bg-black text-white">
+                    ROOM {tokenData.roomNumber}
+                  </p>
+                </div>
               )}
             </div>
           ))}

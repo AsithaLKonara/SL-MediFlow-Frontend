@@ -18,6 +18,7 @@ interface ExtraService {
   description: string | null;
   price: number;
   barcode: string;
+  roomNumber?: string;
   isActive: boolean;
 }
 
@@ -27,7 +28,7 @@ export default function ExtraServicesPage() {
   
   // New service state
   const [isNewOpen, setIsNewOpen] = useState(false);
-  const [newService, setNewService] = useState({ title: "", description: "", price: 0, barcode: "" });
+  const [newService, setNewService] = useState({ title: "", description: "", price: 0, barcode: "", roomNumber: "" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function ExtraServicesPage() {
   const openNewServiceModal = () => {
     // Generate 10-digit barcode
     const barcode = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-    setNewService({ title: "", description: "", price: 0, barcode });
+    setNewService({ title: "", description: "", price: 0, barcode, roomNumber: "" });
     setIsNewOpen(true);
   };
 
@@ -137,6 +138,10 @@ export default function ExtraServicesPage() {
                   <Input value={newService.barcode} onChange={e => setNewService({...newService, barcode: e.target.value})} />
                 </div>
               </div>
+              <div className="grid gap-2">
+                <Label>Room Number</Label>
+                <Input value={newService.roomNumber} onChange={e => setNewService({...newService, roomNumber: e.target.value})} placeholder="e.g. Room 12" />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsNewOpen(false)}>Cancel</Button>
@@ -158,6 +163,7 @@ export default function ExtraServicesPage() {
                 <TableRow>
                   <TableHead className="font-semibold">Service</TableHead>
                   <TableHead className="font-semibold">Barcode</TableHead>
+                  <TableHead className="font-semibold">Room</TableHead>
                   <TableHead className="font-semibold text-right">Price</TableHead>
                   <TableHead className="w-[100px]"></TableHead>
                 </TableRow>
@@ -170,6 +176,7 @@ export default function ExtraServicesPage() {
                       {svc.description && <div className="text-xs text-muted-foreground mt-0.5">{svc.description}</div>}
                     </TableCell>
                     <TableCell className="text-muted-foreground font-mono text-sm">{svc.barcode}</TableCell>
+                    <TableCell>{svc.roomNumber || "-"}</TableCell>
                     <TableCell className="text-right font-medium">Rs. {svc.price.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2 justify-end">
@@ -182,7 +189,7 @@ export default function ExtraServicesPage() {
                 ))}
                 {services.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                       No extra services found.
                     </TableCell>
                   </TableRow>
