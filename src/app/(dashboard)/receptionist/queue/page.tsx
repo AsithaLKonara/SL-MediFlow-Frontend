@@ -9,13 +9,17 @@ import { Printer, CheckCircle2, User, Stethoscope } from "lucide-react";
 
 interface Doctor {
   id: string;
-  name: string;
+  fullName: string;
   specialty: string;
-  fee: number;
+  consultationFee: number;
+  feeType: string;
 }
 
-let nextTokenNum = 21;
-let nextVisitNum = 500;
+interface Patient {
+  id: string;
+  fullName: string;
+  phone: string;
+}
 
 function CreateVisitFlow() {
   const searchParams = useSearchParams();
@@ -23,21 +27,43 @@ function CreateVisitFlow() {
   const patientId = searchParams.get("patientId");
 
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [step, setStep] = useState<1 | 2>(1); // 1: Select Doc, 2: Token Created
   const [token, setToken] = useState("");
   const [visitId, setVisitId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
-    // Mock Doctors
-    setDoctors([
-      { id: "DOC-001", name: "Dr. Silva", specialty: "General Physician", fee: 2000 },
-      { id: "DOC-002", name: "Dr. Perera", specialty: "Cardiologist", fee: 2500 },
-      { id: "DOC-003", name: "Dr. Fernando", specialty: "Pediatrician", fee: 2000 },
-      { id: "DOC-004", name: "Dr. Kumar", specialty: "Neurologist", fee: 3000 },
-    ]);
-  }, []);
+    async function loadData() {
+      try {
+        const [docsRes, patRes] = await Promise.all([
+          fetch("/api/receptionist/doctors"),
+          patientId ? fetch(`/api/receptionist/patients/${patientId}`) : Promise.resolve(null)
+        ]);
+
+        if (docsRes.ok) {
+          const json = await docsRes.json();
+          if (json.success && json.data) {
+            setDoctors(json.data);
+          }
+        }
+
+        if (patRes && patRes.ok) {
+          const json = await patRes.json();
+          if (json.success && json.data) {
+            setPatient(json.data);
+          }
+        }
+      } catch (error) {
+        toast.error("Failed to load data.");
+      } finally {
+        setPageLoading(false);
+      }
+    }
+    loadData();
+  }, [patientId]);
 
   if (!patientId) {
     return (
@@ -48,18 +74,35 @@ function CreateVisitFlow() {
     );
   }
 
-  const handleCreateVisit = () => {
-    if (!selectedDoctor) return;
+  if (pageLoading) {
+    return <div className="p-8 text-center animate-pulse">Loading...</div>;
+  }
+
+  const handleCreateVisit = async () => {
+    if (!selectedDoctor || !patient) return;
     setLoading(true);
-    setTimeout(() => {
-      setToken(`D0${nextTokenNum++}`);
-      setVisitId(`V-2026-000${nextVisitNum++}`);
+    try {
+      const res = await fetch("/api/receptionist/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: patient.id,
+          doctorId: selectedDoctor.id,
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to create visit");
+
+      setToken(json.data.tokenNumber);
+      setVisitId(json.data.id);
       setStep(2);
-      setLoading(false);
       toast.success("Visit created successfully.");
-      
-      // In a real app, this would POST to create a Visit, Queue Entry, and Initial Invoice.
-    }, 600);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,8 +123,8 @@ function CreateVisitFlow() {
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">Kamal Perera</CardTitle>
-                  <p className="text-sm text-muted-foreground">45 years • 0771234567 • <span className="font-mono">{patientId}</span></p>
+                  <CardTitle className="text-lg">{patient?.fullName}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{patient?.phone} • <span className="font-mono">{patient?.id.slice(-8)}</span></p>
                 </div>
               </div>
             </CardHeader>
@@ -95,19 +138,20 @@ function CreateVisitFlow() {
                   <div 
                     key={doc.id}
                     onClick={() => setSelectedDoctor(doc)}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                    className={`p-4 border dark:border-white/10 rounded-lg cursor-pointer transition-all ${
                       selectedDoctor?.id === doc.id 
-                        ? "border-primary bg-primary/5 ring-1 ring-primary" 
-                        : "hover:border-primary/50 bg-card text-card-foreground"
+                        ? "border-primary dark:border-primary bg-primary/5 ring-1 ring-primary" 
+                        : "hover:border-primary/50 dark:hover:border-primary/50 bg-card text-card-foreground"
                     }`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-bold text-[#3A3435]">{doc.name}</h4>
-                        <p className="text-xs text-muted-foreground">{doc.specialty}</p>
+                        <h4 className="font-bold text-slate-900 dark:text-white">{doc.fullName}</h4>
+                        <p className="text-xs text-muted-foreground">{doc.specialty || "General"}</p>
                       </div>
                       <div className="text-right">
-                        <span className="font-semibold text-primary">Rs. {doc.fee.toLocaleString()}</span>
+                        <span className="font-semibold text-primary block">Rs. {doc.consultationFee?.toLocaleString() ?? "N/A"}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{doc.feeType}</span>
                       </div>
                     </div>
                   </div>
@@ -141,21 +185,21 @@ function CreateVisitFlow() {
             <CardContent className="pt-8 pb-8 text-center px-8">
               <div className="mb-6">
                 <p className="text-sm text-muted-foreground mb-1">Patient</p>
-                <p className="font-semibold text-lg">Kamal Perera</p>
+                <p className="font-semibold text-lg">{patient?.fullName}</p>
               </div>
               <div className="mb-8">
                 <p className="text-sm text-muted-foreground mb-1">Assigned Doctor</p>
-                <p className="font-semibold text-lg">{selectedDoctor?.name}</p>
+                <p className="font-semibold text-lg">{selectedDoctor?.fullName}</p>
               </div>
 
-              <div className="border-t border-b py-6 mb-8 bg-muted/30 rounded-lg">
+              <div className="border-t border-b dark:border-white/10 py-6 mb-8 bg-muted/30 dark:bg-slate-900/50 rounded-lg">
                 <p className="text-sm font-semibold tracking-widest text-muted-foreground uppercase mb-2">Queue Token</p>
                 <p className="text-6xl font-black text-primary tracking-tight">{token}</p>
               </div>
 
-              <div className="flex justify-between items-center text-sm border-t pt-4 text-muted-foreground mb-8">
-                <span>Doctor Fee</span>
-                <span className="font-bold text-foreground">Rs. {selectedDoctor?.fee.toLocaleString()}</span>
+              <div className="flex justify-between items-center text-sm border-t dark:border-white/10 pt-4 text-muted-foreground mb-8">
+                <span>Doctor Fee ({selectedDoctor?.feeType})</span>
+                <span className="font-bold text-foreground">Rs. {selectedDoctor?.consultationFee?.toLocaleString()}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

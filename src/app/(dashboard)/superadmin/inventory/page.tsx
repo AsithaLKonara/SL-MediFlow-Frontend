@@ -18,6 +18,7 @@ interface InventoryItem {
   name: string;
   barcode: string;
   category: string;
+  itemType: string;
   stock: number;
   reorderLevel: number;
   unit: string;
@@ -40,13 +41,14 @@ export default function SuperAdminInventoryPage() {
   const [expiry, setExpiry] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // New drug form state
+  // New item form state
   const [isAddDrugOpen, setIsAddDrugOpen] = useState(false);
   const [newDrug, setNewDrug] = useState({
     name: "",
     barcode: "",
     genericName: "",
     category: "",
+    itemType: "MEDICINE",
     form: "",
     unit: "",
     reorderLevel: "100",
@@ -55,11 +57,32 @@ export default function SuperAdminInventoryPage() {
   });
   const [addingDrug, setAddingDrug] = useState(false);
 
+  // New non-medical item form state
+  const [isAddNonMedOpen, setIsAddNonMedOpen] = useState(false);
+  const [newNonMedItem, setNewNonMedItem] = useState({
+    name: "",
+    barcode: "",
+    category: "",
+    itemType: "CONSUMABLE",
+    unit: "pcs",
+    reorderLevel: "50",
+    baseStock: "",
+    basePrice: ""
+  });
+  const [addingNonMed, setAddingNonMed] = useState(false);
+
   // Generate a random EAN-like barcode automatically when opening the modal
   const openAddDrugModal = () => {
     const randomBarcode = "AMZ-" + Math.floor(10000000 + Math.random() * 90000000).toString();
-    setNewDrug(prev => ({ ...prev, barcode: randomBarcode }));
+    setNewDrug(prev => ({ ...prev, barcode: randomBarcode, itemType: "MEDICINE" }));
     setIsAddDrugOpen(true);
+  };
+
+  const openAddNonMedModal = () => {
+    // Exactly 10-digit numeric barcode
+    const randomBarcode = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    setNewNonMedItem(prev => ({ ...prev, barcode: randomBarcode }));
+    setIsAddNonMedOpen(true);
   };
 
   const fetchMedicines = () => {
@@ -78,6 +101,7 @@ export default function SuperAdminInventoryPage() {
             name: med.name,
             barcode: med.barcode || 'N/A',
             category: med.category,
+            itemType: med.itemType || 'MEDICINE',
             stock,
             reorderLevel: med.reorderLevel,
             unit: med.unit,
@@ -165,7 +189,8 @@ export default function SuperAdminInventoryPage() {
   };
 
   const handleAddDrug = async () => {
-    if (!newDrug.name || !newDrug.category || !newDrug.form || !newDrug.unit) {
+    const isMedical = newDrug.itemType === "MEDICINE";
+    if (!newDrug.name || !newDrug.category || !newDrug.unit || (isMedical && !newDrug.form)) {
       toast.error("Please fill all required fields.");
       return;
     }
@@ -185,9 +210,10 @@ export default function SuperAdminInventoryPage() {
         body: JSON.stringify({
           name: newDrug.name,
           barcode: newDrug.barcode || undefined,
-          genericName: newDrug.genericName,
+          genericName: isMedical ? newDrug.genericName : undefined,
           category: newDrug.category,
-          form: newDrug.form,
+          itemType: newDrug.itemType,
+          form: isMedical ? newDrug.form : undefined,
           unit: newDrug.unit,
           reorderLevel: parsedReorder,
           baseStock: newDrug.baseStock ? parseInt(newDrug.baseStock) : undefined,
@@ -197,19 +223,67 @@ export default function SuperAdminInventoryPage() {
       
       const data = await res.json();
       if (res.ok) {
-        toast.success(`Successfully added drug master: ${newDrug.name}`);
+        toast.success(`Successfully added item master: ${newDrug.name}`);
         fetchMedicines();
         setIsAddDrugOpen(false);
-        setNewDrug({ name: "", barcode: "", genericName: "", category: "", form: "", unit: "", reorderLevel: "100", baseStock: "", basePrice: "" });
+        setNewDrug({ name: "", barcode: "", genericName: "", category: "", itemType: "MEDICINE", form: "", unit: "", reorderLevel: "100", baseStock: "", basePrice: "" });
       } else {
-        console.error("Add drug failed:", data);
-        toast.error(data.error || "Failed to add new drug master");
+        console.error("Add item failed:", data);
+        toast.error(data.error || "Failed to add new item master");
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || "Network error during add drug");
+      toast.error(e.message || "Network error during add item");
     } finally {
       setAddingDrug(false);
+    }
+  };
+
+  const handleAddNonMed = async () => {
+    if (!newNonMedItem.name || !newNonMedItem.category || !newNonMedItem.unit) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
+    
+    const parsedReorder = parseInt(newNonMedItem.reorderLevel);
+    if (isNaN(parsedReorder) || parsedReorder < 0) {
+      toast.error("Please enter a valid reorder level.");
+      return;
+    }
+
+    setAddingNonMed(true);
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newNonMedItem.name,
+          barcode: newNonMedItem.barcode || undefined,
+          category: newNonMedItem.category,
+          itemType: newNonMedItem.itemType,
+          unit: newNonMedItem.unit,
+          reorderLevel: parsedReorder,
+          baseStock: newNonMedItem.baseStock ? parseInt(newNonMedItem.baseStock) : undefined,
+          basePrice: newNonMedItem.basePrice ? parseFloat(newNonMedItem.basePrice) : undefined
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Successfully added item: ${newNonMedItem.name}`);
+        fetchMedicines();
+        setIsAddNonMedOpen(false);
+        setNewNonMedItem({ name: "", barcode: "", category: "", itemType: "CONSUMABLE", unit: "pcs", reorderLevel: "50", baseStock: "", basePrice: "" });
+      } else {
+        console.error("Add item failed:", data);
+        toast.error(data.error || "Failed to add non-medical item");
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Network error during add item");
+    } finally {
+      setAddingNonMed(false);
     }
   };
 
@@ -231,9 +305,14 @@ export default function SuperAdminInventoryPage() {
           </h2>
           <p className="text-muted-foreground mt-1">Super Admin oversight for all hospital medical stock levels and analytics.</p>
         </div>
-        <Button onClick={openAddDrugModal} className="bg-primary hover:bg-primary/90 text-white shadow-md">
-          <PlusCircle className="w-4 h-4 mr-2" /> Add New Drug Master
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={openAddNonMedModal} variant="outline" className="shadow-sm">
+            <PlusCircle className="w-4 h-4 mr-2" /> Add Non-Medical Item
+          </Button>
+          <Button onClick={openAddDrugModal} className="bg-primary hover:bg-primary/90 text-white shadow-md">
+            <PlusCircle className="w-4 h-4 mr-2" /> Add Medical Drug
+          </Button>
+        </div>
       </div>
 
       {lowStockItems.length > 0 && (
@@ -284,7 +363,12 @@ export default function SuperAdminInventoryPage() {
                   {filtered.map((item) => (
                     <TableRow key={item.id} className={item.status !== "IN_STOCK" ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-muted/30"}>
                       <TableCell className="pl-6 font-mono text-xs text-muted-foreground">{item.barcode}</TableCell>
-                      <TableCell className="font-semibold text-[#3A3435]">{item.name}</TableCell>
+                      <TableCell>
+                        <p className="font-semibold text-[#3A3435]">{item.name}</p>
+                        <Badge variant="outline" className="mt-1 text-[10px] tracking-wide">
+                          {item.itemType === 'MEDICINE' ? '💊 Drug' : item.itemType === 'CONSUMABLE' ? '📦 Consumable' : '🔧 Equipment'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{item.category}</TableCell>
                       <TableCell className={`text-right font-bold ${item.status !== "IN_STOCK" ? "text-red-600" : "text-green-600"}`}>
                         {item.stock} {item.unit}s
@@ -365,10 +449,10 @@ export default function SuperAdminInventoryPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <PlusCircle className="w-5 h-5 text-primary" />
-              Add New Drug Master
+              Add Medical Drug
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Create a new drug master record. Once created, you can receive stock batches for it.
+              Create a new medical drug master record.
             </p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -423,7 +507,81 @@ export default function SuperAdminInventoryPage() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsAddDrugOpen(false)} disabled={addingDrug}>Cancel</Button>
             <Button onClick={handleAddDrug} disabled={addingDrug} className="bg-primary hover:bg-primary/90">
-              {addingDrug ? "Creating..." : "Create Drug Master"}
+              {addingDrug ? "Creating..." : "Create Medical Drug"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddNonMedOpen} onOpenChange={setIsAddNonMedOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PackagePlus className="w-5 h-5 text-primary" />
+              Add Non-Medical Item
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Create a new consumable or equipment record (10-digit barcode auto-generated).
+            </p>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Item Type</Label>
+              <div className="flex gap-2">
+                <Button 
+                  variant={newNonMedItem.itemType === "CONSUMABLE" ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => setNewNonMedItem({...newNonMedItem, itemType: "CONSUMABLE"})}
+                >📦 Consumable</Button>
+                <Button 
+                  variant={newNonMedItem.itemType === "EQUIPMENT" ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => setNewNonMedItem({...newNonMedItem, itemType: "EQUIPMENT"})}
+                >🔧 Equipment</Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedName">Item Name*</Label>
+                <Input id="nonMedName" placeholder="e.g. Surgical Gloves Box" value={newNonMedItem.name} onChange={e => setNewNonMedItem({...newNonMedItem, name: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedBarcode">Barcode (10-Digit)</Label>
+                <Input id="nonMedBarcode" value={newNonMedItem.barcode} onChange={e => setNewNonMedItem({...newNonMedItem, barcode: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedCategory">Category*</Label>
+                <Input id="nonMedCategory" placeholder="e.g. PPE" value={newNonMedItem.category} onChange={e => setNewNonMedItem({...newNonMedItem, category: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedUnit">Unit*</Label>
+                <Input id="nonMedUnit" placeholder="e.g. pcs, boxes" value={newNonMedItem.unit} onChange={e => setNewNonMedItem({...newNonMedItem, unit: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedReorder">Reorder Level*</Label>
+                <Input id="nonMedReorder" type="number" value={newNonMedItem.reorderLevel} onChange={e => setNewNonMedItem({...newNonMedItem, reorderLevel: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedBaseStock" className="text-muted-foreground">Opening Stock</Label>
+                <Input id="nonMedBaseStock" type="number" placeholder="Optional" value={newNonMedItem.baseStock} onChange={e => setNewNonMedItem({...newNonMedItem, baseStock: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedBasePrice" className="text-muted-foreground">Unit Price (Rs)</Label>
+                <Input id="nonMedBasePrice" type="number" placeholder="Optional" value={newNonMedItem.basePrice} onChange={e => setNewNonMedItem({...newNonMedItem, basePrice: e.target.value})} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsAddNonMedOpen(false)} disabled={addingNonMed}>Cancel</Button>
+            <Button onClick={handleAddNonMed} disabled={addingNonMed} className="bg-primary hover:bg-primary/90">
+              {addingNonMed ? "Creating..." : "Create Item"}
             </Button>
           </DialogFooter>
         </DialogContent>

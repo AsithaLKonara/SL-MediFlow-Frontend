@@ -14,25 +14,14 @@ interface InventoryItem {
   name: string;
   unitPrice: number;
   stock: number;
-  category: "OTC" | "Prescription";
+  category: string;
+  itemType: string;
+  barcode: string;
 }
 
 interface CartItem extends InventoryItem {
   qty: number;
 }
-
-const MOCK_INVENTORY: InventoryItem[] = [
-  { id: "MED-001", name: "Paracetamol 500mg", unitPrice: 2.50, stock: 450, category: "OTC" },
-  { id: "MED-002", name: "Cetirizine 10mg", unitPrice: 3.00, stock: 200, category: "OTC" },
-  { id: "MED-003", name: "Ibuprofen 400mg", unitPrice: 4.50, stock: 150, category: "OTC" },
-  { id: "MED-004", name: "Amoxicillin 500mg", unitPrice: 12.00, stock: 80, category: "Prescription" },
-  { id: "MED-005", name: "Omeprazole 20mg", unitPrice: 8.50, stock: 120, category: "OTC" },
-  { id: "MED-006", name: "Aspirin 75mg", unitPrice: 5.00, stock: 300, category: "OTC" },
-  { id: "MED-007", name: "Metformin 500mg", unitPrice: 15.00, stock: 90, category: "Prescription" },
-  { id: "MED-008", name: "Loratadine 10mg", unitPrice: 3.50, stock: 180, category: "OTC" },
-  { id: "MED-009", name: "Atorvastatin 20mg", unitPrice: 18.00, stock: 60, category: "Prescription" },
-  { id: "MED-010", name: "Vitamin C 1000mg", unitPrice: 6.00, stock: 500, category: "OTC" },
-];
 
 let billCounter = 1001;
 
@@ -42,6 +31,7 @@ export default function PharmacistPOSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [generatedBill, setGeneratedBill] = useState<{ id: string; items: CartItem[]; total: number; patientName: string; patientId: string; issuedAt: string, status: string } | null>(null);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +41,27 @@ export default function PharmacistPOSPage() {
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
+
+    // Fetch live inventory for POS
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
+      .then(res => res.json())
+      .then(data => {
+        const mapped = data.map((med: any) => {
+          const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0;
+          const unitPrice = med.stockBatches?.length > 0 ? med.stockBatches[med.stockBatches.length - 1].unitPrice : 0;
+          return {
+            id: med.id,
+            name: med.name,
+            barcode: med.barcode || "N/A",
+            unitPrice,
+            stock,
+            category: med.category,
+            itemType: med.itemType || "MEDICINE"
+          };
+        });
+        setInventory(mapped);
+      })
+      .catch(err => console.error("Failed to load inventory for POS", err));
   }, []);
 
   const addToCart = (item: InventoryItem) => {
@@ -70,9 +81,10 @@ export default function PharmacistPOSPage() {
     if (!searchQuery) return;
     
     // Exact match for barcode, or partial match for text
-    const match = MOCK_INVENTORY.find(i => 
-      i.id.toLowerCase() === searchQuery.toLowerCase() || 
-      i.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const match = inventory.find(i => 
+      i.barcode === searchQuery || 
+      i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      i.id === searchQuery
     );
 
     if (match) {
@@ -97,9 +109,9 @@ export default function PharmacistPOSPage() {
   };
 
   const total = cart.reduce((sum, i) => sum + (i.qty * i.unitPrice), 0);
-  const filteredCatalog = MOCK_INVENTORY.filter(i => 
+  const filteredCatalog = inventory.filter(i => 
     i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    i.id.toLowerCase().includes(searchQuery.toLowerCase())
+    i.barcode.includes(searchQuery)
   );
 
   const processBill = (action: "SETTLE" | "CASHIER") => {
@@ -240,7 +252,9 @@ export default function PharmacistPOSPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-sm">{item.name}</p>
-                          {item.category === "Prescription" && <Badge variant="outline" className="text-[10px] py-0 h-4 border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-500/10">Rx</Badge>}
+                          <Badge variant="outline" className="text-[10px] py-0 h-4">
+                            {item.itemType === 'MEDICINE' ? '💊' : item.itemType === 'CONSUMABLE' ? '📦' : '🔧'}
+                          </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">LKR {item.unitPrice.toFixed(2)}</p>
                       </div>
@@ -327,7 +341,9 @@ export default function PharmacistPOSPage() {
                   >
                     <div className="w-full flex justify-between items-start">
                       <span className="font-semibold text-sm line-clamp-1" title={item.name}>{item.name}</span>
-                      {item.category === "Prescription" && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">Rx</span>}
+                      <span className="text-[10px] font-bold">
+                        {item.itemType === 'MEDICINE' ? '💊' : item.itemType === 'CONSUMABLE' ? '📦' : '🔧'}
+                      </span>
                     </div>
                     <div className="w-full flex justify-between items-center text-xs text-muted-foreground mt-1">
                       <span>Stock: {item.stock}</span>

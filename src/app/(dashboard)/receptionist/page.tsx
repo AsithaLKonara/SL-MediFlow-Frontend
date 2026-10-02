@@ -12,6 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface QueueItem {
   queueNo: string;
@@ -36,16 +40,73 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 
 export default function ReceptionistOverview() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Arrival Modal State
+  const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [roomNumber, setRoomNumber] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [metricsRes, docsRes] = await Promise.all([
+        fetch("/api/receptionist/metrics"),
+        fetch("/api/receptionist/doctors/today")
+      ]);
+
+      if (metricsRes.ok) {
+        const data = await metricsRes.json();
+        setMetrics(data);
+      }
+      
+      if (docsRes.ok) {
+        const docData = await docsRes.json();
+        if (docData.success) {
+          setDoctors(docData.data);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/receptionist/metrics")
-      .then((r) => r.json())
-      .then((data) => {
-        setMetrics(data);
-        setLoading(false);
-      });
+    fetchDashboardData();
   }, []);
+
+  const handleMarkArrived = async () => {
+    if (!selectedDoctorId || !roomNumber) {
+      toast.error("Room number is required");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/receptionist/doctors/${selectedDoctorId}/arrive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomNumber })
+      });
+
+      if (res.ok) {
+        toast.success("Doctor marked as arrived");
+        setIsArrivalModalOpen(false);
+        setRoomNumber("");
+        fetchDashboardData();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to mark arrived");
+      }
+    } catch (e) {
+      toast.error("Network error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading || !metrics) {
     return (
@@ -155,6 +216,97 @@ export default function ReceptionistOverview() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Doctor Arrivals Card */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Doctor Arrivals (Today)</CardTitle>
+          <CardDescription>Mark doctors as arrived and assign rooms</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Doctor</TableHead>
+                  <TableHead>Specialty</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Room</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {doctors.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                      No doctors scheduled for today.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  doctors.map((doc: any) => (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium text-[#3A3435]">{doc.fullName}</TableCell>
+                      <TableCell className="text-muted-foreground">{doc.specialty || "General"}</TableCell>
+                      <TableCell>
+                        <Badge variant={doc.status === "ARRIVED" ? "default" : "secondary"}>
+                          {doc.status || "PENDING"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{doc.roomNumber || "-"}</TableCell>
+                      <TableCell className="text-right">
+                        {doc.status !== "ARRIVED" && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedDoctorId(doc.id);
+                              setRoomNumber(doc.roomNumber || "");
+                              setIsArrivalModalOpen(true);
+                            }}
+                          >
+                            Mark Arrived
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isArrivalModalOpen} onOpenChange={setIsArrivalModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Mark Doctor Arrived</DialogTitle>
+            <DialogDescription>
+              Assign a room number for the doctor's consultation session today.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="room" className="text-right text-sm font-medium">
+                Room No
+              </label>
+              <Input
+                id="room"
+                placeholder="e.g. 101 or Room A"
+                value={roomNumber}
+                onChange={(e) => setRoomNumber(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsArrivalModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleMarkArrived} disabled={submitting || !roomNumber}>
+              {submitting ? "Saving..." : "Confirm Arrival"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

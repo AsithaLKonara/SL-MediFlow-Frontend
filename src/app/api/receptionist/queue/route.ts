@@ -33,3 +33,18 @@ export async function GET() {
     return NextResponse.json({ success: false, data: [] }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const json = await res.json();
+    return NextResponse.json(json, { status: res.status });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to create token" }, { status: 500 });
+  }
+}
