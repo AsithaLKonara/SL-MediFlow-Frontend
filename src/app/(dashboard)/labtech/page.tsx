@@ -69,13 +69,13 @@ export default function LabTechOverview() {
           <p className="text-muted-foreground mt-2">Today's diagnostic workload and testing summary.</p>
         </div>
         
-        <form onSubmit={handleTokenSearch} className="flex items-center gap-2 max-w-sm w-full bg-white p-2 rounded-lg border shadow-sm">
+        <form onSubmit={handleTokenSearch} className="flex items-center gap-2 max-w-sm w-full bg-card p-2 rounded-lg border shadow-sm">
           <Search className="w-5 h-5 text-muted-foreground ml-2" />
           <Input 
             value={tokenSearch} 
             onChange={(e) => setTokenSearch(e.target.value)} 
             placeholder="Scan or Enter Token (e.g. A-12)" 
-            className="border-0 focus-visible:ring-0 shadow-none flex-1 text-lg"
+            className="border-0 bg-transparent focus-visible:ring-0 shadow-none flex-1 text-lg"
             autoFocus
           />
           <Button type="submit" disabled={searching || !tokenSearch.trim()}>
