@@ -46,6 +46,7 @@ interface Patient {
   chronicConditions: string[];
   medicalHistory: MedicalHistory[];
   labResults: LabResult[];
+  activeVisitId: string | null;
 }
 
 
@@ -245,61 +246,52 @@ export default function ConsultationPage({
   };
 
   const handleCompleteConsultation = async () => {
-    // 1. Add consultation fee to Centralized Billing Engine
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/charge`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          visitId: "V-2026-000521", // Mocking the Visit ID for now since Gihan handles visits
-          patientId: patient?.id,
-          department: "CONSULTATION",
-          description: "Doctor Consultation Fee",
-          quantity: 1,
-          unitPrice: 2500 // Flat fee example
-        })
-      });
-    } catch (e) {
-      console.error("Failed to log consultation fee", e);
+    if (!patient?.activeVisitId) {
+      toast.error("No active visit found for this patient.");
+      return;
+    }
+    if (!user?.id) {
+      toast.error("Doctor profile not found.");
+      return;
     }
 
-    setVisitCompleted(true);
-    toast.success("Consultation completed and securely saved.");
-    
-    if (addedDrugs.length > 0) {
-      try {
-        const payload = {
-          patientId: patient?.id,
-          patientName: patient?.name,
-          visitId: "V-2026-000521",
-          doctorId: user?.id || "DOC-123",
-          doctorName: user?.fullName || "Dr. Silva",
-          diagnosis,
-          clinicalNotes: notes,
-          items: addedDrugs.map(d => ({
-            medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id,
-            drugName: d.drug,
-            dosage: d.dosage,
-            frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,
-            duration: d.duration,
-            instructions: d.instructions
-          }))
-        };
+    try {
+      const payload = {
+        patientId: patient?.id,
+        patientName: patient?.name,
+        visitId: patient.activeVisitId,
+        doctorId: user.id,
+        doctorName: user.fullName || "Doctor",
+        diagnosis,
+        clinicalNotes: notes,
+        items: addedDrugs.map(d => ({
+          medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id,
+          drugName: d.drug,
+          dosage: d.dosage,
+          frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,
+          duration: d.duration,
+          instructions: d.instructions
+        }))
+      };
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-        if (res.ok) {
-          const rx = await res.json();
-          setCreatedPrescription(rx);
-          toast.success("Prescription forwarded to Pharmacy in realtime.");
-        }
-      } catch (e) {
-        console.error("Failed to send prescription", e);
+      if (res.ok) {
+        const rx = await res.json();
+        setCreatedPrescription(rx);
+        toast.success("Consultation completed and securely saved.");
+      } else {
+        toast.error("Failed to complete consultation.");
+        setVisitCompleted(false);
       }
+    } catch (e) {
+      console.error("Failed to complete consultation", e);
+      toast.error("Failed to complete consultation.");
+      setVisitCompleted(false);
     }
     
     if (selectedTests.length > 0) {
@@ -310,9 +302,9 @@ export default function ConsultationPage({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               patientId: patient?.id,
-              visitId: "V-2026-000521",
+              visitId: patient.activeVisitId,
               testId: test.id,
-              doctorId: user?.id || "DOC-123",
+              doctorId: user.id,
               priority: isUrgent ? "URGENT" : "ROUTINE"
             })
           })
@@ -338,7 +330,7 @@ export default function ConsultationPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           patientId: patient?.id,
-          doctorId: user?.id || "DOC-123", // Use real doctor ID
+          doctorId: user.id,
           status: finalStatus
         })
       });

@@ -128,22 +128,6 @@ export default function PharmacyDashboardPage() {
       });
 
       if (res.ok) {
-        // Also add pharmacy charge to centralized billing engine
-        const totalCost = activeRx.drugs.reduce((sum, d) => sum + (d.dispenseQty * d.unitPrice), 0);
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/charge`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            visitId: activeRx.visitId,
-            patientId: activeRx.patientId,
-            department: "PHARMACY",
-            referenceId: activeRx.id,
-            description: "Pharmacy Medication Charge",
-            quantity: 1,
-            unitPrice: totalCost
-          })
-        });
-
         toast.success("Prescription dispensed & bill updated!");
         setPrescriptions(prev => prev.filter(p => p.id !== activeRx.id));
         setActiveRx(null);
