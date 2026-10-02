@@ -79,6 +79,11 @@ export function TokenPane() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
   const [customLabPrices, setCustomLabPrices] = useState<Record<string, number>>({});
+  
+  const [extraServicesCatalog, setExtraServicesCatalog] = useState<any[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
+  const [customServicePrices, setCustomServicePrices] = useState<Record<string, number>>({});
+
   const [pendingPrescriptions, setPendingPrescriptions] = useState<Prescription[]>([]);
   const [rxLoading, setRxLoading] = useState(false);
   /** ID of the prescription currently locked in the POS */
@@ -105,6 +110,8 @@ export function TokenPane() {
       setSelectedDocId(null);
       setSelectedTestIds(new Set());
       setCustomLabPrices({});
+      setSelectedServiceIds(new Set());
+      setCustomServicePrices({});
       setGeneratedToken(null);
       setSearchQuery("");
       setPatientLookupResult(null);
@@ -147,10 +154,15 @@ export function TokenPane() {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`).then(r => {
         if (!r.ok) throw new Error("Failed to fetch lab catalog");
         return r.json();
+      }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`).then(r => {
+        if (!r.ok) throw new Error("Failed to fetch extra services");
+        return r.json();
       })
-    ]).then(([docRes, labRes]) => {
+    ]).then(([docRes, labRes, svcRes]) => {
       if (docRes.success) setDoctors(docRes.data);
       if (Array.isArray(labRes)) setLabCatalog(labRes);
+      if (Array.isArray(svcRes)) setExtraServicesCatalog(svcRes);
     }).catch((e) => {
       console.error(e);
       toast.error("Failed to load initial data. Server might be offline.");
@@ -197,8 +209,8 @@ export function TokenPane() {
   };
 
   const handleGenerateToken = async () => {
-    if (!selectedDocId && selectedTestIds.size === 0) {
-      toast.error("Please select a doctor or at least one lab test.");
+    if (!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0) {
+      toast.error("Please select a doctor, lab test, or extra service.");
       return;
     }
     
@@ -216,7 +228,9 @@ export function TokenPane() {
           doctorId: selectedDocId,
           doctorName: selectedDoc?.fullName,
           testIds: Array.from(selectedTestIds),
-          customLabPrices
+          customLabPrices,
+          serviceIds: Array.from(selectedServiceIds),
+          customServicePrices
         })
       });
       
@@ -534,25 +548,78 @@ export function TokenPane() {
                     <div className="text-center">
                       <div className="font-semibold text-foreground">Extra Services</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        Addons & extras
+                        {selectedServiceIds.size > 0 
+                          ? `${selectedServiceIds.size} service(s) selected` 
+                          : "Addons & extras"}
                       </div>
                     </div>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent className="w-[95vw] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl h-[85vh] flex flex-col">
                     <DialogHeader>
-                      <DialogTitle>Extra Services</DialogTitle>
+                      <DialogTitle className="text-xl">Extra Services</DialogTitle>
                     </DialogHeader>
-                    <div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
-                      <FilePlus2 className="w-12 h-12 mb-4 opacity-20" />
-                      <p>Extra services module is not yet implemented.</p>
-                      <p className="text-xs mt-2">Check back in a future update.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto p-2 flex-1 min-h-0 content-start">
+                      {extraServicesCatalog.map((svc) => {
+                        const isSelected = selectedServiceIds.has(svc.id);
+                        return (
+                          <div
+                            key={svc.id}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).tagName === 'INPUT') return;
+                              const newSet = new Set(selectedServiceIds);
+                              if (newSet.has(svc.id)) newSet.delete(svc.id);
+                              else {
+                                newSet.add(svc.id);
+                                if (customServicePrices[svc.id] === undefined) {
+                                  setCustomServicePrices(prev => ({...prev, [svc.id]: svc.price}));
+                                }
+                              }
+                              setSelectedServiceIds(newSet);
+                            }}
+                            className={`flex justify-between items-center p-4 rounded-lg border text-left transition-colors cursor-pointer outline-none ${
+                              isSelected
+                                ? "bg-primary/10 border-primary ring-1 ring-primary text-primary"
+                                : "bg-card border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0 pr-4">
+                              <div className="font-semibold text-sm truncate" title={svc.title}>{svc.title}</div>
+                              <div className="text-xs opacity-70 mt-0.5">{svc.barcode}</div>
+                            </div>
+                            <div className="font-bold text-sm shrink-0 flex items-center gap-2">
+                              {isSelected ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-normal">Rs.</span>
+                                  <Input 
+                                    type="number" 
+                                    className="w-20 h-7 text-sm px-2 text-right bg-background text-foreground"
+                                    value={customServicePrices[svc.id] !== undefined ? customServicePrices[svc.id] : svc.price}
+                                    onChange={(e) => setCustomServicePrices(prev => ({...prev, [svc.id]: Number(e.target.value)}))}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              ) : (
+                                <span>Rs. {svc.price}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
+                      <div className="text-sm text-muted-foreground font-medium">
+                        {selectedServiceIds.size} service(s) selected
+                      </div>
+                      <DialogClose render={<Button variant="default" />}>
+                        Select Services
+                      </DialogClose>
                     </div>
                   </DialogContent>
                 </Dialog>
               </div>
 
               {/* Selected Items Summary */}
-              {(selectedDocId || selectedTestIds.size > 0) && (
+              {(selectedDocId || selectedTestIds.size > 0 || selectedServiceIds.size > 0) && (
                 <div className="mt-4 flex flex-col gap-2">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Selected Items</h4>
                   
@@ -593,6 +660,38 @@ export function TokenPane() {
                               const newSet = new Set(selectedTestIds);
                               newSet.delete(test.id);
                               setSelectedTestIds(newSet);
+                            }} 
+                            className="text-xs text-destructive hover:underline p-1 outline-none"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {Array.from(selectedServiceIds).map(svcId => {
+                    const svc = extraServicesCatalog.find(s => s.id === svcId);
+                    if (!svc) return null;
+                    const finalPrice = customServicePrices[svc.id] !== undefined ? customServicePrices[svc.id] : svc.price;
+                    return (
+                      <div key={svc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                        <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                          <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                            <FilePlus2 className="w-4 h-4 text-purple-500" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-sm truncate" title={svc.title}>{svc.title}</span>
+                            <span className="text-xs text-muted-foreground">Extra Service</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0">
+                          <span className="font-semibold text-sm">Rs. {finalPrice}</span>
+                          <button 
+                            onClick={() => {
+                              const newSet = new Set(selectedServiceIds);
+                              newSet.delete(svc.id);
+                              setSelectedServiceIds(newSet);
                             }} 
                             className="text-xs text-destructive hover:underline p-1 outline-none"
                           >
