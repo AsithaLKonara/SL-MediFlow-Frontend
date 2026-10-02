@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { io } from "socket.io-client";
 import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { BillPrintTemplate } from "../../../components/printing/BillPrintTemplate";
+import { MergedReceiptTemplate } from "../../../components/printing/MergedReceiptTemplate";
 import { CheckCircle2, Printer } from "lucide-react";
 
 interface Medicine {
@@ -32,8 +32,10 @@ export function POSPane() {
   const [searchInput, setSearchInput] = useState("");
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
+  const [pendingTokenPayload, setPendingTokenPayload] = useState<any | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [tokenReceiptData, setTokenReceiptData] = useState<any>(null);
   const [receivedAmountInput, setReceivedAmountInput] = useState<string>("");
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -73,32 +75,38 @@ export function POSPane() {
     };
   }, []);
 
-  // Listen for prescription items pushed from the Rx tab
+  // Listen for prescription items or tokens pushed from the Rx/Token tab
   useEffect(() => {
-    onPrescriptionReceived((rxItems, rxId) => {
-      setCart((prev) => {
-        const updated = [...prev];
-        for (const rxItem of rxItems) {
-          const idx = updated.findIndex((i) => i.id === rxItem.id);
-          if (idx >= 0) {
-            updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
-          } else {
-            updated.push(rxItem);
+    onPrescriptionReceived(
+      (rxItems, rxId) => {
+        setCart((prev) => {
+          const updated = [...prev];
+          for (const rxItem of rxItems) {
+            const idx = updated.findIndex((i) => i.id === rxItem.id);
+            if (idx >= 0) {
+              updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+            } else {
+              updated.push(rxItem);
+            }
           }
-        }
-        return updated;
-      });
-      setActivePrescriptionId(rxId);
-      // Mark prescription as IN_PROGRESS on backend
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "IN_PROGRESS" }),
-      }).catch((e) => console.error("Failed to update Rx status:", e));
-      // Broadcast status to TokenPane so it can lock the UI
-      notifyRxStatus(rxId, "IN_PROGRESS");
-      toast.success(`${rxItems.length} medicine(s) loaded into POS from prescription.`);
-    });
+          return updated;
+        });
+        setActivePrescriptionId(rxId);
+        // Mark prescription as IN_PROGRESS on backend
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxId}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "IN_PROGRESS" }),
+        }).catch((e) => console.error("Failed to update Rx status:", e));
+        // Broadcast status to TokenPane so it can lock the UI
+        notifyRxStatus(rxId, "IN_PROGRESS");
+        toast.success(`${rxItems.length} medicine(s) loaded into POS from prescription.`);
+      },
+      (tokenPayload) => {
+        setPendingTokenPayload(tokenPayload);
+        toast.success("Token details loaded into POS checkout.");
+      }
+    );
   }, [onPrescriptionReceived, notifyRxStatus]);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -107,7 +115,9 @@ export function POSPane() {
   const { showAmount, clearDisplay } = usePoleDisplay(true);
   const { initiateCardPayment, isProcessing: isCardProcessing } = usePaymentTerminal();
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const tokenTotal = pendingTokenPayload ? pendingTokenPayload.expectedTotal : 0;
+  const subtotal = cartSubtotal + tokenTotal;
   const total = subtotal;
 
   // Sync to display whenever cart changes, but preserve checkout state
@@ -260,6 +270,7 @@ export function POSPane() {
     setIsCheckoutOpen(false);
     setPaymentMethod(null);
     setReceiptData(null);
+    setTokenReceiptData(null);
     setReceivedAmountInput("");
     clearDisplay();
     updateState({
@@ -283,7 +294,7 @@ export function POSPane() {
   };
 
   const handleOpenCheckout = () => {
-    if (cart.length === 0) {
+    if (cart.length === 0 && !pendingTokenPayload) {
       toast.error("Cart is empty.");
       return;
     }
@@ -404,7 +415,34 @@ export function POSPane() {
                 </TableCell>
               </TableRow>
             ))}
-            {cart.length === 0 && (
+            
+            {/* Render Token Payload as a combined row */}
+            {pendingTokenPayload && (
+              <TableRow className="border-border bg-primary/5">
+                <TableCell className="font-medium text-primary">
+                  Reception Token & Services
+                  <div className="text-xs text-muted-foreground font-normal">
+                    Patient: {pendingTokenPayload.patientName || "Walk-in"} 
+                    {pendingTokenPayload.doctorName ? ` | Dr. ${pendingTokenPayload.doctorName}` : ""}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">1</TableCell>
+                <TableCell className="text-right">LKR {pendingTokenPayload.expectedTotal.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-medium">LKR {pendingTokenPayload.expectedTotal.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                    onClick={() => setPendingTokenPayload(null)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )}
+
+            {cart.length === 0 && !pendingTokenPayload && (
               <TableRow>
                 <TableCell colSpan={5} className="h-48 text-center text-muted-foreground">
                   Cart is empty. Scan an item to begin.
@@ -425,7 +463,7 @@ export function POSPane() {
           <span>Total</span>
           <span>LKR {total.toFixed(2)}</span>
         </div>
-        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0}>
+        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0 && !pendingTokenPayload}>
           <CreditCard className="w-5 h-5 mr-2" />
           Checkout
         </Button>
@@ -539,49 +577,92 @@ export function POSPane() {
                   }
 
                   try {
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ items: cart, paymentMethod })
-                    });
+                    let combinedItems = cart.map(item => ({
+                      name: item.name,
+                      qty: item.qty,
+                      price: item.price,
+                      total: item.qty * item.price
+                    }));
                     
-                    if (res.ok) {
-                      const responseData = await res.json();
-                      
-                      const parsedReceived = parseFloat(receivedAmountInput) || total;
-                      setReceiptData({
-                        receiptId: responseData.invoiceId || responseData.id || `TXN-${Date.now()}`,
-                        date: new Date(),
-                        items: cart.map(item => ({
-                          name: item.name,
-                          qty: item.qty,
-                          price: item.price,
-                          total: item.qty * item.price
-                        })),
-                        subtotal: total,
-                        total: total,
-                        paymentMethod: paymentMethod,
-                        receivedAmount: (paymentMethod === "CASH" || paymentMethod === "BANK") ? parsedReceived : total,
-                        change: (paymentMethod === "CASH" || paymentMethod === "BANK") ? Math.max(0, parsedReceived - total) : 0
-                      });
+                    let tokenResultTokens: any[] = [];
 
-                      // Mark prescription DISPENSED if one was active
-                      if (activePrescriptionId) {
-                        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ status: "DISPENSED" }),
-                        }).catch((e) => console.error("Failed to dispense Rx:", e));
-                        notifyRxStatus(activePrescriptionId, "DISPENSED");
-                        setActivePrescriptionId(null);
+                    // 1. Generate Token if payload exists
+                    if (pendingTokenPayload) {
+                      const resToken = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(pendingTokenPayload)
+                      });
+                      if (resToken.ok) {
+                        const tokenRes = await resToken.json();
+                        tokenResultTokens = tokenRes.data.tokens || [];
+                        if (tokenRes.data.invoice) {
+                           tokenRes.data.invoice.lineItems.forEach((li: any) => {
+                             combinedItems.push({
+                               name: li.description,
+                               qty: li.quantity,
+                               price: li.unitPrice,
+                               total: li.total
+                             });
+                           });
+                        }
+                      } else {
+                         const err = await resToken.json();
+                         toast.error(err.error || "Token generation failed");
+                         setIsProcessing(false);
+                         return;
                       }
-                      setCart([]);
-                      toast.success("Payment completed successfully!");
-                      // Notice we do NOT call handleCloseCheckout() here because we want to show the success screen
-                    } else {
-                      const err = await res.json();
-                      toast.error(err.error || "Payment failed");
                     }
+
+                    // 2. Process Pharmacy Cart if any
+                    let receiptId = `TXN-${Date.now()}`;
+                    if (cart.length > 0) {
+                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ items: cart, paymentMethod })
+                      });
+                      
+                      if (res.ok) {
+                        const responseData = await res.json();
+                        receiptId = responseData.invoiceId || responseData.id || receiptId;
+                      } else {
+                        const err = await res.json();
+                        toast.error(err.error || "Pharmacy payment failed");
+                        setIsProcessing(false);
+                        return;
+                      }
+                    }
+                    
+                    // 3. Finalize
+                    const parsedReceived = parseFloat(receivedAmountInput) || total;
+                    setReceiptData({
+                      receiptId,
+                      date: new Date(),
+                      items: combinedItems,
+                      subtotal: total,
+                      total: total,
+                      paymentMethod: paymentMethod,
+                      receivedAmount: (paymentMethod === "CASH" || paymentMethod === "BANK") ? parsedReceived : total,
+                      change: (paymentMethod === "CASH" || paymentMethod === "BANK") ? Math.max(0, parsedReceived - total) : 0
+                    });
+                    setTokenReceiptData(tokenResultTokens);
+
+                    // Mark prescription DISPENSED if one was active
+                    if (activePrescriptionId) {
+                      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ status: "DISPENSED" }),
+                      }).catch((e) => console.error("Failed to dispense Rx:", e));
+                      notifyRxStatus(activePrescriptionId, "DISPENSED");
+                      setActivePrescriptionId(null);
+                    }
+                    setCart([]);
+                    setPendingTokenPayload(null);
+                    toast.success("Payment completed successfully!");
+                    // Notice we do NOT call handleCloseCheckout() here because we want to show the success screen
+
                   } catch (e) {
                     console.error(e);
                     toast.error("Failed to connect to server");
@@ -604,7 +685,7 @@ export function POSPane() {
       )}
 
       {/* Hidden print template */}
-      <BillPrintTemplate ref={printRef} receiptData={receiptData} />
+      <MergedReceiptTemplate ref={printRef} receiptData={receiptData} tokens={tokenReceiptData} />
     </div>
   );
 }

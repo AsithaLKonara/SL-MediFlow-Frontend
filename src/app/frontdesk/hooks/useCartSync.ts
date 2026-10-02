@@ -64,6 +64,20 @@ export function useCartSync(isSender = false) {
  */
 export type RxStatusUpdate = { rxId: string; status: "IN_PROGRESS" | "DISPENSED" | "PENDING" };
 
+export type TokenPayload = {
+  patientName: string;
+  patientPhone: string;
+  ageFallback?: number;
+  doctorId: string | null;
+  doctorName?: string;
+  testIds: string[];
+  customLabPrices: Record<string, number>;
+  serviceIds: string[];
+  customServicePrices: Record<string, number>;
+  expectedTotal: number;
+  isUpfront?: boolean;
+};
+
 export function useRxToPOS() {
   const [channel, setChannel] = useState<BroadcastChannel | null>(null);
 
@@ -82,13 +96,26 @@ export function useRxToPOS() {
     [channel]
   );
 
-  /** POSPane listens for incoming prescription */
+  /** TokenPane → POSPane: send Token checkout data */
+  const sendTokenToPOS = useCallback(
+    (tokenData: TokenPayload) => {
+      channel?.postMessage({ type: "TOKEN_CHECKOUT", payload: tokenData });
+    },
+    [channel]
+  );
+
+  /** POSPane listens for incoming prescription or token */
   const onPrescriptionReceived = useCallback(
-    (handler: (items: CartItem[], rxId: string) => void) => {
+    (
+      rxHandler: (items: CartItem[], rxId: string) => void,
+      tokenHandler?: (payload: TokenPayload) => void
+    ) => {
       if (!channel) return;
       channel.onmessage = (e) => {
         if (e.data?.type === "RX_ITEMS") {
-          handler(e.data.items as CartItem[], e.data.rxId as string);
+          rxHandler(e.data.items as CartItem[], e.data.rxId as string);
+        } else if (e.data?.type === "TOKEN_CHECKOUT" && tokenHandler) {
+          tokenHandler(e.data.payload);
         } else if (e.data?.type === "RX_STATUS") {
           // Ignore status messages on the POSPane side
         }
@@ -118,7 +145,7 @@ export function useRxToPOS() {
     [channel]
   );
 
-  return { sendToPOS, onPrescriptionReceived, notifyRxStatus, onRxStatusUpdate };
+  return { sendToPOS, sendTokenToPOS, onPrescriptionReceived, notifyRxStatus, onRxStatusUpdate };
 }
 
 

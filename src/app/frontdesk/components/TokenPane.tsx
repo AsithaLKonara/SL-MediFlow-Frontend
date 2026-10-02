@@ -21,6 +21,8 @@ interface Doctor {
   fullName: string;
   specialty?: string;
   roomNumber?: string;
+  feeType?: string;
+  consultationFee?: number;
 }
 
 interface LabTest {
@@ -67,7 +69,7 @@ interface GeneratedToken {
 }
 
 export function TokenPane() {
-  const { sendToPOS, onRxStatusUpdate } = useRxToPOS();
+  const { sendToPOS, sendTokenToPOS, onRxStatusUpdate } = useRxToPOS();
   const [searchQuery, setSearchQuery] = useState("");
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
@@ -238,51 +240,48 @@ export function TokenPane() {
       return;
     }
     
-    setIsGenerating(true);
-    try {
-      const selectedDoc = doctors.find(d => d.id === selectedDocId);
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientName: patientName || "Walk-in Patient",
-          patientPhone,
-          ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
-          doctorId: selectedDocId,
-          doctorName: selectedDoc?.fullName,
-          testIds: Array.from(selectedTestIds),
-          customLabPrices,
-          serviceIds: Array.from(selectedServiceIds),
-          customServicePrices
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
-        toast.success("Token generated successfully! SMS sent if phone provided.");
-        setGeneratedToken({
-          ...result.data,
-          roomNumber: selectedDoc?.roomNumber || undefined
-        });
-        // Print receipt - form reset now happens in onAfterPrint callback
-        setTimeout(() => {
-          if (result.data.invoice) {
-            handlePrintBill();
-          } else {
-            handlePrintToken();
-          }
-        }, 300);
-      } else {
-        toast.error(result.error || "Failed to generate token.");
+    const selectedDoc = doctors.find(d => d.id === selectedDocId);
+    let expectedTotal = 0;
+    let isUpfront = false;
+
+    if (selectedDoc) {
+      const isNonOPD = selectedDoc.specialty && selectedDoc.specialty !== "General" && selectedDoc.specialty.toUpperCase() !== "OPD";
+      if (isNonOPD && selectedDoc.feeType === "UPFRONT") {
+        expectedTotal += (selectedDoc.consultationFee || 2500);
+        isUpfront = true;
       }
-    } catch (e) {
-      console.error(e);
-      toast.error("Error connecting to server.");
-    } finally {
-      setIsGenerating(false);
     }
+
+    Array.from(selectedTestIds).forEach(testId => {
+      const test = labCatalog.find(t => t.id === testId);
+      if (test) {
+        expectedTotal += customLabPrices[test.id] !== undefined ? customLabPrices[test.id] : test.price;
+      }
+    });
+
+    Array.from(selectedServiceIds).forEach(svcId => {
+      const svc = extraServicesCatalog.find(s => s.id === svcId);
+      if (svc) {
+        expectedTotal += customServicePrices[svc.id] !== undefined ? customServicePrices[svc.id] : svc.price;
+      }
+    });
+
+    sendTokenToPOS({
+      patientName: patientName || "Walk-in Patient",
+      patientPhone,
+      ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
+      doctorId: selectedDocId,
+      doctorName: selectedDoc?.fullName,
+      testIds: Array.from(selectedTestIds),
+      customLabPrices,
+      serviceIds: Array.from(selectedServiceIds),
+      customServicePrices,
+      expectedTotal,
+      isUpfront
+    });
+    
+    toast.success("Token sent to POS for Checkout.");
+    resetForm();
   };
 
   const handleSendToPOS = (rx: Prescription) => {
@@ -754,12 +753,12 @@ export function TokenPane() {
             <div className="p-4 border-t border-border bg-background mt-auto">
               <Button 
                 variant="secondary"
-                className="w-full h-12 text-lg hover:bg-secondary/90" 
+                className="w-full h-12 text-lg hover:bg-secondary/90 bg-primary/10 text-primary border border-primary/20 hover:border-primary/50" 
                 onClick={handleGenerateToken}
-                disabled={isGenerating || (!selectedDocId && selectedTestIds.size === 0)}
+                disabled={!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0}
               >
-                {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Ticket className="w-5 h-5 mr-2" />}
-                {isGenerating ? "Processing..." : "Register & Generate Token"}
+                <Ticket className="w-5 h-5 mr-2" />
+                Send to POS Checkout
               </Button>
             </div>
           </div>
