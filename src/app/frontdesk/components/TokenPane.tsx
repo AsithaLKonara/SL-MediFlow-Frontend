@@ -74,6 +74,9 @@ export function TokenPane() {
   const [patientAge, setPatientAge] = useState("");
   const [patientLookupResult, setPatientLookupResult] = useState<{found: boolean; message: string} | null>(null);
   
+  const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
+  const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
+  
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [labCatalog, setLabCatalog] = useState<LabTest[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
@@ -115,6 +118,8 @@ export function TokenPane() {
       setGeneratedToken(null);
       setSearchQuery("");
       setPatientLookupResult(null);
+      setPatientSearchResults([]);
+      setIsPatientSearchOpen(false);
   };
 
   const handlePrintToken = useReactToPrint({ 
@@ -190,22 +195,41 @@ export function TokenPane() {
     });
   }, [onRxStatusUpdate]);
 
-  const handleSearchPatient = async () => {
-    if (!searchQuery || searchQuery.length < 7) return;
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/patients?q=${searchQuery}`);
-      const data = await res.json();
-      if (data.success && data.data.length > 0) {
-        const found = data.data[0];
-        setPatientName(found.fullName);
-        setPatientPhone(found.phone);
-        setPatientLookupResult({ found: true, message: `Patient found: ${found.fullName}` });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.length >= 3) {
+        setPatientPhone(searchQuery); // auto-sync with phone
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/patients?q=${searchQuery}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.success && data.data.length > 0) {
+              setPatientSearchResults(data.data);
+              setIsPatientSearchOpen(true);
+              setPatientLookupResult({ found: true, message: `${data.data.length} match(es) found.` });
+            } else {
+              setPatientSearchResults([]);
+              setIsPatientSearchOpen(true);
+              setPatientLookupResult({ found: false, message: "No match found. Use quick register." });
+            }
+          })
+          .catch(console.error);
       } else {
-        setPatientLookupResult({ found: false, message: "No patient found. Fill in details to register new patient." });
+        setPatientPhone(searchQuery);
+        setPatientSearchResults([]);
+        setIsPatientSearchOpen(false);
+        setPatientLookupResult(null);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const selectPatient = (patient: any) => {
+    setSearchQuery(patient.phone);
+    setPatientPhone(patient.phone);
+    setPatientName(patient.fullName);
+    setPatientAge(patient.ageFallback ? patient.ageFallback.toString() : "");
+    setIsPatientSearchOpen(false);
+    setPatientLookupResult({ found: true, message: `Selected: ${patient.fullName}` });
   };
 
   const handleGenerateToken = async () => {
@@ -348,21 +372,43 @@ export function TokenPane() {
           <div className="bg-background border border-border rounded-lg p-4 space-y-4">
             <h3 className="font-medium text-muted-foreground text-sm">Patient Lookup</h3>
             <div className="flex gap-2">
-              <div className="relative flex-1">
+              <div className="relative flex-1" onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setIsPatientSearchOpen(false);
+                }
+              }}>
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by phone number..."
                   className="pl-9 bg-card border-border"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onBlur={handleSearchPatient}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearchPatient()}
+                  onFocus={() => { if (searchQuery.length >= 3) setIsPatientSearchOpen(true) }}
                 />
+                
+                {isPatientSearchOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+                    {patientSearchResults.length > 0 ? (
+                      <ul className="py-1">
+                        {patientSearchResults.map((p) => (
+                          <li 
+                            key={p.id}
+                            className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                            onMouseDown={(e) => { e.preventDefault(); selectPatient(p); }}
+                          >
+                            <div className="font-semibold">{p.fullName}</div>
+                            <div className="text-xs text-muted-foreground">{p.phone} • {p.ageFallback ? `${p.ageFallback} yrs` : "No age"}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-muted-foreground italic">
+                        No matches found. Quick register instead.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <Button variant="secondary" className="bg-muted hover:bg-neutral-700" onClick={handleSearchPatient}>
-                <Search className="w-4 h-4 mr-2" />
-                Search
-              </Button>
             </div>
             {patientLookupResult && (
               <p className={`text-xs mt-1 ${patientLookupResult.found ? 'text-green-500' : 'text-yellow-500'}`}>
