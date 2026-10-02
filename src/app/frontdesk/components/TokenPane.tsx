@@ -74,17 +74,17 @@ export function TokenPane() {
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
   const [patientAge, setPatientAge] = useState("");
-  const [patientLookupResult, setPatientLookupResult] = useState<{found: boolean; message: string} | null>(null);
-  
+  const [patientLookupResult, setPatientLookupResult] = useState<{ found: boolean; message: string } | null>(null);
+
   const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
   const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
-  
+
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [labCatalog, setLabCatalog] = useState<LabTest[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
   const [customLabPrices, setCustomLabPrices] = useState<Record<string, number>>({});
-  
+
   const [extraServicesCatalog, setExtraServicesCatalog] = useState<any[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [customServicePrices, setCustomServicePrices] = useState<Record<string, number>>({});
@@ -101,30 +101,30 @@ export function TokenPane() {
       handlePrintPrescription();
     }, 150); // slight delay for React to render the ref
   };
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
-  
+
   const tokenPrintRef = useRef<HTMLDivElement>(null);
   const billPrintRef = useRef<HTMLDivElement>(null);
-  
+
   const resetForm = () => {
-      setPatientName("");
-      setPatientPhone("");
-      setPatientAge("");
-      setSelectedDocId(null);
-      setSelectedTestIds(new Set());
-      setCustomLabPrices({});
-      setSelectedServiceIds(new Set());
-      setCustomServicePrices({});
-      setGeneratedToken(null);
-      setSearchQuery("");
-      setPatientLookupResult(null);
-      setPatientSearchResults([]);
-      setIsPatientSearchOpen(false);
+    setPatientName("");
+    setPatientPhone("");
+    setPatientAge("");
+    setSelectedDocId(null);
+    setSelectedTestIds(new Set());
+    setCustomLabPrices({});
+    setSelectedServiceIds(new Set());
+    setCustomServicePrices({});
+    setGeneratedToken(null);
+    setSearchQuery("");
+    setPatientLookupResult(null);
+    setPatientSearchResults([]);
+    setIsPatientSearchOpen(false);
   };
 
-  const handlePrintToken = useReactToPrint({ 
+  const handlePrintToken = useReactToPrint({
     contentRef: tokenPrintRef,
     onAfterPrint: resetForm
   });
@@ -239,7 +239,7 @@ export function TokenPane() {
       toast.error("Please select a doctor, lab test, or extra service.");
       return;
     }
-    
+
     const selectedDoc = doctors.find(d => d.id === selectedDocId);
     let expectedTotal = 0;
     let isUpfront = false;
@@ -279,7 +279,7 @@ export function TokenPane() {
       expectedTotal,
       isUpfront
     });
-    
+
     toast.success("Token sent to POS for Checkout.");
     resetForm();
   };
@@ -314,13 +314,13 @@ export function TokenPane() {
     <div className="flex-1 flex flex-col p-4 gap-4 relative">
       <div className="hidden">
         {generatedToken && !generatedToken.invoice && (
-          <TokenReceipt 
-            ref={tokenPrintRef} 
+          <TokenReceipt
+            ref={tokenPrintRef}
             tokenId={generatedToken.id}
-            tokenNumber={generatedToken.queueNumber} 
-            doctorName={generatedToken.doctorName} 
-            patientName={generatedToken.patientName} 
-            date={new Date().toLocaleDateString()} 
+            tokenNumber={generatedToken.queueNumber}
+            doctorName={generatedToken.doctorName}
+            patientName={generatedToken.patientName}
+            date={new Date().toLocaleDateString()}
             roomNumber={generatedToken.roomNumber}
           />
         )}
@@ -335,7 +335,7 @@ export function TokenPane() {
           />
         )}
         {selectedRxForPrint && (
-          <PrescriptionReceipt 
+          <PrescriptionReceipt
             ref={prescriptionPrintRef}
             prescriptionId={selectedRxForPrint.id}
             patientName={selectedRxForPrint.patientName}
@@ -351,17 +351,17 @@ export function TokenPane() {
         )}
       </div>
       <Tabs defaultValue="reception" className="flex flex-col h-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4 bg-background border border-border h-12 p-1">
-          <TabsTrigger value="reception" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
-            <Users className="w-4 h-4 mr-2 hidden sm:block" />
+        <TabsList className="grid w-full grid-cols-3 mb-4 bg-background border border-border !h-[48px] p-1">
+          <TabsTrigger value="reception" className="!h-full text-base data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
+            <Users className="w-5 h-5 mr-2 hidden sm:block" />
             Walk-in
           </TabsTrigger>
-          <TabsTrigger value="phone-booking" className="h-full data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
-            <Phone className="w-4 h-4 mr-2 hidden sm:block" />
+          <TabsTrigger value="phone-booking" className="!h-full text-base data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
+            <Phone className="w-5 h-5 mr-2 hidden sm:block" />
             Booking
           </TabsTrigger>
-          <TabsTrigger value="prescriptions" className="h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <FileText className="w-4 h-4 mr-2 hidden sm:block" />
+          <TabsTrigger value="prescriptions" className="!h-full text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <FileText className="w-5 h-5 mr-2 hidden sm:block" />
             Rx
           </TabsTrigger>
         </TabsList>
@@ -384,13 +384,13 @@ export function TokenPane() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => { if (searchQuery.length >= 3) setIsPatientSearchOpen(true) }}
                 />
-                
+
                 {isPatientSearchOpen && (
                   <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
                     {patientSearchResults.length > 0 ? (
                       <ul className="py-1">
                         {patientSearchResults.map((p) => (
-                          <li 
+                          <li
                             key={p.id}
                             className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
                             onMouseDown={(e) => { e.preventDefault(); selectPatient(p); }}
@@ -452,8 +452,8 @@ export function TokenPane() {
                     <div className="text-center">
                       <div className="font-semibold text-foreground">Select Doctor</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {selectedDocId 
-                          ? doctors.find(d => d.id === selectedDocId)?.fullName 
+                        {selectedDocId
+                          ? doctors.find(d => d.id === selectedDocId)?.fullName
                           : "Assign a doctor"}
                       </div>
                     </div>
@@ -467,9 +467,8 @@ export function TokenPane() {
                         <button
                           key={doc.id}
                           onClick={() => setSelectedDocId(doc.id === selectedDocId ? null : doc.id)}
-                          className={`w-full p-4 border rounded-lg transition-colors flex items-center justify-between gap-4 outline-none text-left ${
-                            selectedDocId === doc.id ? "border-primary ring-1 ring-primary bg-primary/5" : "bg-card border-border hover:border-secondary"
-                          }`}
+                          className={`w-full p-4 border rounded-lg transition-colors flex items-center justify-between gap-4 outline-none text-left ${selectedDocId === doc.id ? "border-primary ring-1 ring-primary bg-primary/5" : "bg-card border-border hover:border-secondary"
+                            }`}
                         >
                           <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${selectedDocId === doc.id ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
@@ -480,7 +479,7 @@ export function TokenPane() {
                               <span className="text-sm text-muted-foreground">{doc.specialty || "Consultation"}</span>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-6">
                             <div className="flex flex-col items-end gap-0.5">
                               <span className="text-xs text-muted-foreground">Room</span>
@@ -515,8 +514,8 @@ export function TokenPane() {
                     <div className="text-center">
                       <div className="font-semibold text-foreground">Add Lab Tests</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {selectedTestIds.size > 0 
-                          ? `${selectedTestIds.size} test(s) selected` 
+                        {selectedTestIds.size > 0
+                          ? `${selectedTestIds.size} test(s) selected`
                           : "Select tests"}
                       </div>
                     </div>
@@ -538,16 +537,15 @@ export function TokenPane() {
                               else {
                                 newSet.add(test.id);
                                 if (customLabPrices[test.id] === undefined) {
-                                  setCustomLabPrices(prev => ({...prev, [test.id]: test.price}));
+                                  setCustomLabPrices(prev => ({ ...prev, [test.id]: test.price }));
                                 }
                               }
                               setSelectedTestIds(newSet);
                             }}
-                            className={`flex justify-between items-center p-4 rounded-lg border text-left transition-colors cursor-pointer outline-none ${
-                              isSelected
-                                ? "bg-primary/10 border-primary ring-1 ring-primary text-primary"
-                                : "bg-card border-border hover:border-primary/50"
-                            }`}
+                            className={`flex justify-between items-center p-4 rounded-lg border text-left transition-colors cursor-pointer outline-none ${isSelected
+                              ? "bg-primary/10 border-primary ring-1 ring-primary text-primary"
+                              : "bg-card border-border hover:border-primary/50"
+                              }`}
                           >
                             <div className="flex-1 min-w-0 pr-4">
                               <div className="font-semibold text-sm truncate" title={test.name}>{test.name}</div>
@@ -557,11 +555,11 @@ export function TokenPane() {
                               {isSelected ? (
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs font-normal">Rs.</span>
-                                  <Input 
-                                    type="number" 
+                                  <Input
+                                    type="number"
                                     className="w-20 h-7 text-sm px-2 text-right bg-background text-foreground"
                                     value={customLabPrices[test.id] !== undefined ? customLabPrices[test.id] : test.price}
-                                    onChange={(e) => setCustomLabPrices(prev => ({...prev, [test.id]: Number(e.target.value)}))}
+                                    onChange={(e) => setCustomLabPrices(prev => ({ ...prev, [test.id]: Number(e.target.value) }))}
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                 </div>
@@ -593,8 +591,8 @@ export function TokenPane() {
                     <div className="text-center">
                       <div className="font-semibold text-foreground">Extra Services</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {selectedServiceIds.size > 0 
-                          ? `${selectedServiceIds.size} service(s) selected` 
+                        {selectedServiceIds.size > 0
+                          ? `${selectedServiceIds.size} service(s) selected`
                           : "Addons & extras"}
                       </div>
                     </div>
@@ -616,16 +614,15 @@ export function TokenPane() {
                               else {
                                 newSet.add(svc.id);
                                 if (customServicePrices[svc.id] === undefined) {
-                                  setCustomServicePrices(prev => ({...prev, [svc.id]: svc.price}));
+                                  setCustomServicePrices(prev => ({ ...prev, [svc.id]: svc.price }));
                                 }
                               }
                               setSelectedServiceIds(newSet);
                             }}
-                            className={`flex justify-between items-center p-4 rounded-lg border text-left transition-colors cursor-pointer outline-none ${
-                              isSelected
-                                ? "bg-primary/10 border-primary ring-1 ring-primary text-primary"
-                                : "bg-card border-border hover:border-primary/50"
-                            }`}
+                            className={`flex justify-between items-center p-4 rounded-lg border text-left transition-colors cursor-pointer outline-none ${isSelected
+                              ? "bg-primary/10 border-primary ring-1 ring-primary text-primary"
+                              : "bg-card border-border hover:border-primary/50"
+                              }`}
                           >
                             <div className="flex-1 min-w-0 pr-4">
                               <div className="font-semibold text-sm truncate" title={svc.title}>{svc.title}</div>
@@ -635,11 +632,11 @@ export function TokenPane() {
                               {isSelected ? (
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs font-normal">Rs.</span>
-                                  <Input 
-                                    type="number" 
+                                  <Input
+                                    type="number"
                                     className="w-20 h-7 text-sm px-2 text-right bg-background text-foreground"
                                     value={customServicePrices[svc.id] !== undefined ? customServicePrices[svc.id] : svc.price}
-                                    onChange={(e) => setCustomServicePrices(prev => ({...prev, [svc.id]: Number(e.target.value)}))}
+                                    onChange={(e) => setCustomServicePrices(prev => ({ ...prev, [svc.id]: Number(e.target.value) }))}
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                 </div>
@@ -667,7 +664,7 @@ export function TokenPane() {
               {(selectedDocId || selectedTestIds.size > 0 || selectedServiceIds.size > 0) && (
                 <div className="mt-4 flex flex-col gap-2">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Selected Items</h4>
-                  
+
                   {selectedDocId && (
                     <div className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
                       <div className="flex items-center gap-3">
@@ -700,12 +697,12 @@ export function TokenPane() {
                         </div>
                         <div className="flex items-center gap-4 shrink-0">
                           <span className="font-semibold text-sm">Rs. {finalPrice}</span>
-                          <button 
+                          <button
                             onClick={() => {
                               const newSet = new Set(selectedTestIds);
                               newSet.delete(test.id);
                               setSelectedTestIds(newSet);
-                            }} 
+                            }}
                             className="text-xs text-destructive hover:underline p-1 outline-none"
                           >
                             Remove
@@ -732,12 +729,12 @@ export function TokenPane() {
                         </div>
                         <div className="flex items-center gap-4 shrink-0">
                           <span className="font-semibold text-sm">Rs. {finalPrice}</span>
-                          <button 
+                          <button
                             onClick={() => {
                               const newSet = new Set(selectedServiceIds);
                               newSet.delete(svc.id);
                               setSelectedServiceIds(newSet);
-                            }} 
+                            }}
                             className="text-xs text-destructive hover:underline p-1 outline-none"
                           >
                             Remove
@@ -751,9 +748,8 @@ export function TokenPane() {
             </div>
 
             <div className="p-4 border-t border-border bg-background mt-auto">
-              <Button 
-                variant="secondary"
-                className="w-full h-12 text-lg hover:bg-secondary/90 bg-primary/10 text-primary border border-primary/20 hover:border-primary/50" 
+              <Button
+                className="w-full h-12 text-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                 onClick={handleGenerateToken}
                 disabled={!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0}
               >
@@ -814,13 +810,12 @@ export function TokenPane() {
                   return (
                     <div
                       key={rx.id}
-                      className={`p-4 border rounded-lg flex flex-col gap-3 transition-colors ${
-                        isInPos
-                          ? "border-primary/50 bg-primary/5"
-                          : isLocked
+                      className={`p-4 border rounded-lg flex flex-col gap-3 transition-colors ${isInPos
+                        ? "border-primary/50 bg-primary/5"
+                        : isLocked
                           ? "border-border bg-card opacity-50"
                           : "border-border bg-card"
-                      }`}
+                        }`}
                     >
                       <div className="flex justify-between items-start">
                         <div>
