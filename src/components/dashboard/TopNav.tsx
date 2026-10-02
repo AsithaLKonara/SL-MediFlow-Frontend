@@ -16,11 +16,13 @@ import { Button } from "@/components/ui/button";
 import { useSidebar } from "./SidebarProvider";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export function TopNav() {
   const { isCollapsed, toggleSidebar, isTouchMode, toggleTouchMode } = useSidebar();
   const { user, logout } = useAuth();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -119,11 +121,8 @@ export function TopNav() {
               </div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/profile" className="cursor-pointer w-full">Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings" className="cursor-pointer w-full">Settings</Link>
+            <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer w-full">
+              Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive cursor-pointer">
