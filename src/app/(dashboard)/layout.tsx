@@ -25,6 +25,11 @@ export default function DashboardLayout({
         
         // Admins can access everything in this simple setup
         if (userRole !== "admin" && userRole !== "superadmin") {
+           // Allow global shared routes for everyone
+           if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
+             return; // allow
+           }
+           
            // Mapping for roles that use the consolidated Front Desk
            const frontdeskRoles = ["receptionist", "pharmacist", "cashier"];
            

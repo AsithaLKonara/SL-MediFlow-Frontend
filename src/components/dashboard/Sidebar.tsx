@@ -27,6 +27,7 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 type NavItem = { label: string; href: string; icon: React.ElementType; category?: string };
 
@@ -42,7 +43,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management" },
     
     { href: "/superadmin/rbac", label: "Access Control", icon: Shield, category: "System" },
-    { href: "/superadmin/settings", label: "Settings", icon: Settings, category: "System" },
+    { href: "/settings", label: "Settings", icon: Settings, category: "System" },
   ],
   frontdesk: [
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
@@ -55,6 +56,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList },
     { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
     { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
   labtech: [
     { href: "/labtech", label: "Overview", icon: LayoutDashboard },
@@ -62,6 +64,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
     { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
     { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
 };
 
@@ -75,11 +78,12 @@ const roleLabelMap: Record<string, string> = {
 export function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed } = useSidebar();
+  const { user } = useAuth();
 
-  // Determine the current role from the pathname
-  const roleKey = Object.keys(roleNavConfig).find((key) =>
+  // Determine the current role from the user context, fallback to pathname, then superadmin
+  const roleKey = user?.role?.toLowerCase() || Object.keys(roleNavConfig).find((key) =>
     pathname.startsWith(`/${key}`)
-  ) ?? "superadmin";
+  ) || "superadmin";
 
   const navItems = roleNavConfig[roleKey];
   const roleLabel = roleLabelMap[roleKey];

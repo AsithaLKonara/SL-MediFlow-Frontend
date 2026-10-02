@@ -28,20 +28,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    const validateSession = async () => {
+      const storedToken = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
 
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse user from localStorage", error);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+      if (storedToken && storedUser) {
+        try {
+          // Verify token against server
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+            headers: { Authorization: `Bearer ${storedToken}` }
+          });
+          
+          if (!res.ok) {
+            throw new Error("Session expired or invalid");
+          }
+          
+          const userData = await res.json();
+          // Update user in case roles/details changed
+          const validatedUser = { ...JSON.parse(storedUser), ...userData };
+          
+          setToken(storedToken);
+          setUser(validatedUser);
+          localStorage.setItem("user", JSON.stringify(validatedUser));
+        } catch (error) {
+          console.error("Session validation failed:", error);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setToken(null);
+          setUser(null);
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    validateSession();
   }, []);
 
   const login = (newToken: string, newUser: User) => {

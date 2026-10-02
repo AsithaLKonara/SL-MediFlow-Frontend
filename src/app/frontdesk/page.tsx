@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MonitorPlay, Package, LogOut, UserCheck } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings } from "lucide-react";
 
 export default function FrontDeskDashboard() {
   const { shift, isLoaded, openShift, closeShift } = useShift();
@@ -55,7 +55,7 @@ export default function FrontDeskDashboard() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <button 
             onClick={() => router.push('/frontdesk/workspace')}
             className="flex flex-col items-center justify-center gap-4 bg-primary/10 border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground text-primary rounded-2xl p-8 transition-colors group text-left h-48"
@@ -86,6 +86,17 @@ export default function FrontDeskDashboard() {
             <div className="text-center">
               <h2 className="text-xl font-bold">Doctor Arrivals</h2>
               <p className="text-muted-foreground text-sm mt-1">Mark daily doctor attendance</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => router.push('/frontdesk/settings')}
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-blue-500 hover:text-blue-600 text-foreground rounded-2xl p-8 transition-colors group text-left h-48"
+          >
+            <Settings className="w-12 h-12 opacity-50 group-hover:opacity-100 group-hover:text-blue-600" />
+            <div className="text-center">
+              <h2 className="text-xl font-bold">Profile & Settings</h2>
+              <p className="text-muted-foreground text-sm mt-1">Manage account preferences</p>
             </div>
           </button>
         </div>

@@ -15,9 +15,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "./SidebarProvider";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/providers/AuthProvider";
+import Link from "next/link";
 
 export function TopNav() {
   const { isCollapsed, toggleSidebar, isTouchMode, toggleTouchMode } = useSidebar();
+  const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -102,24 +105,28 @@ export function TopNav() {
         <DropdownMenu>
           <DropdownMenuTrigger className="relative h-9 w-9 rounded-full ml-2 outline-none">
             <Avatar className="h-9 w-9">
-              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" />
-              <AvatarFallback>SA</AvatarFallback>
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.fullName || "User"}`} alt={user?.fullName || "User"} />
+              <AvatarFallback>{user?.fullName?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end">
             <div className="px-2 py-1.5 text-sm">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Super Admin</p>
+                <p className="text-sm font-medium leading-none">{user?.fullName || "Loading..."}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  admin@amaz.com
+                  {user?.email || ""}
                 </p>
               </div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/profile" className="cursor-pointer w-full">Profile</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="cursor-pointer w-full">Settings</Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive cursor-pointer">
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
