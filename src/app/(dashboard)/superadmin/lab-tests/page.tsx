@@ -120,7 +120,7 @@ export default function LabTestTemplatesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Category</Label>
-                  <Select value={newTest.category} onValueChange={v => setNewTest({...newTest, category: v})}>
+                  <Select value={newTest.category} onValueChange={v => v && setNewTest({...newTest, category: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Haematology">Haematology</SelectItem>

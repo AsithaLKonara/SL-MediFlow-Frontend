@@ -56,7 +56,7 @@ export default function LabReportPreview() {
   const componentRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    contentRef: componentRef,
     documentTitle: "Lab_Report_670068",
     pageStyle: `
       @page { size: A4; margin: 0; }
