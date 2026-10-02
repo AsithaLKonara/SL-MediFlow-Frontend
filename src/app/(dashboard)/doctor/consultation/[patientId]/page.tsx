@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useRef } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { io } from "socket.io-client";
 import { useReactToPrint } from "react-to-print";
@@ -66,6 +66,10 @@ export default function ConsultationPage({
   const [visitCompleted, setVisitCompleted] = useState(false);
   const [createdPrescription, setCreatedPrescription] = useState<any>(null);
 
+  const [isEditingPatient, setIsEditingPatient] = useState(false);
+  const [editPatientData, setEditPatientData] = useState({ name: "", contact: "", age: "", gender: "", bloodGroup: "" });
+  const [savingPatient, setSavingPatient] = useState(false);
+
   const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: printRef as any,
@@ -92,10 +96,50 @@ export default function ConsultationPage({
 
   const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
 
+  const handleSavePatientDetails = async () => {
+    if (!patient) return;
+    setSavingPatient(true);
+    try {
+      const res = await fetch(`/api/doctor/patients/${patientId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: editPatientData.name,
+          phone: editPatientData.contact,
+          age: editPatientData.age,
+          gender: editPatientData.gender,
+          bloodGroup: editPatientData.bloodGroup
+        })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setPatient(prev => prev ? { ...prev, name: updated.fullName, contact: updated.phone, age: updated.ageFallback, gender: updated.gender, bloodGroup: updated.bloodGroup } : null);
+        setIsEditingPatient(false);
+        toast.success("Patient details updated");
+      } else {
+        toast.error("Failed to update patient details");
+      }
+    } catch (error) {
+      toast.error("Error updating patient");
+    } finally {
+      setSavingPatient(false);
+    }
+  };
+
   useEffect(() => {
     fetch(`/api/doctor/patients/${patientId}`)
       .then((r) => r.json())
-      .then((d) => { setPatient(d); setLoading(false); });
+      .then((d) => { 
+        setPatient(d); 
+        setEditPatientData({
+          name: d.name || "",
+          contact: d.contact || "",
+          age: d.age?.toString() || "",
+          gender: d.gender || "",
+          bloodGroup: d.bloodGroup || ""
+        });
+        setLoading(false); 
+      });
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then((r) => r.json())
@@ -317,35 +361,105 @@ export default function ConsultationPage({
     <div className="pb-32 animate-in fade-in duration-500 max-w-6xl mx-auto">
       
       {/* 1. TOP COMMAND BAR */}
-      <div className="bg-card text-card-foreground border rounded-lg shadow-sm px-6 py-4 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-5">
-            <Link href="/doctor/queue">
-              <Button variant="outline" size="icon" className="rounded-full shrink-0 h-10 w-10">
+      <div className="bg-card text-card-foreground border rounded-lg shadow-sm px-6 py-5 mb-8">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="flex gap-4 w-full md:w-auto flex-1">
+            <Link href="/doctor/queue" className="shrink-0">
+              <Button variant="outline" size="icon" className="rounded-full h-10 w-10 mt-1">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
-            <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground font-bold text-xl uppercase shrink-0 border">
-              {patient.name?.charAt(0) || "P"}
-            </div>
-            <div>
+            <div className="flex-1 space-y-5">
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold tracking-tight text-foreground uppercase">{patient.name || "Unknown Patient"}</h1>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 flex items-center gap-1.5 border border-green-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                   Active Consultation
                 </span>
+                <span className="text-sm font-medium text-muted-foreground ml-auto md:hidden">Visit #04</span>
               </div>
-              <div className="text-sm text-muted-foreground mt-1 flex items-center gap-3 divide-x divide-slate-300">
-                <span className="font-mono font-medium">{patient.id}</span>
-                <span className="pl-3">{patient.age || "--"} yrs · {patient.gender || "--"}</span>
-                <span className="pl-3 font-semibold text-red-600 dark:text-red-400">{patient.bloodGroup || "Unknown"}</span>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Patient Name</label>
+                  <Input 
+                    value={editPatientData.name} 
+                    onChange={e => setEditPatientData(prev => ({...prev, name: e.target.value}))} 
+                    className="h-9 text-sm font-bold border-transparent bg-muted/30 hover:border-input focus:border-input focus:bg-background transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Contact Number</label>
+                  <Input 
+                    value={editPatientData.contact} 
+                    onChange={e => setEditPatientData(prev => ({...prev, contact: e.target.value}))} 
+                    className="h-9 text-sm font-medium border-transparent bg-muted/30 hover:border-input focus:border-input focus:bg-background transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Age & Gender</label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={editPatientData.age} 
+                      onChange={e => setEditPatientData(prev => ({...prev, age: e.target.value}))} 
+                      placeholder="Age"
+                      className="h-9 w-16 text-sm font-medium border-transparent bg-muted/30 hover:border-input focus:border-input focus:bg-background transition-colors"
+                    />
+                    <select 
+                      value={editPatientData.gender}
+                      onChange={e => setEditPatientData(prev => ({...prev, gender: e.target.value}))}
+                      className="h-9 flex-1 text-sm font-medium rounded-md border border-transparent bg-muted/30 px-2 outline-none hover:border-input focus:border-input focus:bg-background transition-colors cursor-pointer"
+                    >
+                      <option value="">Gender</option>
+                      <option value="MALE">MALE</option>
+                      <option value="FEMALE">FEMALE</option>
+                      <option value="OTHER">OTHER</option>
+                      <option value="UNKNOWN">UNKNOWN</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Blood Group</label>
+                  <div className="flex gap-2 items-center">
+                    <select 
+                      value={editPatientData.bloodGroup} 
+                      onChange={e => setEditPatientData(prev => ({...prev, bloodGroup: e.target.value}))} 
+                      className="h-9 flex-1 text-sm font-bold text-red-500 rounded-md border border-transparent bg-muted/30 px-2 outline-none hover:border-input focus:border-input focus:bg-background transition-colors cursor-pointer"
+                    >
+                      <option value="">Unknown</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSavePatientDetails} 
+                      disabled={savingPatient || (
+                        patient?.name === editPatientData.name && 
+                        patient?.contact === editPatientData.contact && 
+                        patient?.age?.toString() === editPatientData.age && 
+                        patient?.gender === editPatientData.gender && 
+                        patient?.bloodGroup === editPatientData.bloodGroup
+                      )}
+                      className="h-9 px-4 shrink-0 transition-opacity"
+                    >
+                      {savingPatient ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div className="text-right text-sm">
-            <p className="text-muted-foreground">Visit #04</p>
-            <p className="font-medium text-foreground">Started 10:42 AM</p>
+          
+          <div className="hidden md:flex flex-col items-end text-right text-sm shrink-0 border-l border-border pl-6 pt-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Token Number</p>
+            <p className="text-2xl font-black text-foreground tracking-tight">Visit #04</p>
+            <p className="font-medium text-muted-foreground text-xs mt-3">Started 10:42 AM</p>
+            <p className="font-mono text-[10px] text-muted-foreground mt-1 opacity-50" title={patient.id}>ID: {patient.id.substring(0,8)}</p>
           </div>
         </div>
       </div>
@@ -380,22 +494,7 @@ export default function ConsultationPage({
             </div>
           )}
 
-          {/* DEMOGRAPHICS */}
-          <div className="bg-card text-card-foreground border rounded-lg p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-              <User className="w-3.5 h-3.5" /> Details
-            </h3>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between py-1 border-b border-border/50">
-                <dt className="text-muted-foreground">DOB</dt>
-                <dd className="font-medium text-foreground">{formatSafeDate(patient.dob)}</dd>
-              </div>
-              <div className="flex justify-between py-1 border-b border-border/50">
-                <dt className="text-muted-foreground">Contact</dt>
-                <dd className="font-medium text-foreground">{patient.contact}</dd>
-              </div>
-            </dl>
-          </div>
+
 
           {/* LAB ORDERS */}
           <div className="bg-card text-card-foreground border rounded-lg p-4">

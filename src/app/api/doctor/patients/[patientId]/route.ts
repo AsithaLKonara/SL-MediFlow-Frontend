@@ -19,3 +19,24 @@ export async function GET(
   }
 }
 
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ patientId: string }> }
+) {
+  const { patientId } = await params;
+  try {
+    const body = await request.json();
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}/update`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      return NextResponse.json({ error: "Failed to update patient" }, { status: res.status });
+    }
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
