@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, MonitorPlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { DoctorSelector } from "./components/DoctorSelector";
@@ -76,6 +76,14 @@ export default function EnhancedDoctorArrivalsPage() {
             selectedId={selectedDoctorId} 
             onSelect={setSelectedDoctorId} 
           />
+          <Button 
+            variant="outline" 
+            className="w-full md:w-auto bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 gap-2 font-medium"
+            onClick={() => window.open('/frontdesk/customer-display', '_blank')}
+          >
+            <MonitorPlay className="w-4 h-4 text-primary" />
+            Launch Customer Display
+          </Button>
         </div>
 
         {/* Main Operational Workspace */}

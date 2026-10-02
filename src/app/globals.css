@@ -167,3 +167,12 @@
 .touch-mode .p-6 {
   padding: 1.5rem !important;
 }
+
+/* Hide scrollbar but keep scrollability (for customer display auto-scroll) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

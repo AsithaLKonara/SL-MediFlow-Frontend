@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv } from "lucide-react";
 
 export default function FrontDeskDashboard() {
   const { shift, isLoaded, openShift, closeShift } = useShift();
@@ -55,48 +55,59 @@ export default function FrontDeskDashboard() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           <button 
             onClick={() => router.push('/frontdesk/workspace')}
-            className="flex flex-col items-center justify-center gap-4 bg-primary/10 border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground text-primary rounded-2xl p-8 transition-colors group text-left h-48"
+            className="flex flex-col items-center justify-center gap-4 bg-primary/10 border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground text-primary rounded-2xl p-6 transition-colors group text-center h-48"
           >
-            <MonitorPlay className="w-12 h-12" />
-            <div className="text-center">
-              <h2 className="text-xl font-bold">POS & Tokens</h2>
-              <p className="opacity-80 text-sm mt-1">Access the main workspace</p>
+            <MonitorPlay className="w-10 h-10" />
+            <div>
+              <h2 className="text-lg font-bold">POS & Tokens</h2>
+              <p className="opacity-80 text-xs mt-1">Access the main workspace</p>
             </div>
           </button>
 
           <button 
             onClick={() => router.push('/frontdesk/inventory')}
-            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-secondary hover:text-secondary text-foreground rounded-2xl p-8 transition-colors group text-left h-48"
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-secondary hover:text-secondary text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
           >
-            <Package className="w-12 h-12 opacity-50 group-hover:opacity-100" />
-            <div className="text-center">
-              <h2 className="text-xl font-bold">Inventory</h2>
-              <p className="text-muted-foreground text-sm mt-1">Manage pharmacy stock</p>
+            <Package className="w-10 h-10 opacity-50 group-hover:opacity-100" />
+            <div>
+              <h2 className="text-lg font-bold">Inventory</h2>
+              <p className="text-muted-foreground text-xs mt-1">Manage pharmacy stock</p>
             </div>
           </button>
 
           <button 
             onClick={() => router.push('/frontdesk/arrivals')}
-            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-green-500 hover:text-green-600 text-foreground rounded-2xl p-8 transition-colors group text-left h-48"
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-green-500 hover:text-green-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
           >
-            <UserCheck className="w-12 h-12 opacity-50 group-hover:opacity-100 group-hover:text-green-600" />
-            <div className="text-center">
-              <h2 className="text-xl font-bold">Doctor Arrivals</h2>
-              <p className="text-muted-foreground text-sm mt-1">Mark daily doctor attendance</p>
+            <UserCheck className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-green-600" />
+            <div>
+              <h2 className="text-lg font-bold">Doctor Arrivals</h2>
+              <p className="text-muted-foreground text-xs mt-1">Mark daily attendance</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => window.open('/frontdesk/customer-display', '_blank')}
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-amber-500 hover:text-amber-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+          >
+            <Tv className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-amber-600" />
+            <div>
+              <h2 className="text-lg font-bold">Patient Display</h2>
+              <p className="text-muted-foreground text-xs mt-1">Launch 2nd screen status</p>
             </div>
           </button>
 
           <button 
             onClick={() => router.push('/frontdesk/settings')}
-            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-blue-500 hover:text-blue-600 text-foreground rounded-2xl p-8 transition-colors group text-left h-48"
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-blue-500 hover:text-blue-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
           >
-            <Settings className="w-12 h-12 opacity-50 group-hover:opacity-100 group-hover:text-blue-600" />
-            <div className="text-center">
-              <h2 className="text-xl font-bold">Profile & Settings</h2>
-              <p className="text-muted-foreground text-sm mt-1">Manage account preferences</p>
+            <Settings className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-blue-600" />
+            <div>
+              <h2 className="text-lg font-bold">Settings</h2>
+              <p className="text-muted-foreground text-xs mt-1">Manage account</p>
             </div>
           </button>
         </div>
