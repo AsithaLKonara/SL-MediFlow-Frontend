@@ -39,11 +39,17 @@ interface Staff {
   status: string;
   roomNumber?: string;
   specialty?: string;
+  title?: string;
+  departmentId?: string;
+  departmentName?: string;
+  consultationFee?: number;
+  feeType?: string;
 }
 
 export default function StaffManagementPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
+  const [departments, setDepartments] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +63,11 @@ export default function StaffManagementPage() {
     password: "",
     roleName: "RECEPTIONIST",
     specialty: "",
-    roomNumber: ""
+    roomNumber: "",
+    title: "Dr.",
+    departmentId: "",
+    consultationFee: 2500,
+    feeType: "POST"
   });
 
   const API = process.env.NEXT_PUBLIC_API_URL;
@@ -84,13 +94,28 @@ export default function StaffManagementPage() {
       });
   };
 
+  const fetchDepartments = () => {
+    fetch(`${API}/admin/departments`)
+      .then(res => res.json())
+      .then(data => {
+        setDepartments(data.data || []);
+      })
+      .catch(err => {
+        toast.error("Failed to load departments");
+      });
+  };
+
   useEffect(() => {
-    Promise.all([fetchStaff(), fetchRoles()]).finally(() => setLoading(false));
+    Promise.all([fetchStaff(), fetchRoles(), fetchDepartments()]).finally(() => setLoading(false));
   }, []);
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ name: "", email: "", password: "", roleName: "RECEPTIONIST", specialty: "", roomNumber: "" });
+    setFormData({ 
+      name: "", email: "", password: "", roleName: "RECEPTIONIST", 
+      specialty: "", roomNumber: "", title: "Dr.", departmentId: "", 
+      consultationFee: 2500, feeType: "POST" 
+    });
     setIsModalOpen(true);
   };
 
@@ -102,7 +127,11 @@ export default function StaffManagementPage() {
       password: "", 
       roleName: member.role, 
       specialty: member.specialty || "", 
-      roomNumber: member.roomNumber || "" 
+      roomNumber: member.roomNumber || "",
+      title: member.title || "Dr.",
+      departmentId: member.departmentId || "",
+      consultationFee: member.consultationFee || 2500,
+      feeType: member.feeType || "POST"
     });
     setIsModalOpen(true);
   };
@@ -213,9 +242,12 @@ export default function StaffManagementPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {member.role === 'DOCTOR' && (
-                            <div>
+                            <div className="space-y-1">
+                              <div>{member.title} {member.name}</div>
+                              <div>Dept: {member.departmentName || 'N/A'}</div>
                               <div>Spec: {member.specialty || 'N/A'}</div>
                               <div>Room: {member.roomNumber || 'N/A'}</div>
+                              <div>Fee: Rs. {member.consultationFee} ({member.feeType})</div>
                             </div>
                           )}
                         </TableCell>
@@ -307,16 +339,64 @@ export default function StaffManagementPage() {
               </div>
 
               {formData.roleName === "DOCTOR" && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Specialty</label>
-                    <Input value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} placeholder="General" />
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Title</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={formData.title} 
+                        onChange={e => setFormData({...formData, title: e.target.value})}
+                      >
+                        <option value="Dr.">Dr.</option>
+                        <option value="Prof.">Prof.</option>
+                        <option value="Mr.">Mr.</option>
+                        <option value="Ms.">Ms.</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Department</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={formData.departmentId} 
+                        onChange={e => setFormData({...formData, departmentId: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Default Room #</label>
-                    <Input value={formData.roomNumber} onChange={e => setFormData({...formData, roomNumber: e.target.value})} placeholder="101" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Specialty</label>
+                      <Input value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} placeholder="General" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Default Room #</label>
+                      <Input value={formData.roomNumber} onChange={e => setFormData({...formData, roomNumber: e.target.value})} placeholder="101" />
+                    </div>
                   </div>
-                </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Consultation Fee</label>
+                      <Input type="number" value={formData.consultationFee} onChange={e => setFormData({...formData, consultationFee: parseFloat(e.target.value) || 0})} placeholder="2500" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Fee Type</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={formData.feeType} 
+                        onChange={e => setFormData({...formData, feeType: e.target.value})}
+                      >
+                        <option value="POST">POST (After checkup)</option>
+                        <option value="UPFRONT">UPFRONT (Before checkup)</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
             <DialogFooter>

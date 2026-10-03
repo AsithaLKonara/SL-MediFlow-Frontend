@@ -31,7 +31,7 @@ export function DoctorStatusControl({
     }
   };
 
-  const handleMarkOut = async () => {
+  const handleMarkOut = async (forceExit: boolean = false) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/attendance`, {
         method: 'PUT',
@@ -39,11 +39,20 @@ export function DoctorStatusControl({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ status: "LEFT" })
+        body: JSON.stringify({ status: "LEFT", forceExit })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || await res.text());
+        const errorMsg = errorData.error || await res.text();
+        
+        if (errorMsg.includes("still waiting") && !forceExit) {
+          if (confirm(`${errorMsg}\n\nDo you want to force mark out and flag these patients as NO SHOW?`)) {
+            return handleMarkOut(true);
+          } else {
+            return;
+          }
+        }
+        throw new Error(errorMsg);
       }
       toast.success(`${doctor.fullName} marked as Left`);
       onRefresh();
@@ -70,7 +79,7 @@ export function DoctorStatusControl({
             Mark Arrival
           </Button>
         ) : (
-          <Button variant="destructive" onClick={handleMarkOut} className="w-full sm:w-auto gap-2">
+          <Button variant="destructive" onClick={() => handleMarkOut(false)} className="w-full sm:w-auto gap-2">
             <LogOut className="w-4 h-4" />
             Mark Out
           </Button>
