@@ -15,6 +15,7 @@ import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { PhoneBookingPane } from "./PhoneBookingPane";
 import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
 import { useRxToPOS, CartItem } from "../hooks/useCartSync";
+import { io, Socket } from "socket.io-client";
 
 interface Doctor {
   id: string;
@@ -23,6 +24,9 @@ interface Doctor {
   roomNumber?: string;
   feeType?: string;
   consultationFee?: number;
+  expectedStartTime?: string;
+  isArrived?: boolean;
+  arrivedAt?: string;
 }
 
 interface LabTest {
@@ -89,6 +93,13 @@ export function TokenPane() {
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [customServicePrices, setCustomServicePrices] = useState<Record<string, number>>({});
 
+  const [selectedDocToken, setSelectedDocToken] = useState<number | null>(null);
+  const [docTokens, setDocTokens] = useState<any[]>([]);
+  const [selectedLabToken, setSelectedLabToken] = useState<number | null>(null);
+  const [labTokens, setLabTokens] = useState<any[]>([]);
+  const [selectedServiceToken, setSelectedServiceToken] = useState<number | null>(null);
+  const [serviceTokens, setServiceTokens] = useState<any[]>([]);
+
   const [pendingPrescriptions, setPendingPrescriptions] = useState<Prescription[]>([]);
   const [rxLoading, setRxLoading] = useState(false);
   /** ID of the prescription currently locked in the POS */
@@ -108,6 +119,57 @@ export function TokenPane() {
   const tokenPrintRef = useRef<HTMLDivElement>(null);
   const billPrintRef = useRef<HTMLDivElement>(null);
 
+  const socketRef = useRef<Socket | null>(null);
+  const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '') : "http://localhost:5000";
+
+  const fetchDocTokens = useCallback(() => {
+    if (!selectedDocId) return;
+    const dateStr = new Date().toISOString().split('T')[0];
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${dateStr}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) setDocTokens(res.data.tokens || []);
+      })
+      .catch(console.error);
+  }, [selectedDocId]);
+
+  const fetchLabTokens = useCallback(() => {
+    if (selectedTestIds.size === 0) return;
+    const dateStr = new Date().toISOString().split('T')[0];
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=LAB&date=${dateStr}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) setLabTokens(res.data.tokens || []);
+      })
+      .catch(console.error);
+  }, [selectedTestIds.size]);
+
+  const fetchServiceTokens = useCallback(() => {
+    if (selectedServiceIds.size === 0) return;
+    const dateStr = new Date().toISOString().split('T')[0];
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=EXTRA_SERVICE&date=${dateStr}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) setServiceTokens(res.data.tokens || []);
+      })
+      .catch(console.error);
+  }, [selectedServiceIds.size]);
+
+  useEffect(() => {
+    socketRef.current = io(SOCKET_URL);
+    
+    socketRef.current.on("TOKEN_STATUS_UPDATED", () => {
+      // Whenever ANY token status changes, refresh the active matrices
+      if (selectedDocId) fetchDocTokens();
+      if (selectedTestIds.size > 0) fetchLabTokens();
+      if (selectedServiceIds.size > 0) fetchServiceTokens();
+    });
+
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+    };
+  }, [selectedDocId, selectedTestIds.size, selectedServiceIds.size, fetchDocTokens, fetchLabTokens, fetchServiceTokens]);
+
   const resetForm = () => {
     setPatientName("");
     setPatientPhone("");
@@ -122,6 +184,12 @@ export function TokenPane() {
     setPatientLookupResult(null);
     setPatientSearchResults([]);
     setIsPatientSearchOpen(false);
+    setSelectedDocToken(null);
+    setSelectedLabToken(null);
+    setSelectedServiceToken(null);
+    setDocTokens([]);
+    setLabTokens([]);
+    setServiceTokens([]);
   };
 
   const handlePrintToken = useReactToPrint({
@@ -198,6 +266,33 @@ export function TokenPane() {
   }, [onRxStatusUpdate]);
 
   useEffect(() => {
+    if (!selectedDocId) {
+      setDocTokens([]);
+      setSelectedDocToken(null);
+      return;
+    }
+    fetchDocTokens();
+  }, [selectedDocId, fetchDocTokens]);
+
+  useEffect(() => {
+    if (selectedTestIds.size === 0) {
+      setLabTokens([]);
+      setSelectedLabToken(null);
+      return;
+    }
+    fetchLabTokens();
+  }, [selectedTestIds.size, fetchLabTokens]);
+
+  useEffect(() => {
+    if (selectedServiceIds.size === 0) {
+      setServiceTokens([]);
+      setSelectedServiceToken(null);
+      return;
+    }
+    fetchServiceTokens();
+  }, [selectedServiceIds.size, fetchServiceTokens]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.length >= 3) {
         setPatientPhone(searchQuery); // auto-sync with phone
@@ -243,27 +338,28 @@ export function TokenPane() {
     const selectedDoc = doctors.find(d => d.id === selectedDocId);
     let expectedTotal = 0;
     let isUpfront = false;
+    let doctorFee = 0;
 
     if (selectedDoc) {
-      const isNonOPD = selectedDoc.specialty && selectedDoc.specialty !== "General" && selectedDoc.specialty.toUpperCase() !== "OPD";
-      if (isNonOPD && selectedDoc.feeType === "UPFRONT") {
-        expectedTotal += (selectedDoc.consultationFee || 2500);
+      if (selectedDoc.feeType === "UPFRONT") {
+        doctorFee = selectedDoc.consultationFee || 2500;
+        expectedTotal += doctorFee;
         isUpfront = true;
       }
     }
 
-    Array.from(selectedTestIds).forEach(testId => {
+    const tests = Array.from(selectedTestIds).map(testId => {
       const test = labCatalog.find(t => t.id === testId);
-      if (test) {
-        expectedTotal += customLabPrices[test.id] !== undefined ? customLabPrices[test.id] : test.price;
-      }
+      const price = customLabPrices[testId] !== undefined ? customLabPrices[testId] : (test?.price || 0);
+      expectedTotal += price;
+      return { id: testId, name: test?.name || "Lab Test", price };
     });
 
-    Array.from(selectedServiceIds).forEach(svcId => {
+    const services = Array.from(selectedServiceIds).map(svcId => {
       const svc = extraServicesCatalog.find(s => s.id === svcId);
-      if (svc) {
-        expectedTotal += customServicePrices[svc.id] !== undefined ? customServicePrices[svc.id] : svc.price;
-      }
+      const price = customServicePrices[svcId] !== undefined ? customServicePrices[svcId] : (svc?.price || 0);
+      expectedTotal += price;
+      return { id: svcId, name: svc?.title || "Extra Service", price };
     });
 
     sendTokenToPOS({
@@ -272,12 +368,18 @@ export function TokenPane() {
       ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
       doctorId: selectedDocId,
       doctorName: selectedDoc?.fullName,
+      doctorFee,
+      doctorTokenNumber: selectedDocToken || undefined,
+      isUpfront,
+      tests,
       testIds: Array.from(selectedTestIds),
       customLabPrices,
+      labTokenNumber: selectedLabToken || undefined,
+      services,
       serviceIds: Array.from(selectedServiceIds),
       customServicePrices,
-      expectedTotal,
-      isUpfront
+      serviceTokenNumber: selectedServiceToken || undefined,
+      expectedTotal
     });
 
     toast.success("Token sent to POS for Checkout.");
@@ -476,7 +578,13 @@ export function TokenPane() {
                             </div>
                             <div className="flex flex-col gap-0.5">
                               <span className="font-semibold text-base">{doc.fullName}</span>
-                              <span className="text-sm text-muted-foreground">{doc.specialty || "Consultation"}</span>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>{doc.specialty || "Consultation"}</span>
+                                <span>•</span>
+                                <span className="font-medium text-foreground">Rs. {doc.consultationFee || 2500}</span>
+                                <span>•</span>
+                                <span className="text-xs uppercase tracking-wider">{doc.feeType === 'UPFRONT' ? 'Upfront Pay' : 'Post Pay'}</span>
+                              </div>
                             </div>
                           </div>
 
@@ -485,15 +593,47 @@ export function TokenPane() {
                               <span className="text-xs text-muted-foreground">Room</span>
                               <span className="font-medium">{doc.roomNumber || "N/A"}</span>
                             </div>
-                            {(doc as any).isArrived ? (
-                              <div className="px-3 py-1 bg-green-500/10 text-green-600 rounded-full text-xs font-semibold">Arrived</div>
-                            ) : (
-                              <div className="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-semibold">Scheduled</div>
-                            )}
+                            <div className="flex flex-col items-end gap-1">
+                              {doc.isArrived ? (
+                                <>
+                                  <div className="px-3 py-1 bg-green-500/10 text-green-600 rounded-full text-xs font-semibold">Arrived</div>
+                                  {doc.arrivedAt && <span className="text-[10px] text-muted-foreground">at {new Date(doc.arrivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                                </>
+                              ) : (
+                                <>
+                                  <div className="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-semibold">Scheduled</div>
+                                  {doc.expectedStartTime && <span className="text-[10px] text-muted-foreground">for {doc.expectedStartTime}</span>}
+                                </>
+                              )}
+                            </div>
                           </div>
                         </button>
                       ))}
                     </div>
+                    {selectedDocId && (
+                      <div className="mt-2 p-4 border-t border-border bg-card space-y-3 shrink-0">
+                        <h3 className="font-semibold text-sm">Select Token Number</h3>
+                        {docTokens.length > 0 ? (
+                          <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto pr-2">
+                            {docTokens.map(t => (
+                              <button
+                                key={t.tokenNumber}
+                                disabled={t.status !== "AVAILABLE"}
+                                onClick={() => setSelectedDocToken(t.tokenNumber)}
+                                className={`h-8 rounded-md text-sm font-medium transition-colors ${
+                                  t.status !== "AVAILABLE" ? 'bg-destructive/10 text-destructive border border-destructive/20 cursor-not-allowed' : 
+                                  selectedDocToken === t.tokenNumber ? 'bg-primary text-primary-foreground' : 'bg-card border hover:border-primary'
+                                }`}
+                              >
+                                {t.tokenNumber}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No tokens available for this doctor today.</div>
+                        )}
+                      </div>
+                    )}
                     <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
                       <div className="text-sm text-muted-foreground">
                         {selectedDocId ? doctors.find(d => d.id === selectedDocId)?.fullName : "No doctor selected"}
@@ -571,6 +711,30 @@ export function TokenPane() {
                         );
                       })}
                     </div>
+                    {selectedTestIds.size > 0 && (
+                      <div className="mt-2 p-4 border-t border-border bg-card space-y-3 shrink-0">
+                        <h3 className="font-semibold text-sm">Select Lab Token Number</h3>
+                        {labTokens.length > 0 ? (
+                          <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto pr-2">
+                            {labTokens.map(t => (
+                              <button
+                                key={t.tokenNumber}
+                                disabled={t.status !== "AVAILABLE"}
+                                onClick={() => setSelectedLabToken(t.tokenNumber)}
+                                className={`h-8 rounded-md text-sm font-medium transition-colors ${
+                                  t.status !== "AVAILABLE" ? 'bg-destructive/10 text-destructive border border-destructive/20 cursor-not-allowed' : 
+                                  selectedLabToken === t.tokenNumber ? 'bg-primary text-primary-foreground' : 'bg-card border hover:border-primary'
+                                }`}
+                              >
+                                {t.tokenNumber}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No tokens available for labs today.</div>
+                        )}
+                      </div>
+                    )}
                     <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
                       <div className="text-sm text-muted-foreground font-medium">
                         {selectedTestIds.size} test(s) selected
@@ -648,6 +812,30 @@ export function TokenPane() {
                         );
                       })}
                     </div>
+                    {selectedServiceIds.size > 0 && (
+                      <div className="mt-2 p-4 border-t border-border bg-card space-y-3 shrink-0">
+                        <h3 className="font-semibold text-sm">Select Service Token Number</h3>
+                        {serviceTokens.length > 0 ? (
+                          <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto pr-2">
+                            {serviceTokens.map(t => (
+                              <button
+                                key={t.tokenNumber}
+                                disabled={t.status !== "AVAILABLE"}
+                                onClick={() => setSelectedServiceToken(t.tokenNumber)}
+                                className={`h-8 rounded-md text-sm font-medium transition-colors ${
+                                  t.status !== "AVAILABLE" ? 'bg-destructive/10 text-destructive border border-destructive/20 cursor-not-allowed' : 
+                                  selectedServiceToken === t.tokenNumber ? 'bg-primary text-primary-foreground' : 'bg-card border hover:border-primary'
+                                }`}
+                              >
+                                {t.tokenNumber}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No tokens available for extra services today.</div>
+                        )}
+                      </div>
+                    )}
                     <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
                       <div className="text-sm text-muted-foreground font-medium">
                         {selectedServiceIds.size} service(s) selected

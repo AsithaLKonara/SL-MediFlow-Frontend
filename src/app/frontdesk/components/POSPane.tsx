@@ -33,6 +33,7 @@ export function POSPane() {
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const [pendingTokenPayload, setPendingTokenPayload] = useState<any | null>(null);
+  const [pendingAppointmentPayload, setPendingAppointmentPayload] = useState<any | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [tokenReceiptData, setTokenReceiptData] = useState<any>(null);
@@ -102,9 +103,14 @@ export function POSPane() {
         notifyRxStatus(rxId, "IN_PROGRESS");
         toast.success(`${rxItems.length} medicine(s) loaded into POS from prescription.`);
       },
-      (tokenPayload) => {
-        setPendingTokenPayload(tokenPayload);
-        toast.success("Token details loaded into POS checkout.");
+      (tokenPayload: any) => {
+        if (tokenPayload.isAppointmentCheckout) {
+          setPendingAppointmentPayload(tokenPayload);
+          toast.success("Appointment checkout loaded into POS.");
+        } else {
+          setPendingTokenPayload(tokenPayload);
+          toast.success("Token details loaded into POS checkout.");
+        }
       }
     );
   }, [onPrescriptionReceived, notifyRxStatus]);
@@ -117,7 +123,8 @@ export function POSPane() {
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const tokenTotal = pendingTokenPayload ? pendingTokenPayload.expectedTotal : 0;
-  const subtotal = cartSubtotal + tokenTotal;
+  const appointmentTotal = (pendingAppointmentPayload && pendingAppointmentPayload.isUpfront) ? pendingAppointmentPayload.fee : 0;
+  const subtotal = cartSubtotal + tokenTotal + appointmentTotal;
   const total = subtotal;
 
   // Sync to display whenever cart changes, but preserve checkout state
@@ -272,6 +279,7 @@ export function POSPane() {
     setReceiptData(null);
     setTokenReceiptData(null);
     setReceivedAmountInput("");
+    setPendingAppointmentPayload(null);
     clearDisplay();
     updateState({
       ...state,
@@ -416,30 +424,90 @@ export function POSPane() {
               </TableRow>
             ))}
             
-            {/* Render Token Payload as a combined row */}
+            {/* Render Token Payload Itemized */}
             {pendingTokenPayload && (
-              <TableRow className="border-border bg-primary/5">
-                <TableCell className="font-medium text-primary">
-                  Reception Token & Services
-                  <div className="text-xs text-muted-foreground font-normal">
-                    Patient: {pendingTokenPayload.patientName || "Walk-in"} 
-                    {pendingTokenPayload.doctorName ? ` | Dr. ${pendingTokenPayload.doctorName}` : ""}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">1</TableCell>
-                <TableCell className="text-right">LKR {pendingTokenPayload.expectedTotal.toFixed(2)}</TableCell>
-                <TableCell className="text-right font-medium">LKR {pendingTokenPayload.expectedTotal.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                    onClick={() => setPendingTokenPayload(null)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <>
+                {pendingTokenPayload.isUpfront && pendingTokenPayload.doctorFee && pendingTokenPayload.doctorFee > 0 && (
+                  <TableRow className="border-border bg-primary/5">
+                    <TableCell className="font-medium text-primary">
+                      Consultation - Dr. {pendingTokenPayload.doctorName}
+                      <div className="text-xs text-muted-foreground font-normal">
+                        Patient: {pendingTokenPayload.patientName || "Walk-in"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">1</TableCell>
+                    <TableCell className="text-right">LKR {pendingTokenPayload.doctorFee.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">LKR {pendingTokenPayload.doctorFee.toFixed(2)}</TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                )}
+
+                {pendingTokenPayload.tests.map((test: any, idx: number) => (
+                  <TableRow key={`test-${idx}`} className="border-border bg-blue-500/5">
+                    <TableCell className="font-medium text-blue-600">
+                      {test.name}
+                      <div className="text-xs text-muted-foreground font-normal">Lab Test</div>
+                    </TableCell>
+                    <TableCell className="text-right">1</TableCell>
+                    <TableCell className="text-right">LKR {test.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">LKR {test.price.toFixed(2)}</TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                ))}
+
+                {pendingTokenPayload.services.map((svc: any, idx: number) => (
+                  <TableRow key={`svc-${idx}`} className="border-border bg-orange-500/5">
+                    <TableCell className="font-medium text-orange-600">
+                      {svc.name}
+                      <div className="text-xs text-muted-foreground font-normal">Extra Service</div>
+                    </TableCell>
+                    <TableCell className="text-right">1</TableCell>
+                    <TableCell className="text-right">LKR {svc.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">LKR {svc.price.toFixed(2)}</TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                ))}
+
+                <TableRow className="border-border">
+                  <TableCell colSpan={4} className="text-right text-xs text-muted-foreground pt-4">
+                    <span className="cursor-pointer text-red-500 hover:underline" onClick={() => setPendingTokenPayload(null)}>
+                      Remove Token from POS
+                    </span>
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              </>
+            )}
+
+            {/* Render Phone Appointment Checkout Item */}
+            {pendingAppointmentPayload && (
+              <>
+                <TableRow className="border-border bg-purple-500/5">
+                  <TableCell className="font-medium text-purple-600">
+                    Existing Phone Booking - Token {pendingAppointmentPayload.tokenNumber}
+                    <div className="text-xs text-muted-foreground font-normal">
+                      Patient: {pendingAppointmentPayload.patientName || "Walk-in"}
+                      {pendingAppointmentPayload.doctorName ? ` | Dr. ${pendingAppointmentPayload.doctorName}` : ""}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">1</TableCell>
+                  <TableCell className="text-right">
+                    {pendingAppointmentPayload.isUpfront ? `LKR ${pendingAppointmentPayload.fee.toFixed(2)}` : "Post Pay"}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {pendingAppointmentPayload.isUpfront ? `LKR ${pendingAppointmentPayload.fee.toFixed(2)}` : "LKR 0.00"}
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+                <TableRow className="border-border">
+                  <TableCell colSpan={4} className="text-right text-xs text-muted-foreground pt-4">
+                    <span className="cursor-pointer text-red-500 hover:underline" onClick={() => setPendingAppointmentPayload(null)}>
+                      Remove Appointment from POS
+                    </span>
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              </>
             )}
 
             {cart.length === 0 && !pendingTokenPayload && (
@@ -614,6 +682,44 @@ export function POSPane() {
                       }
                     }
 
+                    // 1.5 Checkout Phone Appointment if payload exists
+                    if (pendingAppointmentPayload) {
+                      const resAppt = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/checkout-appointment`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(pendingAppointmentPayload)
+                      });
+                      if (resAppt.ok) {
+                        const apptRes = await resAppt.json();
+                        // It returns { tokenNumber, department, doctorName, patientName, invoice }
+                        tokenResultTokens.push({
+                          id: apptRes.data.appointment.id,
+                          tokenNumber: apptRes.data.tokenNumber,
+                          department: apptRes.data.department,
+                          doctorName: apptRes.data.doctorName,
+                          patientName: apptRes.data.patientName,
+                          status: apptRes.data.appointment.status,
+                          appointmentDate: apptRes.data.appointment.appointmentDate
+                        });
+                        
+                        if (apptRes.data.invoice) {
+                           apptRes.data.invoice.lineItems.forEach((li: any) => {
+                             combinedItems.push({
+                               name: li.description,
+                               qty: li.quantity,
+                               price: li.unitPrice,
+                               total: li.total
+                             });
+                           });
+                        }
+                      } else {
+                         const err = await resAppt.json();
+                         toast.error(err.error || "Appointment checkout failed");
+                         setIsProcessing(false);
+                         return;
+                      }
+                    }
+
                     // 2. Process Pharmacy Cart if any
                     let receiptId = `TXN-${Date.now()}`;
                     if (cart.length > 0) {
@@ -660,6 +766,7 @@ export function POSPane() {
                     }
                     setCart([]);
                     setPendingTokenPayload(null);
+                    setPendingAppointmentPayload(null);
                     toast.success("Payment completed successfully!");
                     // Notice we do NOT call handleCloseCheckout() here because we want to show the success screen
 

@@ -70,12 +70,27 @@ export type TokenPayload = {
   ageFallback?: number;
   doctorId: string | null;
   doctorName?: string;
+  doctorFee?: number;
+  doctorTokenNumber?: number;
+  isUpfront?: boolean;
+  tests: { id: string; name: string; price: number }[];
   testIds: string[];
   customLabPrices: Record<string, number>;
+  labTokenNumber?: number;
+  services: { id: string; name: string; price: number }[];
   serviceIds: string[];
   customServicePrices: Record<string, number>;
+  serviceTokenNumber?: number;
   expectedTotal: number;
-  isUpfront?: boolean;
+};
+
+export type AppointmentPayload = {
+  appointmentId: string;
+  doctorName?: string;
+  patientName?: string;
+  tokenNumber: string;
+  fee: number;
+  isUpfront: boolean;
 };
 
 export function useRxToPOS() {
@@ -104,6 +119,14 @@ export function useRxToPOS() {
     [channel]
   );
 
+  /** PhoneBookingPane → POSPane: send existing appointment for checkout */
+  const sendAppointmentToPOS = useCallback(
+    (appointmentData: AppointmentPayload) => {
+      channel?.postMessage({ type: "APPOINTMENT_CHECKOUT", payload: appointmentData });
+    },
+    [channel]
+  );
+
   /** POSPane listens for incoming prescription or token */
   const onPrescriptionReceived = useCallback(
     (
@@ -116,6 +139,8 @@ export function useRxToPOS() {
           rxHandler(e.data.items as CartItem[], e.data.rxId as string);
         } else if (e.data?.type === "TOKEN_CHECKOUT" && tokenHandler) {
           tokenHandler(e.data.payload);
+        } else if (e.data?.type === "APPOINTMENT_CHECKOUT" && tokenHandler) {
+          tokenHandler({ ...e.data.payload, isAppointmentCheckout: true });
         } else if (e.data?.type === "RX_STATUS") {
           // Ignore status messages on the POSPane side
         }
@@ -145,7 +170,7 @@ export function useRxToPOS() {
     [channel]
   );
 
-  return { sendToPOS, sendTokenToPOS, onPrescriptionReceived, notifyRxStatus, onRxStatusUpdate };
+  return { sendToPOS, sendTokenToPOS, sendAppointmentToPOS, onPrescriptionReceived, notifyRxStatus, onRxStatusUpdate };
 }
 
 

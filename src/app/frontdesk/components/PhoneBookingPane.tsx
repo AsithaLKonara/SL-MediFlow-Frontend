@@ -3,15 +3,18 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle } from "lucide-react";
+import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, SendToBack, Send } from "lucide-react";
 import { toast } from "sonner";
 import { io, Socket } from "socket.io-client";
+import { useRxToPOS } from "../hooks/useCartSync";
 
 interface Doctor {
   id: string;
   fullName: string;
   specialty?: string;
   roomNumber?: string;
+  consultationFee?: number;
+  feeType?: string;
 }
 
 export function PhoneBookingPane() {
@@ -24,6 +27,8 @@ export function PhoneBookingPane() {
   const [patientPhone, setPatientPhone] = useState("");
   const [patientAge, setPatientAge] = useState("");
   const [patientLookupResult, setPatientLookupResult] = useState<{found: boolean; message: string} | null>(null);
+  const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
+  const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
 
   const [availability, setAvailability] = useState<any>(null);
   const [isChecking, setIsChecking] = useState(false);
@@ -34,7 +39,10 @@ export function PhoneBookingPane() {
 
   const [selectedTokenNumber, setSelectedTokenNumber] = useState<number | null>(null);
 
+  const [todayBookings, setTodayBookings] = useState<any[]>([]);
+
   const socketRef = useRef<Socket | null>(null);
+  const { sendAppointmentToPOS } = useRxToPOS();
 
   const API = process.env.NEXT_PUBLIC_API_URL;
   const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '') : "http://localhost:5000";
@@ -107,6 +115,24 @@ export function PhoneBookingPane() {
       .finally(() => setIsLoadingDates(false));
   }, [selectedDocId]);
 
+  const fetchTodayBookings = async () => {
+    try {
+      const res = await fetch(`${API}/booking/appointments`);
+      const data = await res.json();
+      if (data.success) {
+        // Filter for today's PHONE bookings that are not completed/cancelled
+        const todayPhone = data.data.filter((a: any) => a.bookingType === 'PHONE' && a.status === 'BOOKED');
+        setTodayBookings(todayPhone);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodayBookings();
+  }, []);
+
   const handleDateSelect = async (d: any) => {
     setDate(d.date);
     setSelectedTokenNumber(null);
@@ -124,22 +150,41 @@ export function PhoneBookingPane() {
     }
   };
 
-  const handleSearchPatient = async () => {
-    if (!searchQuery || searchQuery.length < 7) return;
-    try {
-      const res = await fetch(`${API}/reception/patients?q=${searchQuery}`);
-      const data = await res.json();
-      if (data.success && data.data.length > 0) {
-        const found = data.data[0];
-        setPatientName(found.fullName);
-        setPatientPhone(found.phone);
-        setPatientLookupResult({ found: true, message: `Patient found: ${found.fullName}` });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.length >= 3) {
+        setPatientPhone(searchQuery); // auto-sync with phone
+        fetch(`${API}/reception/patients?q=${searchQuery}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.success && data.data.length > 0) {
+              setPatientSearchResults(data.data);
+              setIsPatientSearchOpen(true);
+              setPatientLookupResult({ found: true, message: `${data.data.length} match(es) found.` });
+            } else {
+              setPatientSearchResults([]);
+              setIsPatientSearchOpen(true);
+              setPatientLookupResult({ found: false, message: "No match found. Fill in details to register new patient." });
+            }
+          })
+          .catch(console.error);
       } else {
-        setPatientLookupResult({ found: false, message: "No patient found. Fill in details to register new patient." });
+        setPatientPhone(searchQuery);
+        setPatientSearchResults([]);
+        setIsPatientSearchOpen(false);
+        setPatientLookupResult(null);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const selectPatient = (p: any) => {
+    setPatientName(p.fullName);
+    setPatientPhone(p.phone);
+    setPatientAge(p.ageFallback?.toString() || "");
+    setSearchQuery(p.phone);
+    setIsPatientSearchOpen(false);
+    setPatientLookupResult({ found: true, message: `Patient selected: ${p.fullName}` });
   };
 
   const handleBook = async () => {
@@ -176,6 +221,7 @@ export function PhoneBookingPane() {
         setAvailability(null);
         setDates([]);
         setSelectedTokenNumber(null);
+        fetchTodayBookings();
       } else {
         toast.error(result.error || "Failed to book");
       }
@@ -192,21 +238,42 @@ export function PhoneBookingPane() {
         <div className="bg-background border border-border rounded-lg p-4 space-y-4">
         <h3 className="font-medium text-muted-foreground text-sm">Patient Lookup</h3>
         <div className="flex gap-2">
-          <div className="relative flex-1">
+          <div className="relative flex-1" onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setIsPatientSearchOpen(false);
+            }
+          }}>
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by phone number..."
               className="pl-9 bg-card border-border"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onBlur={handleSearchPatient}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearchPatient()}
+              onFocus={() => { if (searchQuery.length >= 3) setIsPatientSearchOpen(true) }}
             />
+            {isPatientSearchOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+                {patientSearchResults.length > 0 ? (
+                  <ul className="py-1">
+                    {patientSearchResults.map((p) => (
+                      <li
+                        key={p.id}
+                        className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                        onMouseDown={(e) => { e.preventDefault(); selectPatient(p); }}
+                      >
+                        <div className="font-semibold">{p.fullName}</div>
+                        <div className="text-xs text-muted-foreground">{p.phone} • {p.ageFallback ? `${p.ageFallback} yrs` : "No age"}</div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="px-3 py-2 text-sm text-muted-foreground italic">
+                    No matches found. Quick register instead.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <Button variant="secondary" className="bg-muted hover:bg-neutral-700" onClick={handleSearchPatient}>
-            <Search className="w-4 h-4 mr-2" />
-            Search
-          </Button>
         </div>
         {patientLookupResult && (
           <p className={`text-xs mt-1 ${patientLookupResult.found ? 'text-green-500' : 'text-yellow-500'}`}>
@@ -335,6 +402,45 @@ export function PhoneBookingPane() {
           {isBooking ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Phone className="w-5 h-5 mr-2" />}
           Book Phone Token
         </Button>
+      </div>
+
+      {/* Today's Phone Bookings List */}
+      <div className="mt-6">
+        <h3 className="font-medium text-sm mb-3">Today's Phone Bookings</h3>
+        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+          {todayBookings.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center p-4 border rounded-lg bg-card">No pending phone bookings for today.</p>
+          ) : (
+            todayBookings.map((appt) => (
+              <div key={appt.id} className="p-3 border rounded-lg bg-card hover:border-primary/50 transition-colors flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-sm">{appt.patientName}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Token #{appt.tokenNumber} • Dr. {appt.doctorName}
+                  </div>
+                </div>
+                <Button 
+                  size="sm" 
+                  className="bg-primary/10 text-primary hover:bg-primary/20"
+                  onClick={() => {
+                    const docInfo = doctors.find(d => d.fullName === appt.doctorName);
+                    sendAppointmentToPOS({
+                      appointmentId: appt.id,
+                      tokenNumber: appt.tokenNumber,
+                      patientName: appt.patientName,
+                      doctorName: appt.doctorName,
+                      fee: docInfo?.consultationFee || 2500, // Fallback if missing
+                      isUpfront: docInfo?.feeType === 'UPFRONT'
+                    });
+                    toast.success("Sent to POS for checkout.");
+                  }}
+                >
+                  <Send className="w-4 h-4 mr-2" /> Checkout
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
