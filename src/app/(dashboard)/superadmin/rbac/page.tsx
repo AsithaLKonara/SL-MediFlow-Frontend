@@ -6,9 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ShieldCheck, Save, Users } from "lucide-react";
+import { ShieldCheck, Save, Users, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface Permissions {
   create: boolean;
@@ -18,11 +20,10 @@ interface Permissions {
 }
 
 interface RoleRbac {
-  role: string;
+  id: string;
+  name: string;
   permissions: Record<string, Permissions>;
 }
-
-const ROLES = ["receptionist", "doctor", "pharmacist", "labtech", "cashier"];
 
 const DEFAULT_FEATURES = [
   "Patient Registration", "Queue Management", "Consultation", 
@@ -34,26 +35,65 @@ const DEFAULT_FEATURES = [
 
 export default function RBACMatrixPage() {
   const [data, setData] = useState<RoleRbac[]>([]);
-  const [selectedRole, setSelectedRole] = useState<string>("receptionist");
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isAddRoleOpen, setIsAddRoleOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
 
   // Local state for the currently selected role's permissions
   const [currentPermissions, setCurrentPermissions] = useState<Record<string, Permissions>>({});
 
+  const API = process.env.NEXT_PUBLIC_API_URL;
+
+  const fetchRoles = () => {
+    fetch(`${API}/admin/roles`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          const parsedData = d.data.map((role: any) => {
+            const perms: Record<string, Permissions> = {};
+            DEFAULT_FEATURES.forEach(f => {
+              perms[f] = { create: false, read: false, update: false, delete: false };
+            });
+            
+            // Map flat permissions to object
+            if (role.RolePermission) {
+              role.RolePermission.forEach((rp: any) => {
+                const action = rp.Permission.action.toLowerCase() as keyof Permissions;
+                const resource = rp.Permission.resource;
+                if (perms[resource]) {
+                  perms[resource][action] = true;
+                }
+              });
+            }
+            return {
+              id: role.id,
+              name: role.name,
+              permissions: perms
+            };
+          });
+          setData(parsedData);
+          if (parsedData.length > 0 && !selectedRoleId) {
+            setSelectedRoleId(parsedData[0].id);
+          }
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        toast.error("Failed to load roles");
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
-    fetch("/api/admin/rbac").then(r => r.json()).then(d => {
-      setData(d.data);
-      setLoading(false);
-    });
+    fetchRoles();
   }, []);
 
   useEffect(() => {
-    if (!loading && data.length > 0) {
-      const roleData = data.find(r => r.role === selectedRole);
+    if (!loading && data.length > 0 && selectedRoleId) {
+      const roleData = data.find(r => r.id === selectedRoleId);
       
-      // Initialize with default features if none exist for the role,
-      // or merge with existing.
       const initialPerms: Record<string, Permissions> = {};
       DEFAULT_FEATURES.forEach(feature => {
         if (roleData?.permissions?.[feature]) {
@@ -64,7 +104,7 @@ export default function RBACMatrixPage() {
       });
       setCurrentPermissions(initialPerms);
     }
-  }, [selectedRole, data, loading]);
+  }, [selectedRoleId, data, loading]);
 
   const handleToggle = (feature: string, action: keyof Permissions) => {
     setCurrentPermissions(prev => ({
@@ -77,31 +117,67 @@ export default function RBACMatrixPage() {
   };
 
   const handleSave = async () => {
+    if (!selectedRoleId) return;
     setSaving(true);
+    
+    // Flatten permissions array
+    const flatPermissions: {action: string, resource: string}[] = [];
+    Object.keys(currentPermissions).forEach(feature => {
+      if (currentPermissions[feature].create) flatPermissions.push({ action: "CREATE", resource: feature });
+      if (currentPermissions[feature].read) flatPermissions.push({ action: "READ", resource: feature });
+      if (currentPermissions[feature].update) flatPermissions.push({ action: "UPDATE", resource: feature });
+      if (currentPermissions[feature].delete) flatPermissions.push({ action: "DELETE", resource: feature });
+    });
+
     try {
-      const res = await fetch("/api/admin/rbac", {
-        method: "POST",
+      const res = await fetch(`${API}/admin/roles/${selectedRoleId}/permissions`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: selectedRole, permissions: currentPermissions })
+        body: JSON.stringify({ permissions: flatPermissions })
       });
-      if (res.ok) {
-        toast.success(`${selectedRole.toUpperCase()} permissions saved successfully.`);
-        // Update local memory data so switching back and forth keeps changes
+      const resData = await res.json();
+      if (res.ok && resData.success) {
+        toast.success(`Permissions saved successfully.`);
+        // Update local memory
         setData(prev => {
           const newData = [...prev];
-          const idx = newData.findIndex(r => r.role === selectedRole);
+          const idx = newData.findIndex(r => r.id === selectedRoleId);
           if (idx > -1) {
             newData[idx].permissions = currentPermissions;
-          } else {
-            newData.push({ role: selectedRole, permissions: currentPermissions });
           }
           return newData;
         });
+      } else {
+        toast.error(resData.error || "Failed to save permissions.");
       }
     } catch (error) {
-      toast.error("Failed to save permissions.");
+      toast.error("Network error saving permissions.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoleName.trim()) return;
+    
+    try {
+      const res = await fetch(`${API}/admin/roles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newRoleName.trim() })
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Role created successfully");
+        setIsAddRoleOpen(false);
+        setNewRoleName("");
+        fetchRoles(); // refresh
+      } else {
+        toast.error(result.error || "Failed to create role");
+      }
+    } catch (err) {
+      toast.error("Network error");
     }
   };
 
@@ -122,6 +198,9 @@ export default function RBACMatrixPage() {
         </div>
         
         <div className="flex items-center gap-3">
+          <Button onClick={() => setIsAddRoleOpen(true)} variant="outline" className="gap-2">
+            <Plus className="w-4 h-4" /> New Role
+          </Button>
           <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs px-3 py-1 gap-1">
             <ShieldCheck className="w-3 h-3" /> RBAC Enforced
           </Badge>
@@ -142,14 +221,16 @@ export default function RBACMatrixPage() {
               <CardDescription>Configure which sidebar features this role can access.</CardDescription>
             </div>
             <div className="w-64">
-              <Select value={selectedRole} onValueChange={(val) => val && setSelectedRole(val)}>
+              <Select value={selectedRoleId} onValueChange={(val) => val && setSelectedRoleId(val)}>
                 <SelectTrigger className="bg-card text-card-foreground">
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder="Select role">
+                    {data.find(r => r.id === selectedRoleId)?.name || "Select role"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLES.map(r => (
-                    <SelectItem key={r} value={r}>
-                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                  {data.map(r => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -210,6 +291,35 @@ export default function RBACMatrixPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isAddRoleOpen} onOpenChange={setIsAddRoleOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleAddRole}>
+            <DialogHeader>
+              <DialogTitle>Add New Role</DialogTitle>
+              <DialogDescription>
+                Create a new system role. You can configure its permissions later.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Role Name</label>
+                <Input 
+                  value={newRoleName} 
+                  onChange={e => setNewRoleName(e.target.value)} 
+                  placeholder="e.g. NURSE" 
+                  required 
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddRoleOpen(false)}>Cancel</Button>
+              <Button type="submit">Create Role</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

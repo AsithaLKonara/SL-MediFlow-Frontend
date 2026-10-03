@@ -43,6 +43,7 @@ interface Staff {
 
 export default function StaffManagementPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,16 +67,25 @@ export default function StaffManagementPage() {
       .then(res => res.json())
       .then(data => {
         setStaff(data.data || []);
-        setLoading(false);
       })
       .catch(err => {
         toast.error("Failed to load staff");
-        setLoading(false);
+      });
+  };
+
+  const fetchRoles = () => {
+    fetch(`${API}/admin/roles`)
+      .then(res => res.json())
+      .then(data => {
+        setRoles(data.data || []);
+      })
+      .catch(err => {
+        toast.error("Failed to load roles");
       });
   };
 
   useEffect(() => {
-    fetchStaff();
+    Promise.all([fetchStaff(), fetchRoles()]).finally(() => setLoading(false));
   }, []);
 
   const openAddModal = () => {
@@ -282,12 +292,17 @@ export default function StaffManagementPage() {
                   value={formData.roleName} 
                   onChange={e => setFormData({...formData, roleName: e.target.value})}
                 >
-                  <option value="DOCTOR">Doctor</option>
-                  <option value="RECEPTIONIST">Receptionist</option>
-                  <option value="CASHIER">Cashier</option>
-                  <option value="PHARMACIST">Pharmacist</option>
-                  <option value="LAB_TECHNICIAN">Lab Technician</option>
-                  <option value="ADMIN">Admin</option>
+                  {roles.map(r => (
+                    <option key={r.id} value={r.name}>{r.name}</option>
+                  ))}
+                  {/* Fallbacks if DB has none */}
+                  {roles.length === 0 && (
+                    <>
+                      <option value="DOCTOR">DOCTOR</option>
+                      <option value="RECEPTIONIST">RECEPTIONIST</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </>
+                  )}
                 </select>
               </div>
 
