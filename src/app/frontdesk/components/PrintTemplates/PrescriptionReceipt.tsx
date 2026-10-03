@@ -58,7 +58,7 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
       <div className="mt-12 text-center border-t-2 border-black pt-8 flex flex-col items-center">
         {prescriptionId && (
           <div className="mb-4 w-full flex justify-center overflow-hidden">
-            <Barcode value={prescriptionId} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+            <Barcode value={prescriptionId.substring(0, 8)} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
           </div>
         )}
         <p className="text-xs italic mb-2">(Doctor's Signature / Seal)</p>

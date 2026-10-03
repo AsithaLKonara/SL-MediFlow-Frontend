@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, Plus, Minus, Trash2, CreditCard, SendToBack, Printer, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBarcodeScanner } from "@/app/frontdesk/hooks/useBarcodeScanner";
 
 interface InventoryItem {
   id: string;
@@ -76,21 +77,106 @@ export default function PharmacistPOSPage() {
     searchInputRef.current?.focus(); // Refocus for next scan
   };
 
+  const processBarcode = async (code: string) => {
+    if (!code) return;
+
+    try {
+      // 1. Check local catalog first
+      const match = inventory.find(i => i.barcode === code || i.id === code);
+      if (match) {
+        addToCart(match);
+        toast.success(`Added ${match.name}`);
+        return;
+      }
+
+      // 2. Query universal barcode endpoint (handles Prescriptions & Extra Services too!)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${code}`);
+      if (!res.ok) {
+        toast.error(`No item found for barcode ${code}`);
+        return;
+      }
+
+      const { type, data } = await res.json();
+      
+      if (type === "MEDICINE") {
+        // Map the backend structure to InventoryItem if not cached
+        const price = data.stockBatches?.[0]?.unitPrice ?? 0;
+        addToCart({
+          id: data.id,
+          name: data.name,
+          unitPrice: price,
+          stock: data.stockBatches?.[0]?.currentQuantity ?? 0,
+          category: data.category,
+          itemType: data.itemType,
+          barcode: data.barcode || "",
+        });
+        toast.success(`Added ${data.name}`);
+      } else if (type === "EXTRA_SERVICE") {
+        addToCart({
+          id: data.id,
+          name: data.title,
+          unitPrice: data.price,
+          stock: 999, // services don't deplete
+          category: "Service",
+          itemType: "SERVICE",
+          barcode: data.barcode,
+        });
+        toast.success(`Added ${data.title}`);
+      } else if (type === "PRESCRIPTION") {
+        const rx = data;
+        if (rx && rx.items) {
+           let count = 0;
+           for (const item of rx.items) {
+             if (item.medicineId && item.medicine) {
+               const price = item.medicine.stockBatches?.[0]?.unitPrice ?? 0;
+               addToCart({
+                 id: item.medicine.id,
+                 name: item.medicine.name,
+                 unitPrice: price,
+                 stock: item.medicine.stockBatches?.[0]?.currentQuantity ?? 0,
+                 category: item.medicine.category,
+                 itemType: item.medicine.itemType,
+                 barcode: item.medicine.barcode || "",
+               });
+               count++;
+             }
+           }
+           if (count > 0) {
+             setPatientId(rx.patientId || "");
+             setPatientName(rx.patientName || "Walk-in");
+             toast.success(`Loaded prescription with ${count} items.`);
+             
+             // Update Rx Status
+             fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
+               method: "PATCH",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ status: "COMPLETED" }), // Dispensed!
+             }).catch(console.error);
+           }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(`Error processing barcode ${code}`);
+    }
+  };
+
+  useBarcodeScanner((barcode) => {
+    processBarcode(barcode);
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery) return;
     
-    // Exact match for barcode, or partial match for text
-    const match = inventory.find(i => 
-      i.barcode === searchQuery || 
-      i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.id === searchQuery
-    );
-
-    if (match) {
-      addToCart(match);
+    // In manual mode, we just trigger processBarcode directly, but allow fuzzy name search
+    const fuzzyMatch = inventory.find(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (fuzzyMatch && !searchQuery.match(/^\d+$/) && searchQuery.length < 8) {
+      // If it's short text, just add the fuzzy match
+      addToCart(fuzzyMatch);
+      toast.success(`Added ${fuzzyMatch.name}`);
     } else {
-      toast.error("Item not found");
+      processBarcode(searchQuery);
     }
   };
 

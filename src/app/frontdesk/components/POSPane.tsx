@@ -167,77 +167,70 @@ export function POSPane() {
   const processBarcode = async (code: string) => {
     if (!code) return;
 
-    // Check if it's a UUID (e.g. prescription ID or invoice ID) - length 36
-    if (code.length === 36) {
-      // First check if it's a prescription
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}`);
-        if (res.ok) {
-          const rx = await res.json();
-          // Similar to handleSendToPOS in TokenPane, we could load it here, but that might be complex
-          // For now, let's show a toast that it's a prescription and they should load it from the Rx tab.
-          // Or even better, load the prescription items into the cart automatically.
-          if (rx && rx.items) {
-             const cartItems: CartItem[] = rx.items
-               .filter((item: any) => item.medicineId && item.medicine)
-               .map((item: any) => ({
-                 id: item.medicine.id,
-                 name: item.medicine.name,
-                 qty: item.dispenseQty || 1,
-                 price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
-               }));
-             
-             if (cartItems.length > 0) {
-               setCart(prev => {
-                 const updated = [...prev];
-                 for (const rxItem of cartItems) {
-                   const idx = updated.findIndex((i) => i.id === rxItem.id);
-                   if (idx >= 0) {
-                     updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
-                   } else {
-                     updated.push(rxItem);
-                   }
-                 }
-                 return updated;
-               });
-               setActivePrescriptionId(code);
-               if (rx.patientId) setActivePatientId(rx.patientId);
-               if (rx.visitId) setActiveVisitId(rx.visitId);
-               
-               fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
-                 method: "PATCH",
-                 headers: { "Content-Type": "application/json" },
-                 body: JSON.stringify({ status: "IN_PROGRESS" }),
-               }).catch(console.error);
-               notifyRxStatus(code, "IN_PROGRESS");
-               toast.success(`Prescription ${code.substring(0,8)} loaded into POS via barcode scan.`);
-             }
-             return; // Done processing
+    try {
+      // Use the unified barcode API
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${code}`);
+      if (!res.ok) {
+        toast.error(`No item found for barcode ${code}`);
+        return;
+      }
+      
+      const { type, data } = await res.json();
+
+      if (type === "PRESCRIPTION") {
+        const rx = data;
+        if (rx && rx.items) {
+          const cartItems: CartItem[] = rx.items
+            .filter((item: any) => item.medicineId && item.medicine)
+            .map((item: any) => ({
+              id: item.medicine.id,
+              name: item.medicine.name,
+              qty: item.dispenseQty || 1,
+              price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
+            }));
+          
+          if (cartItems.length > 0) {
+            setCart(prev => {
+              const updated = [...prev];
+              for (const rxItem of cartItems) {
+                const idx = updated.findIndex((i) => i.id === rxItem.id);
+                if (idx >= 0) {
+                  updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+                } else {
+                  updated.push(rxItem);
+                }
+              }
+              return updated;
+            });
+            setActivePrescriptionId(code);
+            if (rx.patientId) setActivePatientId(rx.patientId);
+            if (rx.visitId) setActiveVisitId(rx.visitId);
+            
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "IN_PROGRESS" }),
+            }).catch(console.error);
+            notifyRxStatus(code, "IN_PROGRESS");
+            toast.success(`Prescription loaded via barcode scan.`);
           }
         }
-      } catch (e) {
-        console.error(e);
+      } else if (type === "MEDICINE") {
+        addToCart(data);
+        toast.success(`Added ${data.name}`);
+      } else if (type === "EXTRA_SERVICE") {
+        setCart(prev => {
+          const exists = prev.find(i => i.id === data.id);
+          if (exists) {
+            return prev.map(i => i.id === data.id ? { ...i, qty: i.qty + 1 } : i);
+          }
+          return [...prev, { id: data.id, name: data.title, qty: 1, price: data.price }];
+        });
+        toast.success(`Added ${data.title}`);
       }
-    }
-
-    const match = availableMedicines.find(m => m.barcode === code || m.name.toLowerCase() === code.toLowerCase());
-    if (match) {
-      addToCart(match);
-      toast.success(`Added ${match.name}`);
-    } else {
-      // Fallback to fetch directly
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?barcode=${code}`);
-        const data = await res.json();
-        if (data && data.length > 0) {
-          addToCart(data[0]);
-          toast.success(`Added ${data[0].name}`);
-        } else {
-          toast.error(`No item found for barcode ${code}`);
-        }
-      } catch (e) {
-        console.error(e);
-      }
+    } catch (e) {
+      console.error(e);
+      toast.error(`Error processing barcode ${code}`);
     }
   };
 
