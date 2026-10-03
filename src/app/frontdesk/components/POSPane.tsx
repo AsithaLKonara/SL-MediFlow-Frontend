@@ -32,6 +32,8 @@ export function POSPane() {
   const [searchInput, setSearchInput] = useState("");
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
+  const [activePatientId, setActivePatientId] = useState<string | null>(null);
+  const [activeVisitId, setActiveVisitId] = useState<string | null>(null);
   const [pendingTokenPayload, setPendingTokenPayload] = useState<any | null>(null);
   const [pendingAppointmentPayload, setPendingAppointmentPayload] = useState<any | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -199,6 +201,8 @@ export function POSPane() {
                  return updated;
                });
                setActivePrescriptionId(code);
+               if (rx.patientId) setActivePatientId(rx.patientId);
+               if (rx.visitId) setActiveVisitId(rx.visitId);
                
                fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
                  method: "PATCH",
@@ -726,7 +730,13 @@ export function POSPane() {
                       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ items: cart, paymentMethod })
+                        body: JSON.stringify({ 
+                          items: cart, 
+                          paymentMethod,
+                          prescriptionId: activePrescriptionId,
+                          patientId: activePatientId,
+                          visitId: activeVisitId
+                        })
                       });
                       
                       if (res.ok) {
@@ -765,6 +775,8 @@ export function POSPane() {
                       setActivePrescriptionId(null);
                     }
                     setCart([]);
+                    setActivePatientId(null);
+                    setActiveVisitId(null);
                     setPendingTokenPayload(null);
                     setPendingAppointmentPayload(null);
                     toast.success("Payment completed successfully!");
