@@ -6,14 +6,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function LabTechReportsPage() {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/reports`)
-      .then(r => r.json())
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/reports`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error("Failed to load reports");
+        return r.json();
+      })
       .then(data => {
         setReports(data);
         setLoading(false);

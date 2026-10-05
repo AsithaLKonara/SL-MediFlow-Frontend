@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Microscope, Clock } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface TestItem {
   name: string;
@@ -38,10 +39,17 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 export default function LabTechRequestsPage() {
   const [requests, setRequests] = useState<LabRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`)
-      .then(r => r.json())
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error("Failed to load requests");
+        return r.json();
+      })
       .then((data: any[]) => {
         const mapped = data.map(req => ({
           id: req.id,

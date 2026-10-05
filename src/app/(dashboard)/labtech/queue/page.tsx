@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Clock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface QueueToken {
   id: string;
@@ -22,10 +23,17 @@ interface QueueToken {
 export default function LabQueuePage() {
   const [tokens, setTokens] = useState<QueueToken[]>([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   const fetchQueue = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/queue`)
-      .then(r => r.json())
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/queue`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error("Failed to load queue");
+        return r.json();
+      })
       .then((data) => {
         if (data.success) {
           setTokens(data.data);
@@ -39,6 +47,7 @@ export default function LabQueuePage() {
   };
 
   useEffect(() => {
+    if (!token) return;
     fetchQueue();
     // Poll every 10 seconds for new tokens
     const interval = setInterval(fetchQueue, 10000);

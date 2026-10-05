@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useReactToPrint } from 'react-to-print';
 import { LabReportTemplate, LabReportData } from "@/components/print/LabReportTemplate";
 import { TestNameInput, saveToTestMemory } from "@/components/lab/TestNameInput";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 // ---------- Types ----------
 
@@ -94,6 +95,7 @@ export default function LabResultsPage({
 
   const [request, setRequest] = useState<LabRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
   const [results, setResults] = useState<ResultEntry[]>([]);
 
   const [reportMeta, setReportMeta] = useState({
@@ -120,8 +122,14 @@ export default function LabResultsPage({
   // ---------- Data Load ----------
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`)
-      .then(r => r.json())
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error("Failed to load request");
+        return r.json();
+      })
       .then((data: any[]) => {
         const req = data.find((x: any) => x.id === requestId);
         if (!req) { setLoading(false); return; }
@@ -238,11 +246,15 @@ export default function LabResultsPage({
   }));
 
   const handleSave = async () => {
+    if (!token) return;
     setSaving(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/${requestId}/results`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
         body: JSON.stringify({ results: buildApiPayload() })
       });
       if (!res.ok) throw new Error("Save failed");
@@ -261,13 +273,17 @@ export default function LabResultsPage({
   });
 
   const handlePublish = async () => {
+    if (!token) return;
     setPublishing(true);
     const url = `${process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin}/reports/${reportMeta.referenceNo}`;
     setReportUrl(url);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/${requestId}/publish`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
         body: JSON.stringify({
           results: buildApiPayload(),
           reportUrl: url,

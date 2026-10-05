@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Metrics {
   pendingRequests: number;
@@ -24,6 +25,7 @@ export default function LabTechOverview() {
   const [tokenSearch, setTokenSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const router = useRouter();
+  const { token } = useAuth();
 
   const handleTokenSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +33,9 @@ export default function LabTechOverview() {
 
     setSearching(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/token/${tokenSearch.trim()}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/token/${tokenSearch.trim()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       
       if (data.success && data.data.LabRequests && data.data.LabRequests.length > 0) {
@@ -49,11 +53,17 @@ export default function LabTechOverview() {
   };
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/metrics`)
-      .then(r => r.json())
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/metrics`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error("Failed to fetch");
+        return r.json();
+      })
       .then(d => { setMetrics(d); setLoading(false); })
       .catch(e => { console.error("Failed to load metrics", e); setLoading(false); });
-  }, []);
+  }, [token]);
 
   if (loading || !metrics) return (
     <div className="flex h-[80vh] items-center justify-center">

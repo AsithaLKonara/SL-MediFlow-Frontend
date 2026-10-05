@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Plus, Trash2, Save, FlaskConical } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Biomarker {
   name: string;
@@ -29,18 +30,28 @@ export default function LabCatalogManager() {
   const [biomarkers, setBiomarkers] = useState<Biomarker[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { token } = useAuth();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`)
-      .then(r => r.json())
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error("Failed to load catalog");
+        return r.json();
+      })
       .then(d => { setTests(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(e => { console.error(e); setLoading(false); });
-  }, []);
+  }, [token]);
 
   const loadBiomarkers = async (test: LabTest) => {
     setSelectedTest(test);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${test.id}/biomarkers`);
+      if (!token) return;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${test.id}/biomarkers`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setBiomarkers(data.data);
@@ -72,9 +83,13 @@ export default function LabCatalogManager() {
     if (!selectedTest) return;
     setSaving(true);
     try {
+      if (!token) return;
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${selectedTest.id}/biomarkers`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
         body: JSON.stringify({ biomarkers })
       });
       if (!res.ok) throw new Error("Failed to save");
