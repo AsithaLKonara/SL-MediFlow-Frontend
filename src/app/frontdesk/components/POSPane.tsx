@@ -53,7 +53,7 @@ export function POSPane() {
         if (!r.ok) throw new Error("Failed to load medicines");
         return r.json();
       })
-      .then((d) => setAvailableMedicines(d))
+      .then((d) => setAvailableMedicines(d.data || d))
       .catch((e) => {
         console.error("Failed to load medicines", e);
       });

@@ -47,7 +47,8 @@ export default function PharmacistPOSPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then(res => res.json())
       .then(data => {
-        const mapped = data.map((med: any) => {
+        const meds = data.data || data;
+        const mapped = (Array.isArray(meds) ? meds : []).map((med: any) => {
           const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0;
           const unitPrice = med.stockBatches?.length > 0 ? med.stockBatches[med.stockBatches.length - 1].unitPrice : 0;
           return {

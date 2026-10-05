@@ -28,7 +28,8 @@ export default function FrontDeskInventoryPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then(r => r.json())
       .then(data => {
-        const mappedItems = data.map((med: any) => {
+        const meds = data.data || data;
+        const mappedItems = (Array.isArray(meds) ? meds : []).map((med: any) => {
           const totalStock = med.stockBatches?.reduce((sum: number, batch: any) => sum + batch.currentQuantity, 0) || 0;
           return {
             id: med.id,

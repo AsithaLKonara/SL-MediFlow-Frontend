@@ -35,6 +35,8 @@ export function OperationalWorkspace({
     
     socket.on("connect", () => {
       console.log("Connected to websocket");
+      fetchContext();
+      onRefresh();
     });
 
     socket.on("TOKEN_STATUS_UPDATED", (data) => {

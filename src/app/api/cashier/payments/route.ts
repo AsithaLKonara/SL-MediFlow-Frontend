@@ -6,8 +6,9 @@ export async function GET() {
       cache: "no-store"
     });
     const backendData = await res.json();
+    const invoiceList = backendData.data || backendData;
     
-    const data = (Array.isArray(backendData) ? backendData : []).map((inv: any) => ({
+    const data = (Array.isArray(invoiceList) ? invoiceList : []).map((inv: any) => ({
       id: inv.id,
       visitId: inv.visitId || "Walk-in",
       patientId: inv.patientId || "Unknown",

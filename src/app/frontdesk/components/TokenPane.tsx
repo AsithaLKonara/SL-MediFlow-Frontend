@@ -158,12 +158,14 @@ export function TokenPane() {
   useEffect(() => {
     socketRef.current = io(SOCKET_URL);
     
-    socketRef.current.on("TOKEN_STATUS_UPDATED", () => {
-      // Whenever ANY token status changes, refresh the active matrices
+    const refreshAll = () => {
       if (selectedDocId) fetchDocTokens();
       if (selectedTestIds.size > 0) fetchLabTokens();
       if (selectedServiceIds.size > 0) fetchServiceTokens();
-    });
+    };
+
+    socketRef.current.on("connect", refreshAll);
+    socketRef.current.on("TOKEN_STATUS_UPDATED", refreshAll);
 
     return () => {
       if (socketRef.current) socketRef.current.disconnect();

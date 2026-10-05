@@ -74,11 +74,25 @@ export function PhoneBookingPane() {
       }
     };
 
+    const refetchAvailability = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${date}`);
+        const result = await res.json();
+        if (result.success) {
+          setAvailability(result.data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
     socketRef.current.on("availability_updated", handleUpdate);
+    socketRef.current.on("connect", refetchAvailability);
 
     return () => {
       socketRef.current?.emit("leave", room);
       socketRef.current?.off("availability_updated", handleUpdate);
+      socketRef.current?.off("connect", refetchAvailability);
     };
   }, [selectedDocId, date, selectedTokenNumber]);
 

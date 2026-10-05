@@ -6,8 +6,9 @@ export async function GET() {
       cache: "no-store"
     });
     const backendData = await res.json();
+    const medList = backendData.data || backendData;
     
-    const data = (Array.isArray(backendData) ? backendData : []).map((med: any) => {
+    const data = (Array.isArray(medList) ? medList : []).map((med: any) => {
       const stock = (med.stockBatches || []).reduce((acc: number, batch: any) => acc + batch.currentQuantity, 0);
       const reorderLevel = med.reorderLevel || 0;
       

@@ -145,7 +145,8 @@ export default function ConsultationPage({
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then((r) => r.json())
       .then((data) => {
-        const mappedItems = data.map((med: any) => {
+        const meds = data.data || data;
+        const mappedItems = (Array.isArray(meds) ? meds : []).map((med: any) => {
           const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0;
           return { ...med, stock };
         });
