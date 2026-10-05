@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ShieldCheck, Save, Users, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Permissions {
   create: boolean;
@@ -41,49 +42,55 @@ export default function RBACMatrixPage() {
   const [isAddRoleOpen, setIsAddRoleOpen] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
 
+  const { token } = useAuth();
+  
   // Local state for the currently selected role's permissions
   const [currentPermissions, setCurrentPermissions] = useState<Record<string, Permissions>>({});
 
   const API = process.env.NEXT_PUBLIC_API_URL;
 
-  const fetchRoles = () => {
-    fetch(`${API}/admin/roles`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
-          const parsedData = d.data.map((role: any) => {
-            const perms: Record<string, Permissions> = {};
-            DEFAULT_FEATURES.forEach(f => {
-              perms[f] = { create: false, read: false, update: false, delete: false };
-            });
-            
-            // Map flat permissions to object
-            if (role.RolePermission) {
-              role.RolePermission.forEach((rp: any) => {
-                const action = rp.Permission.action.toLowerCase() as keyof Permissions;
-                const resource = rp.Permission.resource;
-                if (perms[resource]) {
-                  perms[resource][action] = true;
-                }
-              });
-            }
-            return {
-              id: role.id,
-              name: role.name,
-              permissions: perms
-            };
-          });
-          setData(parsedData);
-          if (parsedData.length > 0 && !selectedRoleId) {
-            setSelectedRoleId(parsedData[0].id);
-          }
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        toast.error("Failed to load roles");
-        setLoading(false);
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch(`${API}/admin/roles`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
+      const d = await res.json();
+      
+      if (!res.ok) throw new Error(d.error || d.message || "Failed to load roles");
+
+      if (d.success) {
+        const parsedData = d.data.map((role: any) => {
+          const perms: Record<string, Permissions> = {};
+          DEFAULT_FEATURES.forEach(f => {
+            perms[f] = { create: false, read: false, update: false, delete: false };
+          });
+          
+          // Map flat permissions to object
+          if (role.RolePermission) {
+            role.RolePermission.forEach((rp: any) => {
+              const action = rp.Permission.action.toLowerCase() as keyof Permissions;
+              const resource = rp.Permission.resource;
+              if (perms[resource]) {
+                perms[resource][action] = true;
+              }
+            });
+          }
+          return {
+            id: role.id,
+            name: role.name,
+            permissions: perms
+          };
+        });
+        setData(parsedData);
+        if (parsedData.length > 0 && !selectedRoleId) {
+          setSelectedRoleId(parsedData[0].id);
+        }
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load roles");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -132,7 +139,10 @@ export default function RBACMatrixPage() {
     try {
       const res = await fetch(`${API}/admin/roles/${selectedRoleId}/permissions`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ permissions: flatPermissions })
       });
       const resData = await res.json();
@@ -164,7 +174,10 @@ export default function RBACMatrixPage() {
     try {
       const res = await fetch(`${API}/admin/roles`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ name: newRoleName.trim() })
       });
       const result = await res.json();
