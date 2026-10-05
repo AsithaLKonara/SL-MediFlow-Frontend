@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface User {
   id: string;
@@ -46,6 +47,9 @@ export default function DepartmentsPage() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [availableDoctors, setAvailableDoctors] = useState<User[]>([]);
   const [assignDoctorId, setAssignDoctorId] = useState<string>("");
+  
+  const { token } = useAuth();
+  const API = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     fetchDepartments();
@@ -53,11 +57,14 @@ export default function DepartmentsPage() {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch("/api/admin/departments");
+      const res = await fetch(`${API}/admin/departments`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to load departments");
       setDepartments(Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []));
-    } catch (e) {
-      toast.error("Failed to load departments");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load departments");
     } finally {
       setLoading(false);
     }
@@ -65,11 +72,14 @@ export default function DepartmentsPage() {
 
   const fetchAvailableDoctors = async () => {
     try {
-      const res = await fetch("/api/admin/departments/doctors");
+      const res = await fetch(`${API}/admin/departments/doctors`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to load doctors");
       setAvailableDoctors(Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []));
-    } catch (e) {
-      toast.error("Failed to load doctors");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load doctors");
     }
   };
 
@@ -78,21 +88,25 @@ export default function DepartmentsPage() {
       if (!deptForm.name.trim()) return toast.error("Name is required");
 
       const method = editingDept ? "PUT" : "POST";
-      const url = editingDept ? `/api/admin/departments/${editingDept.id}` : "/api/admin/departments";
+      const url = editingDept ? `${API}/admin/departments/${editingDept.id}` : `${API}/admin/departments`;
       
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(deptForm)
       });
       
-      if (!res.ok) throw new Error("Failed to save department");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to save department");
       
       toast.success(`Department ${editingDept ? "updated" : "created"}`);
       setIsDeptModalOpen(false);
       fetchDepartments();
-    } catch (e) {
-      toast.error("An error occurred");
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred");
     }
   };
 
@@ -103,12 +117,16 @@ export default function DepartmentsPage() {
     if (!confirm("Are you sure you want to delete this department?")) return;
 
     try {
-      const res = await fetch(`/api/admin/departments/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
+      const res = await fetch(`${API}/admin/departments/${id}`, { 
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to delete department");
       toast.success("Department deleted");
       fetchDepartments();
-    } catch (e) {
-      toast.error("Failed to delete department");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete department");
     }
   };
 
@@ -116,57 +134,69 @@ export default function DepartmentsPage() {
     if (!selectedDoctor) return;
     try {
       // Direct call to backend for doctor update
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/departments/doctor/${selectedDoctor.id}`, {
+      const res = await fetch(`${API}/admin/departments/doctor/${selectedDoctor.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ 
           consultationFee: doctorForm.consultationFee,
           feeType: doctorForm.feeType
         })
       });
-      if (!res.ok) throw new Error("Failed to update fee");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to update fee");
       
       toast.success("Doctor fee updated successfully");
       setIsDoctorModalOpen(false);
       fetchDepartments();
-    } catch (e) {
-      toast.error("Failed to update doctor fee");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update doctor fee");
     }
   };
 
   const handleAssignDoctor = async () => {
     if (!assignDoctorId || !activeDeptId) return toast.error("Please select a doctor");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/departments/doctor/${assignDoctorId}`, {
+      const res = await fetch(`${API}/admin/departments/doctor/${assignDoctorId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ departmentId: activeDeptId })
       });
-      if (!res.ok) throw new Error("Failed to assign doctor");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to assign doctor");
       
       toast.success("Doctor assigned successfully");
       setIsAssignModalOpen(false);
       setAssignDoctorId("");
       fetchDepartments();
-    } catch (e) {
-      toast.error("Failed to assign doctor");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to assign doctor");
     }
   };
 
   const handleUnassignDoctor = async (doctorId: string) => {
     if (!confirm("Are you sure you want to remove this doctor from the department?")) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/departments/doctor/${doctorId}`, {
+      const res = await fetch(`${API}/admin/departments/doctor/${doctorId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ departmentId: null })
       });
-      if (!res.ok) throw new Error("Failed to remove doctor");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to remove doctor");
       
       toast.success("Doctor removed from department");
       fetchDepartments();
-    } catch (e) {
-      toast.error("Failed to remove doctor");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove doctor");
     }
   };
 
