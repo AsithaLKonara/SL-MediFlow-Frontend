@@ -20,7 +20,7 @@ export function TodaysScheduleList({
   onScheduleUpdate?: () => void;
 }) {
   const booked = tokens.length;
-  const waiting = tokens.filter(t => t.status === "WAITING").length;
+  const waiting = tokens.filter(t => ['WAITING', 'ARRIVED', 'CHECKED_IN'].includes(t.status)).length;
   const completed = tokens.filter(t => t.status === "COMPLETED").length;
 
   const targetDate = selectedDate || new Date();
@@ -34,14 +34,22 @@ export function TodaysScheduleList({
       // Filter out exceptions for this date
       const exception = sch.exceptions?.find((e: any) => e.exceptionDate.startsWith(isoDateStr));
       
-      const sess = sch.sessions?.filter((s: any) => s.dayOfWeek === dayOfWeek && s.isActive).map((s: any) => ({
-        ...s,
-        booked,
-        waiting,
-        completed,
-        isCancelled: exception?.isUnavailable || false,
-        cancelReason: exception?.reason
-      }));
+      const sess = sch.sessions?.filter((s: any) => s.dayOfWeek === dayOfWeek && s.isActive).map((s: any) => {
+        // Filter appointments for this specific session and date
+        const sessionApts = calendarData.bookedAppointments?.filter((a: any) => a.sessionId === s.id && a.appointmentDate.startsWith(isoDateStr)) || [];
+        const sessionBooked = sessionApts.length;
+        const sessionWaiting = sessionApts.filter((a: any) => ['WAITING', 'ARRIVED', 'CHECKED_IN'].includes(a.status)).length;
+        const sessionCompleted = sessionApts.filter((a: any) => a.status === 'COMPLETED').length;
+        
+        return {
+          ...s,
+          booked: sessionBooked,
+          waiting: sessionWaiting,
+          completed: sessionCompleted,
+          isCancelled: exception?.isUnavailable || false,
+          cancelReason: exception?.reason
+        };
+      });
       
       if (sess) activeSessions.push(...sess);
     });
@@ -77,7 +85,7 @@ export function TodaysScheduleList({
     <div className="bg-card border border-border p-5 rounded-xl shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-lg">{title}</h3>
-        <ScheduleConflictForm doctor={doctor} />
+        <ScheduleConflictForm doctor={doctor} onComplete={onScheduleUpdate} />
       </div>
       
       <div className="space-y-4">

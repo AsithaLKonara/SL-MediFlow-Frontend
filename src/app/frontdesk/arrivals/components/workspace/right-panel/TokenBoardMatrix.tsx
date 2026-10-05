@@ -23,9 +23,13 @@ export function TokenBoardMatrix({
 
   const getTokenIcon = (status: string) => {
     switch (status) {
-      case "COMPLETED": return <Check className="w-3 h-3 text-green-600" />;
+      case "COMPLETED": return <Check className="w-3 h-3 text-green-500" />;
+      case "ARRIVED":
+      case "CHECKED_IN":
       case "WAITING": return <Clock className="w-3 h-3 text-amber-500" />;
-      case "CONSULTATION": return <Play className="w-3 h-3 text-blue-600" />;
+      case "IN_PROGRESS":
+      case "CONSULTATION": return <Play className="w-3 h-3 text-blue-500" />;
+      case "BOOKED": return <User className="w-3 h-3 text-purple-500" />;
       case "CANCELLED": 
       case "NO_SHOW": return <X className="w-3 h-3 text-red-500" />;
       case "AVAILABLE": return <span className="text-muted-foreground/50">—</span>;
@@ -35,18 +39,22 @@ export function TokenBoardMatrix({
 
   const getTokenStyle = (status: string) => {
     switch (status) {
-      case "COMPLETED": return "border-green-200 bg-green-50 text-green-700 hover:border-green-300";
-      case "WAITING": return "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300";
-      case "CONSULTATION": return "border-blue-400 bg-blue-100 text-blue-800 ring-2 ring-blue-400 ring-offset-1";
+      case "COMPLETED": return "border-green-500/50 bg-green-500/10 text-green-500 hover:border-green-500";
+      case "ARRIVED":
+      case "CHECKED_IN":
+      case "WAITING": return "border-amber-500/50 bg-amber-500/10 text-amber-500 hover:border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]";
+      case "IN_PROGRESS":
+      case "CONSULTATION": return "border-blue-500 bg-blue-500/20 text-blue-400 ring-2 ring-blue-500 ring-offset-2 ring-offset-background shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105 z-10";
+      case "BOOKED": return "border-purple-500/50 bg-purple-500/10 text-purple-400 hover:border-purple-500";
       case "CANCELLED": 
-      case "NO_SHOW": return "border-red-200 bg-red-50 text-red-700 opacity-70 hover:border-red-300";
-      case "AVAILABLE": return "border-border bg-card text-muted-foreground hover:border-primary/50";
-      default: return "";
+      case "NO_SHOW": return "border-red-500/30 bg-red-500/10 text-red-500/70 hover:border-red-500/50";
+      case "AVAILABLE": return "border-white/10 bg-white/5 text-muted-foreground hover:border-primary/50";
+      default: return "border-white/10 bg-white/5";
     }
   };
 
-  const currentlyServing = tokens.find(t => t.status === "CONSULTATION");
-  const nextToken = tokens.find(t => t.status === "WAITING"); // assuming ordered chronologically
+  const currentlyServing = tokens.find(t => ['CONSULTATION', 'IN_PROGRESS'].includes(t.status));
+  const nextToken = tokens.find(t => ['WAITING', 'ARRIVED', 'CHECKED_IN'].includes(t.status)); // assuming ordered chronologically
 
   const handleAction = async (action: string, tokenToUpdate: any) => {
     if (!tokenToUpdate) return;
@@ -117,10 +125,11 @@ export function TokenBoardMatrix({
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg">Token Board</h3>
-          <div className="flex gap-4 text-xs font-medium text-muted-foreground">
-            <span className="flex items-center gap-1"><Check className="w-3 h-3 text-green-600"/> Completed</span>
+          <div className="flex gap-4 text-xs font-medium text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500"/> Completed</span>
             <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-amber-500"/> Waiting</span>
-            <span className="flex items-center gap-1"><Play className="w-3 h-3 text-blue-600"/> Consulting</span>
+            <span className="flex items-center gap-1"><Play className="w-3 h-3 text-blue-500"/> Consulting</span>
+            <span className="flex items-center gap-1"><User className="w-3 h-3 text-purple-500"/> Booked</span>
             <span className="flex items-center gap-1"><span className="w-3 text-center">—</span> Available</span>
           </div>
         </div>
@@ -128,7 +137,7 @@ export function TokenBoardMatrix({
         <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3">
           {tokens.map((token, index) => (
             <button
-              key={token.id || token.tokenNumber || `available-${index}`}
+              key={token.tokenNumber || `available-${index}`}
               onClick={() => {
                 if (token.status === "AVAILABLE") {
                   setIsWalkInOpen(true);
@@ -139,7 +148,7 @@ export function TokenBoardMatrix({
               className={`
                 flex flex-col items-center justify-center p-2 rounded-lg border transition-all h-16
                 ${getTokenStyle(token.status)}
-                ${selectedToken?.id === token.id ? 'ring-2 ring-primary ring-offset-1 scale-105 shadow-md' : ''}
+                ${selectedToken?.tokenNumber === token.tokenNumber ? 'ring-2 ring-primary ring-offset-1 scale-105 shadow-md' : ''}
               `}
             >
               <span className="text-lg font-bold">
@@ -177,12 +186,17 @@ export function TokenBoardMatrix({
               </div>
               
               <div className="flex flex-col gap-2">
-                {selectedToken.status === 'WAITING' && (
+                {selectedToken.status === 'BOOKED' && (
+                  <Button disabled={isUpdating} onClick={() => handleAction("WAITING", selectedToken)} className="bg-purple-600 text-white hover:bg-purple-700 w-full justify-start h-10 gap-2">
+                    <User className="w-4 h-4" /> Mark Arrived
+                  </Button>
+                )}
+                {['WAITING', 'ARRIVED', 'CHECKED_IN'].includes(selectedToken.status) && (
                   <Button disabled={isUpdating} onClick={() => handleAction("CONSULTATION", selectedToken)} className="bg-primary text-white hover:bg-primary/90 w-full justify-start h-10 gap-2">
                     <Play className="w-4 h-4" /> Start Consultation
                   </Button>
                 )}
-                {selectedToken.status === 'CONSULTATION' && (
+                {['CONSULTATION', 'IN_PROGRESS'].includes(selectedToken.status) && (
                   <Button disabled={isUpdating} onClick={() => handleAction("COMPLETED", selectedToken)} className="bg-green-600 text-white hover:bg-green-700 w-full justify-start h-10 gap-2">
                     <Check className="w-4 h-4" /> Mark Completed
                   </Button>

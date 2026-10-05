@@ -25,25 +25,62 @@ export function EnhancedCalendar({
     let totalTokens = 0;
     let bookedTokens = 0;
     let hasClinic = false;
+    let isCancelled = false;
+    let isOnLeave = false;
 
-    // Check schedules
-    for (const schedule of calendarData.schedules) {
-      const sessions = schedule.sessions?.filter((s: any) => s.dayOfWeek === dayOfWeek && s.isActive);
-      if (sessions && sessions.length > 0) {
-        hasClinic = true;
-        totalTokens += sessions.reduce((acc: number, s: any) => acc + (s.tokenCapacity || 0), 0);
+    // Check leaves
+    if (calendarData.schedules) {
+      for (const schedule of calendarData.schedules) {
+        if (schedule.leaves) {
+          for (const leave of schedule.leaves) {
+            const lStart = new Date(leave.startDate).getTime();
+            const lEnd = new Date(leave.endDate).getTime();
+            if (d.getTime() >= lStart && d.getTime() <= lEnd) {
+              isOnLeave = true;
+            }
+          }
+        }
       }
     }
 
-    // Exceptions would be evaluated here for real world...
-    
+    if (isOnLeave) hasClinic = false;
+
+    // Check schedules and aggregate capacity, factoring in exceptions
+    const isoDateStr = d.toISOString().split('T')[0];
+    let activeSessionsCount = 0;
+    let cancelledSessionsCount = 0;
+
+    if (!isOnLeave) {
+      for (const schedule of calendarData.schedules) {
+        const sessions = schedule.sessions?.filter((s: any) => s.dayOfWeek === dayOfWeek && s.isActive);
+        if (sessions && sessions.length > 0) {
+          hasClinic = true;
+          
+          const exception = schedule.exceptions?.find((ex: any) => ex.exceptionDate.startsWith(isoDateStr) && ex.isUnavailable);
+          
+          if (exception) {
+            cancelledSessionsCount += sessions.length;
+          } else {
+            activeSessionsCount += sessions.length;
+            totalTokens += sessions.reduce((acc: number, s: any) => acc + (s.tokenCapacity || 0), 0);
+          }
+        }
+      }
+    }
+
+    // A day is only entirely cancelled if it has clinics, but ALL of them are cancelled
+    if (hasClinic && activeSessionsCount === 0 && cancelledSessionsCount > 0) {
+      isCancelled = true;
+    }
+
     // Booked
-    if (calendarData.bookedAppointments && hasClinic) {
-      const isoDateStr = d.toISOString().split('T')[0];
+    if (calendarData.bookedAppointments && hasClinic && !isCancelled) {
+      // Only count appointments for the active (non-cancelled) sessions if we were strictly perfect, 
+      // but overall booked for the day is generally fine since cancelled sessions don't accept new ones.
       bookedTokens = calendarData.bookedAppointments.filter((a: any) => a.appointmentDate?.startsWith(isoDateStr)).length;
     }
 
-    return hasClinic ? { totalTokens, bookedTokens } : null;
+    return { hasClinic, totalTokens, bookedTokens, isCancelled, isOnLeave };
   };
 
   const handlePrevMonth = () => {
@@ -99,16 +136,28 @@ export function EnhancedCalendar({
               className={`
                 h-12 w-full rounded-md border flex flex-col items-center p-1 transition-colors
                 ${isSelected ? 'bg-primary border-primary text-primary-foreground shadow-md' : 'bg-card border-border hover:border-primary/50'}
+                ${info?.isOnLeave ? 'bg-muted opacity-60 cursor-not-allowed' : ''}
+                ${info?.isCancelled && !isSelected ? 'bg-red-50 border-red-200 opacity-80' : ''}
                 ${isPast && !isSelected ? 'opacity-50' : ''}
               `}
             >
-              <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-foreground'}`}>{date}</span>
-              {info && (
+              <span className={`text-xs font-bold ${isSelected ? 'text-white' : (info?.isCancelled ? 'text-red-700 line-through' : 'text-foreground')}`}>{date}</span>
+              {info?.hasClinic && !info.isCancelled && !info.isOnLeave && (
                 <div className="mt-auto flex flex-col items-center">
                   <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
                   <span className={`text-[8px] leading-tight font-medium mt-0.5 ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                     {info.totalTokens}/{info.bookedTokens}
                   </span>
+                </div>
+              )}
+              {info?.isCancelled && !info.isOnLeave && (
+                <div className="mt-auto">
+                  <span className="text-[8px] leading-tight font-bold text-red-600 uppercase">Cancel</span>
+                </div>
+              )}
+              {info?.isOnLeave && (
+                <div className="mt-auto">
+                  <span className="text-[8px] leading-tight font-bold text-muted-foreground uppercase">Leave</span>
                 </div>
               )}
             </button>

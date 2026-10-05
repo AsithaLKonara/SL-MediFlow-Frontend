@@ -7,8 +7,8 @@ export function TopSummaryBar({ doctor, tokens = [] }: { doctor: DoctorStatus; t
   const statusText = doctor.attendance?.status || "NOT ARRIVED";
 
   const totalTokens = doctor.sessions && doctor.sessions.length > 0 ? doctor.sessions[0].tokenLimit : 0;
-  const booked = tokens.length;
-  const waiting = tokens.filter(t => t.status === "WAITING").length;
+  const booked = tokens.filter(t => t.status !== "AVAILABLE").length;
+  const waiting = tokens.filter(t => ['WAITING', 'ARRIVED', 'CHECKED_IN'].includes(t.status)).length;
   const completed = tokens.filter(t => t.status === "COMPLETED").length;
 
   return (

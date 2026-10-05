@@ -58,9 +58,9 @@ export default function EnhancedDoctorArrivalsPage() {
     fetchDoctors();
   }, [selectedDate]);
 
-  const fetchDoctors = async () => {
+  const fetchDoctors = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${selectedDate.toISOString()}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
@@ -76,7 +76,7 @@ export default function EnhancedDoctorArrivalsPage() {
     } catch (err: any) {
       console.error("API Failure:", err.message);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -148,7 +148,7 @@ export default function EnhancedDoctorArrivalsPage() {
             doctor={selectedDoctor} 
             selectedDate={selectedDate}
             onDateSelect={setSelectedDate}
-            onRefresh={fetchDoctors}
+            onRefresh={() => fetchDoctors(true)}
           />
         ) : (
           <div className="text-center p-12 bg-muted/20 rounded-xl border border-border border-dashed">

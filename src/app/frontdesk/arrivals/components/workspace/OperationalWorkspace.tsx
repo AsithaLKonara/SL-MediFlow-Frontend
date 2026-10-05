@@ -127,8 +127,8 @@ export function OperationalWorkspace({
 
         {/* Right Panel: Daily Operations (occupies 8 cols) */}
         <div className="lg:col-span-8 space-y-6">
-          <DoctorStatusControl doctor={doctor} onRefresh={fetchContext} />
-          <TodaysScheduleList doctor={doctor} tokens={tokens} selectedDate={selectedDate} calendarData={calendarData} onScheduleUpdate={fetchContext} />
+          <DoctorStatusControl doctor={doctor} onRefresh={() => { fetchContext(); onRefresh(); }} />
+          <TodaysScheduleList doctor={doctor} tokens={tokens} selectedDate={selectedDate} calendarData={calendarData} onScheduleUpdate={() => { fetchContext(); onRefresh(); }} />
           <TokenBoardMatrix doctor={doctor} sessionId={activeSession?.id} tokens={tokens} onTokenUpdate={fetchContext} />
         </div>
       </div>
