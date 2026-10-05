@@ -30,6 +30,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Staff {
   id: string;
@@ -54,6 +55,7 @@ export default function StaffManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { token } = useAuth();
 
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -72,37 +74,43 @@ export default function StaffManagementPage() {
 
   const API = process.env.NEXT_PUBLIC_API_URL;
 
-  const fetchStaff = () => {
-    fetch(`${API}/admin/staff`)
-      .then(res => res.json())
-      .then(data => {
-        setStaff(data.data || []);
-      })
-      .catch(err => {
-        toast.error("Failed to load staff");
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch(`${API}/admin/staff`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to load staff");
+      setStaff(data.data || []);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  const fetchRoles = () => {
-    fetch(`${API}/admin/roles`)
-      .then(res => res.json())
-      .then(data => {
-        setRoles(data.data || []);
-      })
-      .catch(err => {
-        toast.error("Failed to load roles");
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch(`${API}/admin/roles`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to load roles");
+      setRoles(data.data || []);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  const fetchDepartments = () => {
-    fetch(`${API}/admin/departments`)
-      .then(res => res.json())
-      .then(data => {
-        setDepartments(data.data || []);
-      })
-      .catch(err => {
-        toast.error("Failed to load departments");
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch(`${API}/admin/departments`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to load departments");
+      setDepartments(data.data || []);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   useEffect(() => {
@@ -139,15 +147,19 @@ export default function StaffManagementPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to suspend/delete ${name}?`)) return;
     try {
-      const res = await fetch(`${API}/admin/staff/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API}/admin/staff/${id}`, { 
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success(`${name} deleted successfully`);
         fetchStaff();
       } else {
-        toast.error("Failed to delete staff");
+        toast.error(data.error || data.message || "Failed to delete staff");
       }
-    } catch (e) {
-      toast.error("Network error");
+    } catch (e: any) {
+      toast.error(e.message || "Network error");
     }
   };
 
@@ -160,19 +172,27 @@ export default function StaffManagementPage() {
     try {
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(formData)
       });
       const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Failed to save");
+      }
+      
       if (data.success) {
         toast.success(`Staff ${editingId ? "updated" : "added"} successfully`);
         setIsModalOpen(false);
         fetchStaff();
       } else {
-        toast.error(data.error || "Failed to save");
+        throw new Error(data.error || "Failed to save");
       }
-    } catch (e) {
-      toast.error("Network error saving staff");
+    } catch (e: any) {
+      toast.error(e.message || "Network error saving staff");
     } finally {
       setSaving(false);
     }
