@@ -39,23 +39,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             headers: { Authorization: `Bearer ${storedToken}` }
           });
           
-          if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
             throw new Error("Session expired or invalid");
+          } else if (!res.ok) {
+            console.warn(`Session validation returned ${res.status}, keeping session active.`);
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+            setIsLoading(false);
+            return;
           }
           
           const userData = await res.json();
           // Update user in case roles/details changed
-          const validatedUser = { ...JSON.parse(storedUser), ...userData };
+          const validatedUser = { 
+            ...JSON.parse(storedUser), 
+            ...userData,
+            role: userData.Role?.name || JSON.parse(storedUser).role
+          };
           
           setToken(storedToken);
           setUser(validatedUser);
           localStorage.setItem("user", JSON.stringify(validatedUser));
         } catch (error) {
           console.error("Session validation failed:", error);
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          setToken(null);
-          setUser(null);
+          // Only clear local storage if we definitively know the token is bad (401/403)
+          if (error instanceof Error && error.message === "Session expired or invalid") {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setToken(null);
+            setUser(null);
+          } else {
+            // Keep the session for network errors / server downtime
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+          }
         }
       }
       setIsLoading(false);

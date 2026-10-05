@@ -13,6 +13,7 @@ import {
   TableRow,
   TableBody
 } from "@/components/ui/table";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Transaction {
   id: string;
@@ -37,20 +38,54 @@ interface FinanceData {
 export default function FinancePage() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/finance/dashboard`)
-      .then(res => res.json())
+    if (!token) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/finance/dashboard`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || res.statusText);
+        }
+        return res.json();
+      })
       .then(data => {
-        setData(data);
+        if (data.success && data.data) {
+          setData(data.data);
+        } else if (data.metrics) {
+          setData(data);
+        } else {
+          throw new Error("Invalid response format");
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load finance stats", err);
+        setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [token]);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center flex-col text-red-500">
+        <p className="text-xl font-semibold mb-2">Error Loading Finance Data</p>
+        <p>{error || "Unknown error occurred."}</p>
       </div>
     );
   }
