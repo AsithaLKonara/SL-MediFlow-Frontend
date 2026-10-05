@@ -7,6 +7,8 @@ import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, Sen
 import { toast } from "sonner";
 import { io, Socket } from "socket.io-client";
 import { useRxToPOS } from "../hooks/useCartSync";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCallback } from "react";
 
 interface Doctor {
   id: string;
@@ -18,6 +20,18 @@ interface Doctor {
 }
 
 export function PhoneBookingPane() {
+  const { token } = useAuth();
+
+  const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }, [token]);
+
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDocId, setSelectedDocId] = useState("");
   const [date, setDate] = useState("");
@@ -76,7 +90,7 @@ export function PhoneBookingPane() {
 
     const refetchAvailability = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${date}`);
+        const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${date}`);
         const result = await res.json();
         if (result.success) {
           setAvailability(result.data);
@@ -97,7 +111,7 @@ export function PhoneBookingPane() {
   }, [selectedDocId, date, selectedTokenNumber]);
 
   useEffect(() => {
-    fetch(`${API}/booking/doctors`)
+    apiFetch(`${API}/booking/doctors`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setDoctors(res.data);
@@ -115,7 +129,7 @@ export function PhoneBookingPane() {
     }
     
     setIsLoadingDates(true);
-    fetch(`${API}/booking/available-dates?doctorId=${selectedDocId}`)
+    apiFetch(`${API}/booking/available-dates?doctorId=${selectedDocId}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) {
@@ -131,7 +145,7 @@ export function PhoneBookingPane() {
 
   const fetchTodayBookings = async () => {
     try {
-      const res = await fetch(`${API}/booking/appointments`);
+      const res = await apiFetch(`${API}/booking/appointments`);
       const data = await res.json();
       if (data.success) {
         // Filter for today's PHONE bookings that are not completed/cancelled
@@ -154,7 +168,7 @@ export function PhoneBookingPane() {
     
     // Fetch precise availability with token grid
     try {
-      const res = await fetch(`${API}/booking/availability?doctorId=${selectedDocId}&date=${d.date}`);
+      const res = await apiFetch(`${API}/booking/availability?doctorId=${selectedDocId}&date=${d.date}`);
       const result = await res.json();
       if (result.success) {
         setAvailability(result.data);
@@ -168,7 +182,7 @@ export function PhoneBookingPane() {
     const timer = setTimeout(() => {
       if (searchQuery.length >= 3) {
         setPatientPhone(searchQuery); // auto-sync with phone
-        fetch(`${API}/reception/patients?q=${searchQuery}`)
+        apiFetch(`${API}/reception/patients?q=${searchQuery}`)
           .then(r => r.json())
           .then(data => {
             if (data.success && data.data.length > 0) {
@@ -209,7 +223,7 @@ export function PhoneBookingPane() {
 
     setIsBooking(true);
     try {
-      const res = await fetch(`${API}/booking/phone`, {
+      const res = await apiFetch(`${API}/booking/phone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

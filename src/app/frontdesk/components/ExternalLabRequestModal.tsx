@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Phone, User, Search, Loader2 } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCallback } from "react";
 
 interface LabTest {
   id: string;
@@ -21,6 +23,18 @@ interface ExternalLabRequestModalProps {
 }
 
 export function ExternalLabRequestModal({ isOpen, onClose, patientPhone, patientName }: ExternalLabRequestModalProps) {
+  const { token } = useAuth();
+
+  const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }, [token]);
+
   const [availableTests, setAvailableTests] = useState<LabTest[]>([]);
   const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
   const [isLoadingTests, setIsLoadingTests] = useState(false);
@@ -37,7 +51,7 @@ export function ExternalLabRequestModal({ isOpen, onClose, patientPhone, patient
   const fetchTests = async () => {
     setIsLoadingTests(true);
     try {
-      const res = await fetch(`${API}/lab/catalog`);
+      const res = await apiFetch(`${API}/lab/catalog`);
       if (res.ok) {
         const data = await res.json();
         setAvailableTests(data);
@@ -72,7 +86,7 @@ export function ExternalLabRequestModal({ isOpen, onClose, patientPhone, patient
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${API}/lab/requests`, {
+      const res = await apiFetch(`${API}/lab/requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

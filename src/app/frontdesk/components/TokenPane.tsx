@@ -16,6 +16,7 @@ import { PhoneBookingPane } from "./PhoneBookingPane";
 import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
 import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { io, Socket } from "socket.io-client";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Doctor {
   id: string;
@@ -73,6 +74,18 @@ interface GeneratedToken {
 }
 
 export function TokenPane() {
+  const { token } = useAuth();
+  
+  const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }, [token]);
+
   const { sendToPOS, sendTokenToPOS, onRxStatusUpdate } = useRxToPOS();
   const [searchQuery, setSearchQuery] = useState("");
   const [patientName, setPatientName] = useState("");
@@ -125,7 +138,7 @@ export function TokenPane() {
   const fetchDocTokens = useCallback(() => {
     if (!selectedDocId) return;
     const dateStr = new Date().toISOString().split('T')[0];
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${dateStr}`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${dateStr}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setDocTokens(res.data.tokens || []);
@@ -136,7 +149,7 @@ export function TokenPane() {
   const fetchLabTokens = useCallback(() => {
     if (selectedTestIds.size === 0) return;
     const dateStr = new Date().toISOString().split('T')[0];
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=LAB&date=${dateStr}`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=LAB&date=${dateStr}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setLabTokens(res.data.tokens || []);
@@ -147,7 +160,7 @@ export function TokenPane() {
   const fetchServiceTokens = useCallback(() => {
     if (selectedServiceIds.size === 0) return;
     const dateStr = new Date().toISOString().split('T')[0];
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=EXTRA_SERVICE&date=${dateStr}`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=EXTRA_SERVICE&date=${dateStr}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setServiceTokens(res.data.tokens || []);
@@ -210,7 +223,7 @@ export function TokenPane() {
   const fetchPendingPrescriptions = useCallback(async () => {
     setRxLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/pending`);
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/pending`);
       if (!res.ok) throw new Error("Failed to fetch prescriptions");
       const data: Prescription[] = await res.json();
       setPendingPrescriptions(data);
@@ -224,15 +237,15 @@ export function TokenPane() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/doctors`).then(r => {
+      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/doctors`).then(r => {
         if (!r.ok) throw new Error("Failed to fetch doctors");
         return r.json();
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`).then(r => {
+      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`).then(r => {
         if (!r.ok) throw new Error("Failed to fetch lab catalog");
         return r.json();
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`).then(r => {
+      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`).then(r => {
         if (!r.ok) throw new Error("Failed to fetch extra services");
         return r.json();
       })
@@ -298,7 +311,7 @@ export function TokenPane() {
     const timer = setTimeout(() => {
       if (searchQuery.length >= 3) {
         setPatientPhone(searchQuery); // auto-sync with phone
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/patients?q=${searchQuery}`)
+        apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/patients?q=${searchQuery}`)
           .then(r => r.json())
           .then(data => {
             if (data.success && data.data.length > 0) {

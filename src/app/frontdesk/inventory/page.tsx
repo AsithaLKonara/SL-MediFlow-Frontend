@@ -9,8 +9,22 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCallback } from "react";
 
 export default function FrontDeskInventoryPage() {
+  const { token } = useAuth();
+  
+  const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }, [token]);
+
   const [medicines, setMedicines] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isRestockOpen, setIsRestockOpen] = useState(false);
@@ -25,7 +39,7 @@ export default function FrontDeskInventoryPage() {
   const router = useRouter();
 
   const fetchMedicines = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then(r => r.json())
       .then(data => {
         const meds = data.data || data;
@@ -68,7 +82,7 @@ export default function FrontDeskInventoryPage() {
     if (!selectedMed) return;
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/stock`, {
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/stock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

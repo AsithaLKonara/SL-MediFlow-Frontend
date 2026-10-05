@@ -15,6 +15,8 @@ import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { MergedReceiptTemplate } from "../../../components/printing/MergedReceiptTemplate";
 import { CheckCircle2, Printer } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCallback } from "react";
 
 interface Medicine {
   id: string;
@@ -24,6 +26,18 @@ interface Medicine {
 }
 
 export function POSPane() {
+  const { token } = useAuth();
+  
+  const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }, [token]);
+
   const { updateState, state } = useCartSync(true);
   const { onPrescriptionReceived, notifyRxStatus } = useRxToPOS();
 
@@ -48,7 +62,7 @@ export function POSPane() {
   });
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load medicines");
         return r.json();
@@ -96,7 +110,7 @@ export function POSPane() {
         });
         setActivePrescriptionId(rxId);
         // Mark prescription as IN_PROGRESS on backend
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxId}/status`, {
+        apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxId}/status`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: "IN_PROGRESS" }),
@@ -169,7 +183,7 @@ export function POSPane() {
 
     try {
       // Use the unified barcode API
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${code}`);
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${code}`);
       if (!res.ok) {
         toast.error(`No item found for barcode ${code}`);
         return;
@@ -206,7 +220,7 @@ export function POSPane() {
             if (rx.patientId) setActivePatientId(rx.patientId);
             if (rx.visitId) setActiveVisitId(rx.visitId);
             
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
+            apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ status: "IN_PROGRESS" }),
@@ -263,7 +277,7 @@ export function POSPane() {
   const handleCloseCheckout = (cancelled = false) => {
     // If cancelled and a prescription was in progress, revert it to PENDING
     if (cancelled && activePrescriptionId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
+      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PENDING" }),
@@ -286,7 +300,7 @@ export function POSPane() {
 
   const handleCancelPrescription = () => {
     if (activePrescriptionId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
+      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PENDING" }),
@@ -653,7 +667,7 @@ export function POSPane() {
 
                     // 1. Generate Token if payload exists
                     if (pendingTokenPayload) {
-                      const resToken = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
+                      const resToken = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(pendingTokenPayload)
@@ -681,7 +695,7 @@ export function POSPane() {
 
                     // 1.5 Checkout Phone Appointment if payload exists
                     if (pendingAppointmentPayload) {
-                      const resAppt = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/checkout-appointment`, {
+                      const resAppt = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/checkout-appointment`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(pendingAppointmentPayload)
@@ -720,7 +734,7 @@ export function POSPane() {
                     // 2. Process Pharmacy Cart if any
                     let receiptId = `TXN-${Date.now()}`;
                     if (cart.length > 0) {
-                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
+                      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ 
@@ -759,7 +773,7 @@ export function POSPane() {
 
                     // Mark prescription DISPENSED if one was active
                     if (activePrescriptionId) {
-                      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
+                      await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ status: "DISPENSED" }),
