@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface ExtraService {
   id: string;
@@ -30,6 +31,7 @@ export default function ExtraServicesPage() {
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newService, setNewService] = useState({ title: "", description: "", price: 0, barcode: "", roomNumber: "" });
   const [saving, setSaving] = useState(false);
+  const { token } = useAuth();
 
   useEffect(() => {
     fetchServices();
@@ -37,10 +39,19 @@ export default function ExtraServicesPage() {
 
   const fetchServices = () => {
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
       .then(r => r.json())
-      .then((data: ExtraService[]) => {
-        setServices(data);
+      .then((data: any) => {
+        if (Array.isArray(data)) {
+          setServices(data);
+        } else {
+          console.error("Failed to load extra services:", data);
+          toast.error(data.message || "Failed to load extra services");
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -65,7 +76,10 @@ export default function ExtraServicesPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(newService)
       });
       const data = await res.json();
@@ -86,7 +100,10 @@ export default function ExtraServicesPage() {
     if (!confirm("Are you sure you want to deactivate this service?")) return;
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
       });
       if (!res.ok) throw new Error("Failed to delete");
       toast.success("Service deactivated");
