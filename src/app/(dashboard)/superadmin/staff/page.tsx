@@ -350,7 +350,7 @@ export default function StaffManagementPage() {
                   {/* Fallbacks if DB has none */}
                   {roles.length === 0 && (
                     <>
-                      <option value="DOCTOR">DOCTOR</option>
+                      <option value="Doctor">Doctor</option>
                       <option value="RECEPTIONIST">RECEPTIONIST</option>
                       <option value="ADMIN">ADMIN</option>
                     </>
@@ -358,7 +358,7 @@ export default function StaffManagementPage() {
                 </select>
               </div>
 
-              {formData.roleName === "DOCTOR" && (
+              {formData.roleName === "Doctor" && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
