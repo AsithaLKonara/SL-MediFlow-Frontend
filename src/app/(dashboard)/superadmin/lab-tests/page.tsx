@@ -42,13 +42,23 @@ export default function LabTestTemplatesPage() {
   const fetchTests = () => {
     setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`)
-      .then(r => r.json())
-      .then((data: any[]) => {
-        setTests(data);
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || data.message || "Failed to load lab templates");
+        return data;
+      })
+      .then((data: any) => {
+        if (Array.isArray(data)) {
+          setTests(data);
+        } else {
+          setTests([]);
+          toast.error("Invalid data format received from server");
+        }
         setLoading(false);
       })
-      .catch(() => {
-        toast.error("Failed to load lab templates");
+      .catch((e: any) => {
+        toast.error(e.message || "Failed to load lab templates");
+        setTests([]);
         setLoading(false);
       });
   };

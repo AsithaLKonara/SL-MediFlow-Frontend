@@ -55,7 +55,7 @@ export default function DepartmentsPage() {
     try {
       const res = await fetch("/api/admin/departments");
       const json = await res.json();
-      setDepartments(json.data || []);
+      setDepartments(Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []));
     } catch (e) {
       toast.error("Failed to load departments");
     } finally {
@@ -67,7 +67,7 @@ export default function DepartmentsPage() {
     try {
       const res = await fetch("/api/admin/departments/doctors");
       const json = await res.json();
-      setAvailableDoctors(json || []);
+      setAvailableDoctors(Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []));
     } catch (e) {
       toast.error("Failed to load doctors");
     }

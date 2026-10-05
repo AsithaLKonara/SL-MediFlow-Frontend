@@ -33,7 +33,7 @@ export default function LabCatalogManager() {
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`)
       .then(r => r.json())
-      .then(d => { setTests(d); setLoading(false); })
+      .then(d => { setTests(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(e => { console.error(e); setLoading(false); });
   }, []);
 
