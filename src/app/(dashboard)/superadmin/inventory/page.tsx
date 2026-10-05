@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Search, AlertTriangle, PlusCircle, PackageSearch, PackagePlus } from "lucide-react";
+import { Search, AlertTriangle, PlusCircle, PackageSearch, PackagePlus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface InventoryItem {
   id: string;
@@ -31,6 +33,18 @@ export default function SuperAdminInventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+  const { token } = useAuth();
   
   // Restock form state
   const [isRestockOpen, setIsRestockOpen] = useState(false);
@@ -40,6 +54,14 @@ export default function SuperAdminInventoryPage() {
   const [price, setPrice] = useState("10.00");
   const [expiry, setExpiry] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Edit item form state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Global Error & Conflict state
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string; itemId?: string; isConflict?: boolean }>({ open: false, message: "" });
 
   // New item form state
   const [isAddDrugOpen, setIsAddDrugOpen] = useState(false);
@@ -53,7 +75,8 @@ export default function SuperAdminInventoryPage() {
     unit: "",
     reorderLevel: "100",
     baseStock: "",
-    basePrice: ""
+    basePrice: "",
+    expiryDate: ""
   });
   const [addingDrug, setAddingDrug] = useState(false);
 
@@ -67,7 +90,8 @@ export default function SuperAdminInventoryPage() {
     unit: "pcs",
     reorderLevel: "50",
     baseStock: "",
-    basePrice: ""
+    basePrice: "",
+    expiryDate: ""
   });
   const [addingNonMed, setAddingNonMed] = useState(false);
 
@@ -85,10 +109,81 @@ export default function SuperAdminInventoryPage() {
     setIsAddNonMedOpen(true);
   };
 
+  const openEdit = (item: InventoryItem) => {
+    setEditingItem(item);
+    setIsEditOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines/${editingItem.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editingItem.name,
+          category: editingItem.category,
+          unit: editingItem.unit,
+          reorderLevel: editingItem.reorderLevel,
+          barcode: editingItem.barcode
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Item updated successfully");
+        fetchMedicines();
+        setIsEditOpen(false);
+      } else {
+        setErrorDialog({ open: true, message: data?.error || data?.message || "Failed to update item", isConflict: data?.code === 'ALREADY_EXISTS', itemId: data?.itemId });
+      }
+    } catch (e: any) {
+      console.error(e);
+      setErrorDialog({ open: true, message: e?.message || "Network error during update" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleArchive = async (id: string) => {
+    if (!confirm("Are you sure you want to archive this item?")) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Item archived successfully");
+        fetchMedicines();
+      } else {
+        toast.error(data.error || "Failed to archive item");
+      }
+    } catch (e: any) {
+      toast.error("Network error");
+    }
+  };
+
   const fetchMedicines = () => {
+    if (!token) return;
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
-      .then(r => r.json())
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?page=${page}&search=${encodeURIComponent(debouncedSearch)}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(async r => {
+        if (!r.ok) {
+          const text = await r.text();
+          throw new Error(text || r.statusText);
+        }
+        return r.json();
+      })
       .then(data => {
         const meds = data.data || data;
         const mappedItems = (Array.isArray(meds) ? meds : []).map((med: any) => {
@@ -112,6 +207,9 @@ export default function SuperAdminInventoryPage() {
           };
         });
         setItems(mappedItems);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages || 1);
+        }
         setLoading(false);
       })
       .catch(e => {
@@ -123,7 +221,7 @@ export default function SuperAdminInventoryPage() {
 
   useEffect(() => {
     fetchMedicines();
-  }, []);
+  }, [token, page, debouncedSearch]);
 
   const openRestock = (item: InventoryItem) => {
     setSelectedMed(item);
@@ -152,8 +250,8 @@ export default function SuperAdminInventoryPage() {
       toast.error("Please enter a valid unit price.");
       return;
     }
-    if (!expiry || !batchNo) {
-      toast.error("Batch number and expiry date are required.");
+    if (!batchNo) {
+      toast.error("Batch number is required.");
       return;
     }
 
@@ -162,11 +260,14 @@ export default function SuperAdminInventoryPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/stock`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           medicineId: selectedMed.id,
           batchNumber: batchNo,
-          expiryDate: expiry,
+          expiryDate: expiry || undefined,
           initialQuantity: parsedQty,
           unitPrice: parsedPrice
         })
@@ -179,11 +280,11 @@ export default function SuperAdminInventoryPage() {
         setIsRestockOpen(false);
       } else {
         console.error("Restock failed:", data);
-        toast.error(data.error || "Failed to process restock");
+        setErrorDialog({ open: true, message: data?.error || data?.message || "Failed to process restock" });
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || "Network error during restock");
+      setErrorDialog({ open: true, message: e?.message || "Network error during restock" });
     } finally {
       setSaving(false);
     }
@@ -207,7 +308,10 @@ export default function SuperAdminInventoryPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           name: newDrug.name,
           barcode: newDrug.barcode || undefined,
@@ -218,7 +322,8 @@ export default function SuperAdminInventoryPage() {
           unit: newDrug.unit,
           reorderLevel: parsedReorder,
           baseStock: newDrug.baseStock ? parseInt(newDrug.baseStock) : undefined,
-          basePrice: newDrug.basePrice ? parseFloat(newDrug.basePrice) : undefined
+          basePrice: newDrug.basePrice ? parseFloat(newDrug.basePrice) : undefined,
+          expiryDate: newDrug.expiryDate || undefined
         })
       });
       
@@ -227,14 +332,14 @@ export default function SuperAdminInventoryPage() {
         toast.success(`Successfully added item master: ${newDrug.name}`);
         fetchMedicines();
         setIsAddDrugOpen(false);
-        setNewDrug({ name: "", barcode: "", genericName: "", category: "", itemType: "MEDICINE", form: "", unit: "", reorderLevel: "100", baseStock: "", basePrice: "" });
+        setNewDrug({ name: "", barcode: "", genericName: "", category: "", itemType: "MEDICINE", form: "", unit: "", reorderLevel: "100", baseStock: "", basePrice: "", expiryDate: "" });
       } else {
         console.error("Add item failed:", data);
-        toast.error(data.error || "Failed to add new item master");
+        setErrorDialog({ open: true, message: data?.error || data?.message || "Failed to add new item master", isConflict: data?.code === 'ALREADY_EXISTS', itemId: data?.itemId });
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || "Network error during add item");
+      setErrorDialog({ open: true, message: e?.message || "Network error during add item" });
     } finally {
       setAddingDrug(false);
     }
@@ -257,7 +362,10 @@ export default function SuperAdminInventoryPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           name: newNonMedItem.name,
           barcode: newNonMedItem.barcode || undefined,
@@ -266,7 +374,8 @@ export default function SuperAdminInventoryPage() {
           unit: newNonMedItem.unit,
           reorderLevel: parsedReorder,
           baseStock: newNonMedItem.baseStock ? parseInt(newNonMedItem.baseStock) : undefined,
-          basePrice: newNonMedItem.basePrice ? parseFloat(newNonMedItem.basePrice) : undefined
+          basePrice: newNonMedItem.basePrice ? parseFloat(newNonMedItem.basePrice) : undefined,
+          expiryDate: newNonMedItem.expiryDate || undefined
         })
       });
       
@@ -275,29 +384,30 @@ export default function SuperAdminInventoryPage() {
         toast.success(`Successfully added item: ${newNonMedItem.name}`);
         fetchMedicines();
         setIsAddNonMedOpen(false);
-        setNewNonMedItem({ name: "", barcode: "", category: "", itemType: "CONSUMABLE", unit: "pcs", reorderLevel: "50", baseStock: "", basePrice: "" });
+        setNewNonMedItem({ name: "", barcode: "", category: "", itemType: "CONSUMABLE", unit: "pcs", reorderLevel: "50", baseStock: "", basePrice: "", expiryDate: "" });
       } else {
         console.error("Add item failed:", data);
-        toast.error(data.error || "Failed to add non-medical item");
+        setErrorDialog({ open: true, message: data?.error || data?.message || "Failed to add non-medical item", isConflict: data?.code === 'ALREADY_EXISTS', itemId: data?.itemId });
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || "Network error during add item");
+      setErrorDialog({ open: true, message: e?.message || "Network error during add item" });
     } finally {
       setAddingNonMed(false);
     }
   };
 
-  const filtered = items.filter(i =>
-    i.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.category.toLowerCase().includes(search.toLowerCase()) ||
-    i.barcode.includes(search)
-  );
-
   const lowStockItems = items.filter(i => i.status === "LOW_STOCK" || i.status === "OUT_OF_STOCK");
+  
+  const uniqueCategories = Array.from(new Set(items.map(i => i.category))).filter(Boolean);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <datalist id="category-list">
+        {uniqueCategories.map((cat, idx) => (
+          <option key={idx} value={cat} />
+        ))}
+      </datalist>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] flex items-center gap-2">
@@ -351,7 +461,7 @@ export default function SuperAdminInventoryPage() {
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="pl-6">Barcode</TableHead>
-                    <TableHead>Drug Name</TableHead>
+                    <TableHead>Item Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Live Stock</TableHead>
                     <TableHead className="text-right">Reorder Level</TableHead>
@@ -361,13 +471,13 @@ export default function SuperAdminInventoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((item) => (
+                  {items.map((item) => (
                     <TableRow key={item.id} className={item.status !== "IN_STOCK" ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-muted/30"}>
                       <TableCell className="pl-6 font-mono text-xs text-muted-foreground">{item.barcode}</TableCell>
                       <TableCell>
-                        <p className="font-semibold text-[#3A3435]">{item.name}</p>
+                        <p className="font-normal text-muted-foreground">{item.name}</p>
                         <Badge variant="outline" className="mt-1 text-[10px] tracking-wide">
-                          {item.itemType === 'MEDICINE' ? '💊 Drug' : item.itemType === 'CONSUMABLE' ? '📦 Consumable' : '🔧 Equipment'}
+                          {item.itemType === 'MEDICINE' ? 'Drug' : item.itemType === 'CONSUMABLE' ? 'Consumable' : 'Equipment'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{item.category}</TableCell>
@@ -384,14 +494,27 @@ export default function SuperAdminInventoryPage() {
                           {item.status.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right pr-6">
+                      <TableCell className="text-right pr-6 flex justify-end gap-2 items-center">
                         <Button size="sm" variant="outline" onClick={() => openRestock(item)} className="gap-2">
                           <PackagePlus className="w-4 h-4" /> Receive Batch
                         </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(item)}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleArchive(item.id)} className="text-red-600 focus:bg-red-50 focus:text-red-700">
+                              <Trash2 className="w-4 h-4 mr-2" /> Archive Item
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {filtered.length === 0 && (
+                  {items.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="h-48 text-center text-muted-foreground">
                         No medications found matching your search.
@@ -403,6 +526,31 @@ export default function SuperAdminInventoryPage() {
             </div>
           )}
         </CardContent>
+        {!loading && totalPages > 1 && (
+          <div className="p-4 border-t flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <Dialog open={isRestockOpen} onOpenChange={setIsRestockOpen}>
@@ -432,7 +580,7 @@ export default function SuperAdminInventoryPage() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="expiry">Batch Expiry Date</Label>
+              <Label htmlFor="expiry">Batch Expiry Date (Optional)</Label>
               <Input id="expiry" type="date" value={expiry} onChange={e => setExpiry(e.target.value)} />
             </div>
           </div>
@@ -471,7 +619,7 @@ export default function SuperAdminInventoryPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="category">Category*</Label>
-                <Input id="category" placeholder="e.g. Analgesic" value={newDrug.category} onChange={e => setNewDrug({...newDrug, category: e.target.value})} />
+                <Input list="category-list" id="category" placeholder="e.g. Analgesic" value={newDrug.category} onChange={e => setNewDrug({...newDrug, category: e.target.value})} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="barcode">Barcode (Optional)</Label>
@@ -502,6 +650,12 @@ export default function SuperAdminInventoryPage() {
               <div className="grid gap-2">
                 <Label htmlFor="basePrice" className="text-muted-foreground">Unit Price (Rs)</Label>
                 <Input id="basePrice" type="number" placeholder="Optional" value={newDrug.basePrice} onChange={e => setNewDrug({...newDrug, basePrice: e.target.value})} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="baseExpiry" className="text-muted-foreground">Opening Stock Expiry</Label>
+                <Input id="baseExpiry" type="date" value={newDrug.expiryDate} onChange={e => setNewDrug({...newDrug, expiryDate: e.target.value})} />
               </div>
             </div>
           </div>
@@ -556,7 +710,7 @@ export default function SuperAdminInventoryPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="nonMedCategory">Category*</Label>
-                <Input id="nonMedCategory" placeholder="e.g. PPE" value={newNonMedItem.category} onChange={e => setNewNonMedItem({...newNonMedItem, category: e.target.value})} />
+                <Input list="category-list" id="nonMedCategory" placeholder="e.g. PPE" value={newNonMedItem.category} onChange={e => setNewNonMedItem({...newNonMedItem, category: e.target.value})} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="nonMedUnit">Unit*</Label>
@@ -578,12 +732,100 @@ export default function SuperAdminInventoryPage() {
                 <Input id="nonMedBasePrice" type="number" placeholder="Optional" value={newNonMedItem.basePrice} onChange={e => setNewNonMedItem({...newNonMedItem, basePrice: e.target.value})} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="nonMedBaseExpiry" className="text-muted-foreground">Opening Stock Expiry</Label>
+                <Input id="nonMedBaseExpiry" type="date" value={newNonMedItem.expiryDate} onChange={e => setNewNonMedItem({...newNonMedItem, expiryDate: e.target.value})} />
+              </div>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsAddNonMedOpen(false)} disabled={addingNonMed}>Cancel</Button>
             <Button onClick={handleAddNonMed} disabled={addingNonMed} className="bg-primary hover:bg-primary/90">
               {addingNonMed ? "Creating..." : "Create Item"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5 text-primary" />
+              Edit Item Details
+            </DialogTitle>
+          </DialogHeader>
+          {editingItem && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Item Name</Label>
+                <Input value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Barcode</Label>
+                <Input value={editingItem.barcode} onChange={e => setEditingItem({...editingItem, barcode: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Category</Label>
+                <Input list="category-list" value={editingItem.category} onChange={e => setEditingItem({...editingItem, category: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Unit</Label>
+                <Input value={editingItem.unit} onChange={e => setEditingItem({...editingItem, unit: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Reorder Level</Label>
+                <Input type="number" value={editingItem.reorderLevel} onChange={e => setEditingItem({...editingItem, reorderLevel: e.target.value})} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={savingEdit}>Cancel</Button>
+            <Button onClick={handleEditSave} disabled={savingEdit} className="bg-primary hover:bg-primary/90">
+              {savingEdit ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error & Conflict Custom Dialog */}
+      <Dialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              {errorDialog.isConflict ? "Item Already Exists" : "Action Failed"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-foreground">
+              {errorDialog.isConflict ? "This item is already registered in the inventory system. Would you like to restock it instead of creating a new duplicate?" : errorDialog.message}
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setErrorDialog(prev => ({ ...prev, open: false }))}>
+              {errorDialog.isConflict ? "Cancel" : "Close"}
+            </Button>
+            {errorDialog.isConflict && errorDialog.itemId && (
+              <Button 
+                onClick={() => {
+                  setErrorDialog(prev => ({ ...prev, open: false }));
+                  setIsAddDrugOpen(false);
+                  setIsAddNonMedOpen(false);
+                  setIsEditOpen(false);
+                  const matchedItem = items.find(i => i.id === errorDialog.itemId);
+                  if (matchedItem) {
+                    openRestock(matchedItem);
+                  } else {
+                    toast.error("Could not locate item data for restock. Please refresh.");
+                  }
+                }} 
+                className="bg-primary hover:bg-primary/90"
+              >
+                Restock Item
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
