@@ -42,6 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (res.status === 401 || res.status === 403) {
             throw new Error("Session expired or invalid");
           } else if (!res.ok) {
+            // Check if user simply doesn't exist in DB (e.g. after re-seed)
+            try {
+              const errData = await res.clone().json();
+              if (errData?.error === "User not found") {
+                throw new Error("Session expired or invalid");
+              }
+            } catch (parseErr) {
+              // Not a JSON error body, keep session alive for network issues
+            }
             console.warn(`Session validation returned ${res.status}, keeping session active.`);
             setToken(storedToken);
             setUser(JSON.parse(storedUser));

@@ -93,13 +93,13 @@ export function ArrivalsPane() {
                     </p>
                   </div>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    apt.status === "ARRIVED" ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500"
+                    apt.status === "WAITING" ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500"
                   }`}>
                     {apt.status}
                   </span>
                 </div>
 
-                {apt.status !== "ARRIVED" && (
+                {apt.status !== "WAITING" && (
                   <div className="pt-3 border-t border-border">
                     <Button size="sm" className="w-full bg-primary hover:bg-primary/90" onClick={() => handleArrive(apt.id)}>
                       <CheckCircle className="w-4 h-4 mr-2" />

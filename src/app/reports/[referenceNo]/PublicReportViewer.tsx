@@ -76,6 +76,7 @@ export default function PublicReportViewer({ referenceNo }: Props) {
           patientName: patient?.fullName || "Patient",
           ageGender: `${age} Y/${gender.charAt(0).toUpperCase()}`,
           patientIds: patient?.patientId || req.patientId,
+          patientPhone: patient?.phone || "—",
           referredBy: doctor,
           testProfile: testName,
           reportType: "AUTOMATED COUNT",

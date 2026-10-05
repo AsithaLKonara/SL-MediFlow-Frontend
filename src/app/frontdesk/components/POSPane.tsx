@@ -62,6 +62,7 @@ export function POSPane() {
   });
 
   useEffect(() => {
+    if (!token) return;
     apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load medicines");
@@ -71,7 +72,7 @@ export function POSPane() {
       .catch((e) => {
         console.error("Failed to load medicines", e);
       });
-  }, []);
+  }, [token]);
 
   // Listen for websocket pos_payment_success (e.g. for multi-terminal sync)
   useEffect(() => {
@@ -193,6 +194,12 @@ export function POSPane() {
 
       if (type === "PRESCRIPTION") {
         const rx = data;
+
+        if (rx && rx.status === "DISPENSED") {
+          toast.error("This prescription has already been dispensed.");
+          return;
+        }
+
         if (rx && rx.items) {
           const cartItems: CartItem[] = rx.items
             .filter((item: any) => item.medicineId && item.medicine)
@@ -670,7 +677,7 @@ export function POSPane() {
                       const resToken = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(pendingTokenPayload)
+                        body: JSON.stringify({ ...pendingTokenPayload, paymentMethod })
                       });
                       if (resToken.ok) {
                         const tokenRes = await resToken.json();
@@ -698,7 +705,7 @@ export function POSPane() {
                       const resAppt = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/checkout-appointment`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(pendingAppointmentPayload)
+                        body: JSON.stringify({ ...pendingAppointmentPayload, paymentMethod })
                       });
                       if (resAppt.ok) {
                         const apptRes = await resAppt.json();

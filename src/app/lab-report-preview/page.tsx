@@ -13,6 +13,7 @@ const mockData: LabReportData = {
   patientName: "MRS. IMASHA KAVINDI",
   ageGender: "23 Y/F",
   patientIds: "AHH2006090 / AHH2010368",
+  patientPhone: "0771234567",
   referredBy: "..",
   testProfile: "COMPLETE BLOOD COUNT",
   reportType: "AUTOMATED COUNT",

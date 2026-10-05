@@ -221,6 +221,7 @@ export function TokenPane() {
   const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
 
   const fetchPendingPrescriptions = useCallback(async () => {
+    if (!token) return;
     setRxLoading(true);
     try {
       const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/pending`);
@@ -233,9 +234,10 @@ export function TokenPane() {
     } finally {
       setRxLoading(false);
     }
-  }, []);
+  }, [token, apiFetch]);
 
   useEffect(() => {
+    if (!token) return;
     Promise.all([
       apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/doctors`).then(r => {
         if (!r.ok) throw new Error("Failed to fetch doctors");
@@ -255,12 +257,11 @@ export function TokenPane() {
       if (Array.isArray(svcRes)) setExtraServicesCatalog(svcRes);
     }).catch((e) => {
       console.error(e);
-      toast.error("Failed to load initial data. Server might be offline.");
     });
 
     // Load prescriptions on mount
     fetchPendingPrescriptions();
-  }, [fetchPendingPrescriptions]);
+  }, [token, apiFetch, fetchPendingPrescriptions]);
 
   // Listen for status updates from POSPane (via BroadcastChannel)
   useEffect(() => {
