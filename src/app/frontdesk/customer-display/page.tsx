@@ -177,17 +177,16 @@ export default function CustomerDisplayPage() {
                         <TableCell className="py-5 px-8">
                           <div className="flex flex-col">
                             <span className="text-3xl font-black text-slate-900 tracking-tight">
-                              <span className="text-primary font-bold">Dr. </span>{doctor.fullName}
+                              <span className="text-primary font-bold">{doctor.title ? doctor.title + " " : "Dr. "}</span>{doctor.fullName.replace(/^(Dr\.\s*)+/i, '')}
                             </span>
-                            <span className="text-base text-slate-500 font-medium mt-0.5">{doctor.specialty}</span>
                           </div>
                         </TableCell>
 
                         {/* Designation / Title column */}
                         <TableCell className="py-5 px-6 text-center align-middle">
-                          {doctor.title ? (
+                          {doctor.specialty ? (
                             <span className="inline-block px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-base font-bold tracking-wide">
-                              {doctor.title}
+                              {doctor.specialty}
                             </span>
                           ) : (
                             <span className="text-slate-300 text-xl font-bold">—</span>

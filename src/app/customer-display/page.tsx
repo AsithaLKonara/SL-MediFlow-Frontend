@@ -6,13 +6,45 @@ import Image from "next/image";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { useEffect, useState } from "react";
+import { io, Socket } from "socket.io-client";
 
 export default function CustomerDisplayPage() {
   const { state } = useCartSync(false); // Receiver
   const [mounted, setMounted] = useState(false);
+  const [calledTokens, setCalledTokens] = useState<{ id: string; number: string; doctor: string; room?: string; specialty?: string }[]>([]);
 
   useEffect(() => {
     setMounted(true);
+
+    const socket: Socket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000');
+    
+    socket.on("TOKEN_STATUS_UPDATED", (data) => {
+      if (data.appointment?.status === "CONSULTATION") {
+        setCalledTokens(prev => {
+          const newToken = {
+            id: data.appointment.id,
+            number: String(data.appointment.tokenNumber).padStart(2, '0'),
+            doctor: data.appointment.doctor?.fullName || "Doctor",
+            room: data.appointment.doctor?.roomNumber || "No Room",
+            specialty: data.appointment.doctor?.specialty || "OPD"
+          };
+          
+          // Play an announcement sound
+          try {
+            const audio = new Audio('/bell.mp3');
+            audio.play().catch(e => console.log("Audio play blocked by browser", e));
+          } catch (e) {}
+
+          // Remove duplicates and keep only last 4
+          const filtered = prev.filter(t => t.id !== newToken.id);
+          return [newToken, ...filtered].slice(0, 4);
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   if (!mounted) {
@@ -30,10 +62,56 @@ export default function CustomerDisplayPage() {
           <h2 className="text-xl md:text-2xl font-bold text-secondary">Now Serving</h2>
         </div>
 
-        {state.tokenCalled ? (
-          <div className="text-center animate-in zoom-in duration-500">
-            <h1 className="text-7xl md:text-9xl font-black text-primary-foreground tracking-tighter mb-2 md:mb-4">{state.tokenCalled.number}</h1>
-            <p className="text-xl md:text-3xl text-secondary font-medium">Please proceed to {state.tokenCalled.doctor}</p>
+        {calledTokens.length > 0 ? (
+          <div className="w-full flex flex-col items-center animate-in zoom-in duration-500">
+            {/* Latest Called Token */}
+            <div className="text-center bg-primary/5 p-8 rounded-3xl border border-primary/20 w-full mb-6">
+              <p className="text-xl md:text-2xl text-primary font-bold uppercase tracking-widest mb-4">
+                {calledTokens[0].specialty}
+              </p>
+              <h1 className="text-7xl md:text-[140px] font-black text-foreground tracking-tighter leading-none mb-6">
+                {calledTokens[0].number}
+              </h1>
+              <p className="text-2xl md:text-4xl text-muted-foreground font-medium mb-2">
+                {calledTokens[0].doctor}
+              </p>
+              <p className="text-xl md:text-3xl text-foreground font-bold">
+                {calledTokens[0].room}
+              </p>
+            </div>
+
+            {/* Previously Called Tokens */}
+            {calledTokens.length > 1 && (
+              <div className="w-full mt-4 space-y-3">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 text-left px-2">Previous Tokens</p>
+                {calledTokens.slice(1).map((token) => (
+                  <div key={token.id} className="flex items-center justify-between bg-muted/30 p-4 rounded-xl border border-border">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                        <span className="text-3xl font-black">{token.number}</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-lg">{token.doctor}</p>
+                        <p className="text-sm text-muted-foreground">{token.specialty}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-xl">{token.room}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : state.tokenCalled ? (
+          <div className="text-center animate-in zoom-in duration-500 bg-primary/5 p-8 rounded-3xl border border-primary/20 w-full">
+            <p className="text-xl md:text-2xl text-primary font-bold uppercase tracking-widest mb-4">PHARMACY / BILLING</p>
+            <h1 className="text-7xl md:text-[140px] font-black text-foreground tracking-tighter leading-none mb-6">
+              {state.tokenCalled.number}
+            </h1>
+            <p className="text-2xl md:text-4xl text-muted-foreground font-medium">
+              Please proceed to {state.tokenCalled.doctor}
+            </p>
           </div>
         ) : (
           <div className="text-center text-muted-foreground flex flex-col items-center">
