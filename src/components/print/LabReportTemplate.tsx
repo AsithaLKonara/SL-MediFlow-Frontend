@@ -19,6 +19,7 @@ export interface LabReportData {
   sampleDateTime: string;
   reportDateTime: string;
   patientName: string;
+  patientPhone: string;
   ageGender: string;
   patientIds: string;
   referredBy: string;
@@ -116,7 +117,10 @@ export const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplatePro
           </div>
 
           <div>PATIENT</div>
-          <div>: {data.patientName}</div>
+          <div className="flex justify-between w-full max-w-lg">
+            <span>: {data.patientName}</span>
+            <span>PHONE : {data.patientPhone || "N/A"}</span>
+          </div>
 
           <div>REFERRED BY</div>
           <div>: {data.referredBy}</div>

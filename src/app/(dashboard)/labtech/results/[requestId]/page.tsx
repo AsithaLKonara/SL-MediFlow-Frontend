@@ -103,6 +103,7 @@ export default function LabResultsPage({
     sampleDateTime: "",
     reportDateTime: "",
     patientName: "",
+    patientPhone: "",
     ageGender: "",
     patientIds: "",
     referredBy: "",
@@ -185,6 +186,7 @@ export default function LabResultsPage({
           sampleDateTime: new Date(req.requestedAt).toLocaleString(),
           reportDateTime: new Date().toLocaleString(),
           patientName: req.Patient?.fullName || "Patient",
+          patientPhone: req.Patient?.phone || "",
           ageGender: `${age} Y/${gender.charAt(0).toUpperCase()}`,
           patientIds: req.Patient?.patientId || req.patientId,
           referredBy: req.Visit?.User?.fullName || req.doctorId || "Unknown",
@@ -384,11 +386,11 @@ export default function LabResultsPage({
                 ["Reference No.", "referenceNo"],
                 ["Patient Name", "patientName"],
                 ["Patient ID (MRN)", "patientIds"],
+                ["Patient Phone", "patientPhone"],
                 ["Age / Gender", "ageGender"],
                 ["Sample Date & Time", "sampleDateTime"],
                 ["Report Date & Time", "reportDateTime"],
                 ["Referred By", "referredBy"],
-                ["Test / Profile", "testProfile"],
               ].map(([label, field]) => (
                 <div key={field} className="space-y-1">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase">{label}</label>
@@ -399,6 +401,10 @@ export default function LabResultsPage({
                   />
                 </div>
               ))}
+              <div className="col-span-2 space-y-1">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase">Test / Profile</label>
+                <Input value={reportMeta.testProfile} onChange={e => handleMetaChange("testProfile", e.target.value)} className="h-8 text-xs" />
+              </div>
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase">MLT Name (Signature)</label>
                 <Input value={reportMeta.mltName} onChange={e => handleMetaChange("mltName", e.target.value)} className="h-8 text-xs" />
