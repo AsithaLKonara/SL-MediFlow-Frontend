@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, TestTube, ArrowRight } from "lucide-react";
+import { Plus, TestTube, ArrowRight, MoreVertical, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface LabTest {
   id: string;
@@ -24,9 +25,11 @@ interface LabTest {
 }
 
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function LabTestTemplatesPage() {
   const pathname = usePathname();
+  const { token } = useAuth();
   const [tests, setTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -35,13 +38,23 @@ export default function LabTestTemplatesPage() {
   const [newTest, setNewTest] = useState({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomNumber: "" });
   const [saving, setSaving] = useState(false);
 
+  // Edit test state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingTest, setEditingTest] = useState<LabTest | null>(null);
+
+  // Delete test state
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deletingTest, setDeletingTest] = useState<LabTest | null>(null);
+
   useEffect(() => {
     fetchTests();
   }, []);
 
   const fetchTests = () => {
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || data.message || "Failed to load lab templates");
@@ -72,7 +85,10 @@ export default function LabTestTemplatesPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify(newTest)
       });
       const data = await res.json();
@@ -82,6 +98,60 @@ export default function LabTestTemplatesPage() {
       toast.success("Lab test template created successfully!");
       setIsNewOpen(false);
       setNewTest({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomNumber: "" });
+      fetchTests();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editingTest) return;
+    if (!editingTest.name || !editingTest.code || editingTest.price < 0) {
+      return toast.error("Please fill all required fields correctly.");
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${editingTest.id}`, {
+        method: "PATCH",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editingTest.name,
+          code: editingTest.code,
+          price: editingTest.price,
+          category: editingTest.category,
+          sampleType: editingTest.sampleType,
+          roomNumber: editingTest.roomNumber
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update");
+      toast.success("Lab test updated successfully!");
+      setIsEditOpen(false);
+      fetchTests();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingTest) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${deletingTest.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete");
+      toast.success("Lab test deleted successfully!");
+      setIsDeleteOpen(false);
       fetchTests();
     } catch (error: any) {
       toast.error(error.message);
@@ -191,11 +261,24 @@ export default function LabTestTemplatesPage() {
                   <TableCell>{test.roomNumber || "-"}</TableCell>
                   <TableCell className="text-right font-medium">Rs. {test.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
-                    <Link href={`${pathname}/${test.id}`}>
-                      <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
-                        Manage Rows <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted">
+                        <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <Link href={`${pathname}/${test.id}`}>
+                          <DropdownMenuItem className="cursor-pointer font-medium text-primary">
+                            <TestTube className="w-4 h-4 mr-2" /> Manage Biomarkers
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => { setEditingTest(test); setIsEditOpen(true); }}>
+                          <Edit className="w-4 h-4 mr-2" /> Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => { setDeletingTest(test); setIsDeleteOpen(true); }}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete Test
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -210,6 +293,88 @@ export default function LabTestTemplatesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Test Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Lab Test</DialogTitle>
+          </DialogHeader>
+          {editingTest && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Test Name</Label>
+                <Input value={editingTest.name} onChange={e => setEditingTest({...editingTest, name: e.target.value})} placeholder="e.g. Complete Blood Count" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Code</Label>
+                  <Input value={editingTest.code} onChange={e => setEditingTest({...editingTest, code: e.target.value})} placeholder="e.g. CBC-01" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Price (Rs.)</Label>
+                  <Input type="number" value={editingTest.price} onChange={e => setEditingTest({...editingTest, price: parseFloat(e.target.value)})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Category</Label>
+                  <Select value={editingTest.category || ""} onValueChange={(val) => setEditingTest({...editingTest, category: val || ""})}>
+                    <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Biochemistry">Biochemistry</SelectItem>
+                      <SelectItem value="Hematology">Hematology</SelectItem>
+                      <SelectItem value="Microbiology">Microbiology</SelectItem>
+                      <SelectItem value="Immunology">Immunology</SelectItem>
+                      <SelectItem value="Pathology">Pathology</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Sample Type</Label>
+                  <Select value={editingTest.sampleType || ""} onValueChange={(val) => setEditingTest({...editingTest, sampleType: val || ""})}>
+                    <SelectTrigger><SelectValue placeholder="Sample Type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Blood">Blood</SelectItem>
+                      <SelectItem value="Urine">Urine</SelectItem>
+                      <SelectItem value="Stool">Stool</SelectItem>
+                      <SelectItem value="Swab">Swab</SelectItem>
+                      <SelectItem value="Tissue">Tissue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Room Number</Label>
+                <Input value={editingTest.roomNumber || ""} onChange={e => setEditingTest({...editingTest, roomNumber: e.target.value})} placeholder="e.g. LAB-01" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <div className="py-4 text-sm text-muted-foreground">
+              This will permanently delete the lab test "{deletingTest?.name}" ({deletingTest?.code}) from the catalog. 
+              This action cannot be undone.
+            </div>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+            <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">
+              {saving ? "Deleting..." : "Delete Test"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

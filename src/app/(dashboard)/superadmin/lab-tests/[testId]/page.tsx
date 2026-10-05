@@ -9,6 +9,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface BiomarkerRow {
   id: string;
@@ -30,6 +31,7 @@ export default function LabTestBiomarkersPage({
 }) {
   const pathname = usePathname();
   const { testId } = use(params);
+  const { token } = useAuth();
   const [testDetails, setTestDetails] = useState<any>(null);
   
   const [groups, setGroups] = useState<CategoryGroup[]>([]);
@@ -39,7 +41,9 @@ export default function LabTestBiomarkersPage({
 
   useEffect(() => {
     // 1. Fetch test details
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(r => r.json())
       .then((data: any[]) => {
         const test = data.find(t => t.id === testId);
@@ -47,7 +51,9 @@ export default function LabTestBiomarkersPage({
       });
 
     // 2. Fetch biomarkers and group them
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${testId}/biomarkers`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${testId}/biomarkers`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(r => r.json())
       .then((data: any[]) => {
         // Group by category
@@ -157,7 +163,10 @@ export default function LabTestBiomarkersPage({
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${testId}/biomarkers`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
