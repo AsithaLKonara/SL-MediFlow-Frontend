@@ -24,9 +24,9 @@ export default function CustomerDisplayPage() {
           const newToken = {
             id: data.appointment.id,
             number: String(data.appointment.tokenNumber).padStart(2, '0'),
-            doctor: data.appointment.doctor?.fullName || "Doctor",
-            room: data.appointment.doctor?.roomNumber || "No Room",
-            specialty: data.appointment.doctor?.specialty || "OPD"
+            doctor: data.appointment.User?.fullName || "Doctor",
+            room: data.appointment.User?.roomNumber || "No Room",
+            specialty: data.appointment.User?.specialty || "OPD"
           };
           
           // Play an announcement sound
