@@ -122,7 +122,6 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                   </div>
                 )}
               </div>
-              </div>
             </>
           )}
 
