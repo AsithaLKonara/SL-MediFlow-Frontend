@@ -67,6 +67,10 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
+  nurse: [
+    { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
 };
 
 const roleLabelMap: Record<string, string> = {
@@ -74,6 +78,7 @@ const roleLabelMap: Record<string, string> = {
   frontdesk: "Front Desk",
   doctor: "Doctor",
   labtech: "Lab",
+  nurse: "Nurse",
 };
 
 export function Sidebar() {
@@ -86,8 +91,8 @@ export function Sidebar() {
     pathname.startsWith(`/${key}`)
   ) || "superadmin";
 
-  const navItems = roleNavConfig[roleKey];
-  const roleLabel = roleLabelMap[roleKey];
+  const navItems = roleNavConfig[roleKey] || roleNavConfig["superadmin"];
+  const roleLabel = roleLabelMap[roleKey] || "Staff";
   const width = isCollapsed ? "w-[80px]" : "w-64";
 
   return (

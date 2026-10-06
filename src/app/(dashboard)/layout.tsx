@@ -33,7 +33,11 @@ export default function DashboardLayout({
            // Mapping for roles that use the consolidated Front Desk
            const frontdeskRoles = ["receptionist", "pharmacist", "cashier"];
            
-           if (frontdeskRoles.includes(userRole)) {
+           if (userRole === "nurse") {
+             if (!pathname.startsWith("/frontdesk/arrivals")) {
+               router.push("/frontdesk/arrivals");
+             }
+           } else if (frontdeskRoles.includes(userRole)) {
              if (!pathname.startsWith(`/frontdesk`)) {
                router.push(`/frontdesk`);
              }
