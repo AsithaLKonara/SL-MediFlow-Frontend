@@ -3,6 +3,8 @@ import { DoctorStatus } from "../../../page";
 import { Clock, LogOut, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { WalkInForm } from "../forms/WalkInForm";
+import { RoomMatrixModal } from "./RoomMatrixModal";
+import { useState } from "react";
 
 export function DoctorStatusControl({ 
   doctor,
@@ -13,7 +15,9 @@ export function DoctorStatusControl({
 }) {
   const isArrived = doctor.attendance?.status === "ARRIVED";
 
-  const handleMarkArrival = async () => {
+  const [matrixOpen, setMatrixOpen] = useState(false);
+
+  const handleAssignRoom = async (roomNumber: string, startTime: string, endTime: string) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/attendance`, {
         method: 'PUT',
@@ -21,13 +25,14 @@ export function DoctorStatusControl({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ status: "ARRIVED", roomNumber: "Room 02" })
+        body: JSON.stringify({ status: "ARRIVED", roomNumber, startTime, endTime })
       });
       if (!res.ok) throw new Error(await res.text());
-      toast.success(`${doctor.fullName} marked as Arrived`);
+      toast.success(`${doctor.fullName} assigned to ${roomNumber}`);
+      setMatrixOpen(false);
       onRefresh();
     } catch (err: any) {
-      toast.error(`Failed to mark arrival: ${err.message}`);
+      toast.error(`Failed to assign room: ${err.message}`);
     }
   };
 
@@ -74,9 +79,9 @@ export function DoctorStatusControl({
 
       <div className="flex items-center gap-3 w-full sm:w-auto">
         {!isArrived ? (
-          <Button onClick={handleMarkArrival} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white gap-2">
+          <Button onClick={() => setMatrixOpen(true)} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white gap-2">
             <CheckCircle2 className="w-4 h-4" />
-            Mark Arrival
+            Assign Room
           </Button>
         ) : (
           <Button variant="destructive" onClick={() => handleMarkOut(false)} className="w-full sm:w-auto gap-2">
@@ -86,6 +91,13 @@ export function DoctorStatusControl({
         )}
 
       </div>
+      <RoomMatrixModal 
+        open={matrixOpen} 
+        onOpenChange={setMatrixOpen}
+        doctorName={doctor.fullName}
+        onAssign={handleAssignRoom}
+        selectedDate={new Date()}
+      />
     </div>
   );
 }

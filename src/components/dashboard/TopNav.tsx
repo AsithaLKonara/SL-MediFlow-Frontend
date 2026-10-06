@@ -18,10 +18,12 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { CashierCloseModal } from "./CashierCloseModal";
 
 export function TopNav() {
   const { isCollapsed, toggleSidebar, isTouchMode, toggleTouchMode } = useSidebar();
   const { user, logout } = useAuth();
+  const [showCloseModal, setShowCloseModal] = useState(false);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -124,12 +126,20 @@ export function TopNav() {
             <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer w-full">
               Settings
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowCloseModal(true)} className="cursor-pointer w-full text-orange-600 focus:text-orange-600">
+              End Shift & Close
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive cursor-pointer">
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        
+        <CashierCloseModal 
+          open={showCloseModal} 
+          onOpenChange={setShowCloseModal} 
+        />
       </div>
     </header>
   );

@@ -90,9 +90,11 @@ export default function LoginPage() {
   const MOCK_USERS = [
     { label: "Super Admin", email: "admin@amaz.com" },
     { label: "Frontdesk", email: "reception@amaz.com" },
-    { label: "Doctor", email: "doctor@amaz.com" },
+    { label: "Doctor", email: "dr1@amaz.com" },
     { label: "Nurse", email: "nurse@amaz.com" },
     { label: "Lab", email: "labtech@amaz.com" },
+    { label: "Pharmacist", email: "pharmacy@amaz.com" },
+    { label: "Cashier", email: "cashier@amaz.com" },
   ];
 
   const handleQuickLogin = (email: string) => {
@@ -150,7 +152,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               placeholder="name@example.com"
-              className="pl-10 bg-white/5 border-white/10 text-white focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary placeholder:text-white/30 h-12 rounded-xl transition-all"
+              className="pl-10 bg-black/40 border-white/10 text-white focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary focus:bg-black/60 placeholder:text-white/30 h-12 rounded-xl transition-all dark:bg-black/40 dark:focus:bg-black/60"
               {...register("email")}
             />
           </div>
@@ -172,7 +174,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               placeholder="••••••••••••"
-              className="pl-10 bg-white/5 border-white/10 text-white focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary placeholder:text-white/30 h-12 rounded-xl transition-all"
+              className="pl-10 bg-black/40 border-white/10 text-white focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary focus:bg-black/60 placeholder:text-white/30 h-12 rounded-xl transition-all dark:bg-black/40 dark:focus:bg-black/60"
               {...register("password")}
             />
           </div>

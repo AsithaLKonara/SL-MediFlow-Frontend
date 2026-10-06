@@ -6,7 +6,7 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="dark flex min-h-screen w-full bg-background">
       {/* Left side - Welcome / Branding Image */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center overflow-hidden">
         {/* Background Image using Next/Image for optimization */}

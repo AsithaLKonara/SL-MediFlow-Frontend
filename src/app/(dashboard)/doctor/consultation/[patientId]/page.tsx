@@ -51,14 +51,13 @@ interface Patient {
 
 
 
+import { useParams } from "next/navigation";
+
 // Medicines are now fetched from the backend API
 
-export default function ConsultationPage({
-  params,
-}: {
-  params: Promise<{ patientId: string }>;
-}) {
-  const { patientId } = use(params);
+export default function ConsultationPage() {
+  const params = useParams();
+  const patientId = params.patientId as string;
   const { isCollapsed } = useSidebar();
   const { user, token } = useAuth();
 

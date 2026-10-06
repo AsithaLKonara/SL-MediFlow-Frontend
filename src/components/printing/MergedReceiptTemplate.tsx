@@ -4,10 +4,11 @@ import Barcode from "react-barcode";
 interface MergedReceiptTemplateProps {
   receiptData: any;
   tokens?: any[];
+  cashierName?: string;
 }
 
 export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedReceiptTemplateProps>(
-  ({ receiptData, tokens }, ref) => {
+  ({ receiptData, tokens, cashierName }, ref) => {
     return (
       <div className="hidden">
         <div ref={ref} className="w-[300px] p-2 bg-white text-black font-mono text-sm leading-tight">
@@ -19,6 +20,11 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
             <p className="text-xs mt-1">0472239090 | www.amazhospital.com</p>
             <p className="text-[10px]">info@amazhospital.com</p>
             <p className="text-[10px]">debarawewa, Tissamaharama</p>
+            {cashierName && (
+              <p className="text-[10px] mt-2 font-semibold border-t border-dotted border-black/50 pt-1 inline-block">
+                Cashier: {cashierName}
+              </p>
+            )}
           </div>
 
           {/* Token Section */}
@@ -116,18 +122,19 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                   </div>
                 )}
               </div>
-
-              <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
-                {receiptData.receiptId && (
-                  <div className="mb-2 w-full flex justify-center overflow-hidden">
-                    <Barcode value={receiptData.receiptId} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
-                  </div>
-                )}
-                <p className="text-xs font-bold">Thank you for your business!</p>
-                <p className="text-[10px] mt-1">Wishing you good health.</p>
               </div>
             </>
           )}
+
+          <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
+            {(receiptData?.receiptId || (tokens && tokens.length > 0 && (tokens[0].refNo || tokens[0].id))) && (
+              <div className="mb-2 w-full flex justify-center overflow-hidden">
+                <Barcode value={receiptData?.receiptId || tokens?.[0]?.refNo || tokens?.[0]?.id} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+              </div>
+            )}
+            <p className="text-xs font-bold">Thank you for your business!</p>
+            <p className="text-[10px] mt-1">Wishing you good health.</p>
+          </div>
         </div>
       </div>
     );

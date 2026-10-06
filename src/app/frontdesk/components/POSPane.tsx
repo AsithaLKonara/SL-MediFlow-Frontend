@@ -16,6 +16,7 @@ import { useReactToPrint } from "react-to-print";
 import { MergedReceiptTemplate } from "../../../components/printing/MergedReceiptTemplate";
 import { CheckCircle2, Printer } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { POSHistoryModal } from "./POSHistoryModal";
 import { useCallback } from "react";
 
 interface Medicine {
@@ -26,7 +27,7 @@ interface Medicine {
 }
 
 export function POSPane() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   
   const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
     return fetch(url, {
@@ -124,9 +125,11 @@ export function POSPane() {
       (tokenPayload: any) => {
         if (tokenPayload.isAppointmentCheckout) {
           setPendingAppointmentPayload(tokenPayload);
+          setPendingTokenPayload(null);
           toast.success("Appointment checkout loaded into POS.");
         } else {
           setPendingTokenPayload(tokenPayload);
+          setPendingAppointmentPayload(null);
           toast.success("Token details loaded into POS checkout.");
         }
       }
@@ -381,6 +384,7 @@ export function POSPane() {
               Cancel Rx
             </Button>
           )}
+          <POSHistoryModal />
           <Button variant="outline" size="sm" onClick={() => window.open('/customer-display', '_blank', 'width=1024,height=768')}>
             Open Display
           </Button>
@@ -963,7 +967,7 @@ export function POSPane() {
       )}
 
       {/* Hidden print template */}
-      <MergedReceiptTemplate ref={printRef} receiptData={receiptData} tokens={tokenReceiptData} />
+      <MergedReceiptTemplate ref={printRef} receiptData={receiptData} tokens={tokenReceiptData} cashierName={user?.fullName || "Unknown"} />
     </div>
   );
 }
