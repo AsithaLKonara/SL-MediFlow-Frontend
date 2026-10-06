@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2 } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EnhancedCalendar } from "@/app/frontdesk/arrivals/components/workspace/left-panel/EnhancedCalendar";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
@@ -111,6 +112,7 @@ export function TokenPane() {
   const [selectedLabToken, setSelectedLabToken] = useState<number | null>(null);
   const [labTokens, setLabTokens] = useState<any[]>([]);
   const [selectedServiceToken, setSelectedServiceToken] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [serviceTokens, setServiceTokens] = useState<any[]>([]);
 
   const [pendingPrescriptions, setPendingPrescriptions] = useState<Prescription[]>([]);
@@ -134,6 +136,54 @@ export function TokenPane() {
 
   const socketRef = useRef<Socket | null>(null);
   const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '') : "http://localhost:5000";
+
+  
+  
+  const [calendarData, setCalendarData] = useState<any>(null);
+  const fetchCalendarData = useCallback(() => {
+    if (!selectedDocId) return;
+    const monthStr = selectedDate.substring(0, 7);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    apiFetch(`${apiUrl}/frontdesk/doctors/${selectedDocId}/calendar?month=${monthStr}`)
+      .then(r => r.json())
+      .then(res => setCalendarData(res))
+      .catch(console.error);
+  }, [selectedDocId, selectedDate, apiFetch]);
+
+  useEffect(() => {
+    fetchCalendarData();
+  }, [fetchCalendarData]);
+
+  const [dayAppointments, setDayAppointments] = useState<any[]>([]);
+  const fetchDayAppointments = useCallback(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    apiFetch(`${apiUrl}/booking/appointments?date=${selectedDate}`)
+      .then(r => r.json())
+      .then(res => { if (res.success) setDayAppointments(res.data); })
+      .catch(console.error);
+  }, [selectedDate, apiFetch]);
+
+  useEffect(() => {
+    fetchDayAppointments();
+  }, [fetchDayAppointments]);
+
+  
+  const handleMarkArrived = async (id: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const res = await apiFetch(`${apiUrl}/booking/${id}/arrive`, { method: "PATCH" });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Patient marked as arrived.");
+        fetchDayAppointments();
+        if (selectedDocId) fetchDocTokens();
+        if (selectedTestIds.size > 0) fetchLabTokens();
+        if (selectedServiceIds.size > 0) fetchServiceTokens();
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (e) { toast.error("Error"); }
+  };
 
   const fetchDocTokens = useCallback(() => {
     if (!selectedDocId) return;
@@ -234,7 +284,7 @@ export function TokenPane() {
     } finally {
       setRxLoading(false);
     }
-  }, [token, apiFetch]);
+  }, [token, apiFetch, selectedDate]);
 
   useEffect(() => {
     if (!token) return;
@@ -395,7 +445,8 @@ export function TokenPane() {
       serviceIds: Array.from(selectedServiceIds),
       customServicePrices,
       serviceTokenNumber: selectedServiceToken || undefined,
-      expectedTotal
+      expectedTotal,
+      date: selectedDate
     });
 
     toast.success("Token sent to POS for Checkout.");
@@ -626,30 +677,55 @@ export function TokenPane() {
                         </button>
                       ))}
                     </div>
-                    {selectedDocId && (
-                      <div className="mt-2 p-4 border-t border-border bg-card space-y-3 shrink-0">
-                        <h3 className="font-semibold text-sm">Select Token Number</h3>
-                        {docTokens.length > 0 ? (
-                          <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto pr-2">
-                            {docTokens.map(t => (
-                              <button
-                                key={t.tokenNumber}
-                                disabled={t.status !== "AVAILABLE"}
-                                onClick={() => setSelectedDocToken(t.tokenNumber)}
-                                className={`h-8 rounded-md text-sm font-medium transition-colors ${
-                                  t.status !== "AVAILABLE" ? 'bg-destructive/10 text-destructive border border-destructive/20 cursor-not-allowed' : 
-                                  selectedDocToken === t.tokenNumber ? 'bg-primary text-primary-foreground' : 'bg-card border hover:border-primary'
-                                }`}
-                              >
-                                {t.tokenNumber}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">No tokens available for this doctor today.</div>
-                        )}
+                    {(selectedDocId) && (
+                  <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
                       </div>
-                    )}
+                    
+                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                      {/* Left Column: Calendar */}
+                      <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                        <EnhancedCalendar 
+                          selectedDate={new Date(selectedDate)} 
+                          onDateSelect={(d) => {
+                            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            setSelectedDate(localDate);
+                          }}
+                          calendarData={selectedDocId ? calendarData : null} 
+                        />
+                      </div>
+
+                      {/* Right Column: Matrix */}
+                      <div className="border rounded-md flex flex-col overflow-hidden bg-muted/10">
+                        <div className="p-2 border-b bg-muted/50 font-medium text-xs text-muted-foreground">Select Token</div>
+                        <ScrollArea className="flex-1 p-2">
+                          <div className="grid grid-cols-5 gap-2">
+                            {docTokens.map(t => {
+                              const isBooked = t.status !== "AVAILABLE";
+                              
+                              let bgClass = isBooked ? "bg-red-50 text-red-500 border-red-200 cursor-not-allowed" : "bg-card border hover:border-primary cursor-pointer";
+                              
+                              const isSelected = selectedDocToken === t.tokenNumber;
+                              if (isSelected) bgClass = "bg-primary text-primary-foreground border-primary";
+                              
+                              return (
+                                <button
+                                  key={t.tokenNumber}
+                                  disabled={isBooked}
+                                  onClick={() => setSelectedDocToken(t.tokenNumber)}
+                                  className={`h-8 rounded-md text-xs font-medium transition-colors border ${bgClass}`}
+                                >
+                                  {t.tokenNumber}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  </div>
+                )}
                     <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
                       <div className="text-sm text-muted-foreground">
                         {selectedDocId ? doctors.find(d => d.id === selectedDocId)?.fullName : "No doctor selected"}
@@ -727,30 +803,55 @@ export function TokenPane() {
                         );
                       })}
                     </div>
-                    {selectedTestIds.size > 0 && (
-                      <div className="mt-2 p-4 border-t border-border bg-card space-y-3 shrink-0">
-                        <h3 className="font-semibold text-sm">Select Lab Token Number</h3>
-                        {labTokens.length > 0 ? (
-                          <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto pr-2">
-                            {labTokens.map(t => (
-                              <button
-                                key={t.tokenNumber}
-                                disabled={t.status !== "AVAILABLE"}
-                                onClick={() => setSelectedLabToken(t.tokenNumber)}
-                                className={`h-8 rounded-md text-sm font-medium transition-colors ${
-                                  t.status !== "AVAILABLE" ? 'bg-destructive/10 text-destructive border border-destructive/20 cursor-not-allowed' : 
-                                  selectedLabToken === t.tokenNumber ? 'bg-primary text-primary-foreground' : 'bg-card border hover:border-primary'
-                                }`}
-                              >
-                                {t.tokenNumber}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">No tokens available for labs today.</div>
-                        )}
+                    {(selectedTestIds.size > 0) && (
+                  <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
                       </div>
-                    )}
+                    
+                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                      {/* Left Column: Calendar */}
+                      <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                        <EnhancedCalendar 
+                          selectedDate={new Date(selectedDate)} 
+                          onDateSelect={(d) => {
+                            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            setSelectedDate(localDate);
+                          }}
+                          calendarData={selectedDocId ? calendarData : null} 
+                        />
+                      </div>
+
+                      {/* Right Column: Matrix */}
+                      <div className="border rounded-md flex flex-col overflow-hidden bg-muted/10">
+                        <div className="p-2 border-b bg-muted/50 font-medium text-xs text-muted-foreground">Select Token</div>
+                        <ScrollArea className="flex-1 p-2">
+                          <div className="grid grid-cols-5 gap-2">
+                            {labTokens.map(t => {
+                              const isBooked = t.status !== "AVAILABLE";
+                              
+                              let bgClass = isBooked ? "bg-red-50 text-red-500 border-red-200 cursor-not-allowed" : "bg-card border hover:border-primary cursor-pointer";
+                              
+                              const isSelected = selectedLabToken === t.tokenNumber;
+                              if (isSelected) bgClass = "bg-primary text-primary-foreground border-primary";
+                              
+                              return (
+                                <button
+                                  key={t.tokenNumber}
+                                  disabled={isBooked}
+                                  onClick={() => setSelectedLabToken(t.tokenNumber)}
+                                  className={`h-8 rounded-md text-xs font-medium transition-colors border ${bgClass}`}
+                                >
+                                  {t.tokenNumber}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  </div>
+                )}
                     <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
                       <div className="text-sm text-muted-foreground font-medium">
                         {selectedTestIds.size} test(s) selected
@@ -828,28 +929,51 @@ export function TokenPane() {
                         );
                       })}
                     </div>
-                    {selectedServiceIds.size > 0 && (
-                      <div className="mt-2 p-4 border-t border-border bg-card space-y-3 shrink-0">
-                        <h3 className="font-semibold text-sm">Select Service Token Number</h3>
-                        {serviceTokens.length > 0 ? (
-                          <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto pr-2">
-                            {serviceTokens.map(t => (
-                              <button
-                                key={t.tokenNumber}
-                                disabled={t.status !== "AVAILABLE"}
-                                onClick={() => setSelectedServiceToken(t.tokenNumber)}
-                                className={`h-8 rounded-md text-sm font-medium transition-colors ${
-                                  t.status !== "AVAILABLE" ? 'bg-destructive/10 text-destructive border border-destructive/20 cursor-not-allowed' : 
-                                  selectedServiceToken === t.tokenNumber ? 'bg-primary text-primary-foreground' : 'bg-card border hover:border-primary'
-                                }`}
-                              >
-                                {t.tokenNumber}
-                              </button>
-                            ))}
+                    {selectedServiceIds.size > 0 && (                      <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                          {/* Left Column: Calendar */}
+                          <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                            <EnhancedCalendar 
+                              selectedDate={new Date(selectedDate)} 
+                              onDateSelect={(d) => {
+                                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                                setSelectedDate(localDate);
+                              }}
+                              calendarData={selectedDocId ? calendarData : null} 
+                            />
                           </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">No tokens available for extra services today.</div>
-                        )}
+
+                          {/* Right Column: Matrix */}
+                          <div className="border rounded-md flex flex-col overflow-hidden bg-muted/10">
+                            <div className="p-2 border-b bg-muted/50 font-medium text-xs text-muted-foreground">Select Token</div>
+                            <ScrollArea className="flex-1 p-2">
+                              <div className="grid grid-cols-5 gap-2">
+                                {serviceTokens.map(t => {
+                                  const isBooked = t.status !== "AVAILABLE";
+                                  let bgClass = isBooked ? "bg-red-50 text-red-500 border-red-200 cursor-not-allowed" : "bg-card border hover:border-primary cursor-pointer";
+                                  
+                                  const isSelected = selectedServiceToken === t.tokenNumber;
+                                  if (isSelected) bgClass = "bg-primary text-primary-foreground border-primary";
+                                  
+                                  return (
+                                    <button
+                                      key={t.tokenNumber}
+                                      disabled={isBooked}
+                                      onClick={() => setSelectedServiceToken(t.tokenNumber)}
+                                      className={`h-8 rounded-md text-xs font-medium transition-colors border ${bgClass}`}
+                                    >
+                                      {t.tokenNumber}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        </div>
                       </div>
                     )}
                     <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">

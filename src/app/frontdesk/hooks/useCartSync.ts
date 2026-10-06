@@ -82,6 +82,7 @@ export type TokenPayload = {
   customServicePrices: Record<string, number>;
   serviceTokenNumber?: number;
   expectedTotal: number;
+  date: string;
 };
 
 export type AppointmentPayload = {

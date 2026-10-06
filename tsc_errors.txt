@@ -1,0 +1,15 @@
+src/app/frontdesk/components/ExternalLabRequestModal.tsx(2,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/frontdesk/components/ExternalLabRequestModal.tsx(3,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/frontdesk/components/ExternalLabRequestModal.tsx(4,99): error TS2307: Cannot find module '@/components/ui/dialog' or its corresponding type declarations.
+src/app/frontdesk/components/ExternalLabRequestModal.tsx(7,25): error TS2307: Cannot find module '@/components/providers/AuthProvider' or its corresponding type declarations.
+src/app/frontdesk/components/PhoneBookingPane.tsx(4,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/frontdesk/components/PhoneBookingPane.tsx(5,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/frontdesk/components/PhoneBookingPane.tsx(10,25): error TS2307: Cannot find module '@/components/providers/AuthProvider' or its corresponding type declarations.
+src/app/frontdesk/components/PhoneBookingPane.tsx(11,94): error TS2307: Cannot find module '@/components/ui/dialog' or its corresponding type declarations.
+src/app/frontdesk/components/TokenPane.tsx(4,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/frontdesk/components/TokenPane.tsx(5,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/frontdesk/components/TokenPane.tsx(7,94): error TS2307: Cannot find module '@/components/ui/dialog' or its corresponding type declarations.
+src/app/frontdesk/components/TokenPane.tsx(8,58): error TS2307: Cannot find module '@/components/ui/tabs' or its corresponding type declarations.
+src/app/frontdesk/components/TokenPane.tsx(9,28): error TS2307: Cannot find module '@/components/ui/scroll-area' or its corresponding type declarations.
+src/app/frontdesk/components/TokenPane.tsx(10,34): error TS2307: Cannot find module '@/app/frontdesk/arrivals/components/workspace/left-panel/EnhancedCalendar' or its corresponding type declarations.
+src/app/frontdesk/components/TokenPane.tsx(20,25): error TS2307: Cannot find module '@/components/providers/AuthProvider' or its corresponding type declarations.
