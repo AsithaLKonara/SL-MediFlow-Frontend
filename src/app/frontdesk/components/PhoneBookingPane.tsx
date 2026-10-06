@@ -180,7 +180,7 @@ export function PhoneBookingPane() {
       const data = await res.json();
       if (data.success) {
         // Group by patient instead of booking reference so all their bookings today appear together
-        const todayPhone = data.data.filter((a: any) => a.bookingType === "PHONE" && a.status === "BOOKED");
+        const todayPhone = data.data.filter((a: any) => a.bookingType === "PHONE" && !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(a.status));
         
         // Pick primary token per patient (Doctor preferred)
         const uniqueBookings: any[] = [];

@@ -599,26 +599,37 @@ export function POSPane() {
                   })
                 )}
                 
-                {/* Render Post Pay Consultation or fallback for no invoice */}
-                {(!pendingAppointmentPayload.invoice || !pendingAppointmentPayload.isUpfront) && pendingAppointmentPayload.doctorName && (
-                  <TableRow className="border-border bg-primary/5">
-                    <TableCell className="font-medium text-primary">
-                      Consultation - Dr. {pendingAppointmentPayload.doctorName}
-                      <div className="text-xs text-muted-foreground font-normal">
-                        Patient: {pendingAppointmentPayload.patientName || "Walk-in"}
-                        {!pendingAppointmentPayload.isUpfront && " | Post Pay"}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">1</TableCell>
-                    <TableCell className="text-right">
-                      {pendingAppointmentPayload.isUpfront ? `LKR ${pendingAppointmentPayload.fee.toFixed(2)}` : "Post Pay"}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {pendingAppointmentPayload.isUpfront ? `LKR ${pendingAppointmentPayload.fee.toFixed(2)}` : "LKR 0.00"}
-                    </TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                )}
+                {/* Render Post Pay Consultations or fallback for no invoice */}
+                {pendingAppointmentPayload.allAppointments?.filter((appt: any) => appt.department === "CONSULTATION").map((appt: any, idx: number) => {
+                  const isUpfront = appt.User?.feeType === "UPFRONT";
+                  const fee = appt.User?.consultationFee || 2500;
+                  const docName = appt.User?.fullName || appt.doctorName || "Doctor";
+                  
+                  // If it's upfront AND we have an invoice, it should already be in the invoice line items.
+                  if (isUpfront && pendingAppointmentPayload.invoice?.lineItems?.some((li: any) => li.department === "CONSULTATION" && li.description.includes(docName))) {
+                     return null;
+                  }
+
+                  return (
+                    <TableRow key={`postpay-consult-${idx}`} className="border-border bg-primary/5">
+                      <TableCell className="font-medium text-primary">
+                        Consultation - Dr. {docName}
+                        <div className="text-xs text-muted-foreground font-normal">
+                          Patient: {pendingAppointmentPayload.patientName || "Walk-in"}
+                          {!isUpfront && " | Post Pay"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">1</TableCell>
+                      <TableCell className="text-right">
+                        {isUpfront ? `LKR ${fee.toFixed(2)}` : "Post Pay"}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {isUpfront ? `LKR ${fee.toFixed(2)}` : "LKR 0.00"}
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  );
+                })}
                 <TableRow className="border-border">
                   <TableCell colSpan={4} className="text-right text-xs text-muted-foreground pt-4">
                     <span className="cursor-pointer text-red-500 hover:underline" onClick={() => setPendingAppointmentPayload(null)}>
