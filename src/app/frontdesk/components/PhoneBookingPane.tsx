@@ -179,21 +179,21 @@ export function PhoneBookingPane() {
       const res = await apiFetch(`${API}/booking/appointments`);
       const data = await res.json();
       if (data.success) {
-        // Group by booking reference to avoid showing multiple rows for the same phone booking
+        // Group by patient instead of booking reference so all their bookings today appear together
         const todayPhone = data.data.filter((a: any) => a.bookingType === "PHONE" && a.status === "BOOKED");
         
-        // Pick primary token per booking (Doctor preferred)
+        // Pick primary token per patient (Doctor preferred)
         const uniqueBookings: any[] = [];
-        const seenRefs = new Set();
+        const seenPatients = new Set();
         for (const appt of todayPhone) {
-          const ref = appt.bookingReference || appt.id;
-          if (!seenRefs.has(ref)) {
-             // Find all for this ref
-             const group = todayPhone.filter((a: any) => (a.bookingReference || a.id) === ref);
+          const patientKey = appt.Patient?.id || appt.patientPhone || appt.id;
+          if (!seenPatients.has(patientKey)) {
+             // Find all for this patient
+             const group = todayPhone.filter((a: any) => (a.Patient?.id || a.patientPhone || a.id) === patientKey);
              const primary = group.find((a: any) => a.department === "CONSULTATION") || group[0];
              primary.groupedTokens = group;
              uniqueBookings.push(primary);
-             seenRefs.add(ref);
+             seenPatients.add(patientKey);
           }
         }
         setTodayBookings(uniqueBookings);
