@@ -92,6 +92,8 @@ export type AppointmentPayload = {
   tokenNumber: string;
   fee: number;
   isUpfront: boolean;
+  invoice?: any;
+  allAppointments?: any[];
 };
 
 export function useRxToPOS() {

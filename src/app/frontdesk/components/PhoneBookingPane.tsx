@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, SendToBack, Send, UserRound, Stethoscope, FlaskConical, FilePlus2 } from "lucide-react";
+import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, SendToBack, Send, UserRound, Stethoscope, FlaskConical, FilePlus2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { io, Socket } from "socket.io-client";
 import { useRxToPOS } from "../hooks/useCartSync";
@@ -65,6 +65,9 @@ export function PhoneBookingPane() {
   const [todayBookings, setTodayBookings] = useState<any[]>([]);
   const [bookingSearchQuery, setBookingSearchQuery] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+
+  const [successPopupOpen, setSuccessPopupOpen] = useState(false);
+  const [successTokens, setSuccessTokens] = useState<any[]>([]);
 
   const socketRef = useRef<Socket | null>(null);
   const { sendAppointmentToPOS } = useRxToPOS();
@@ -188,6 +191,7 @@ export function PhoneBookingPane() {
              // Find all for this ref
              const group = todayPhone.filter((a: any) => (a.bookingReference || a.id) === ref);
              const primary = group.find((a: any) => a.department === "CONSULTATION") || group[0];
+             primary.groupedTokens = group;
              uniqueBookings.push(primary);
              seenRefs.add(ref);
           }
@@ -288,7 +292,8 @@ export function PhoneBookingPane() {
       });
       const result = await res.json();
       if (result.success) {
-        toast.success(`Tokens booked successfully!`);
+        setSuccessTokens(result.data.tokens || []);
+        setSuccessPopupOpen(true);
         setSearchQuery("");
         setPatientName("");
         setPatientPhone("");
@@ -746,6 +751,92 @@ export function PhoneBookingPane() {
       </div>
       </div>
 
+      {/* Selected Items Summary */}
+      {(selectedDocId || selectedTestIds.size > 0 || selectedServiceIds.size > 0) && (
+        <div className="mt-4 flex flex-col gap-2">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Selected Items</h4>
+
+          {selectedDocId && (
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Stethoscope className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm">{doctors.find(d => d.id === selectedDocId)?.fullName}</span>
+                  <span className="text-xs text-muted-foreground">Doctor Consultation</span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedDocId(null)} className="text-xs text-destructive hover:underline p-1 outline-none">Remove</button>
+            </div>
+          )}
+
+          {Array.from(selectedTestIds).map(testId => {
+            const test = labCatalog.find(t => t.id === testId);
+            if (!test) return null;
+            const finalPrice = customLabPrices[test.id] !== undefined ? customLabPrices[test.id] : test.price;
+            return (
+              <div key={test.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                    <FlaskConical className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium text-sm truncate" title={test.name}>{test.name}</span>
+                    <span className="text-xs text-muted-foreground">Lab Test</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <span className="font-semibold text-sm">Rs. {finalPrice}</span>
+                  <button
+                    onClick={() => {
+                      const newSet = new Set(selectedTestIds);
+                      newSet.delete(test.id);
+                      setSelectedTestIds(newSet);
+                    }}
+                    className="text-xs text-destructive hover:underline p-1 outline-none"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {Array.from(selectedServiceIds).map(svcId => {
+            const svc = extraServicesCatalog.find(s => s.id === svcId);
+            if (!svc) return null;
+            const finalPrice = customServicePrices[svc.id] !== undefined ? customServicePrices[svc.id] : svc.price;
+            return (
+              <div key={svc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                  <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                    <FilePlus2 className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium text-sm truncate" title={svc.title}>{svc.title}</span>
+                    <span className="text-xs text-muted-foreground">Extra Service</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <span className="font-semibold text-sm">Rs. {finalPrice}</span>
+                  <button
+                    onClick={() => {
+                      const newSet = new Set(selectedServiceIds);
+                      newSet.delete(svc.id);
+                      setSelectedServiceIds(newSet);
+                    }}
+                    className="text-xs text-destructive hover:underline p-1 outline-none"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="mt-4 pt-4 border-t border-border">
         <Button 
           className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
@@ -785,12 +876,18 @@ export function PhoneBookingPane() {
               </div>
 
               <ScrollArea className="h-[300px] border rounded-md p-2">
-                {todayBookings.filter(appt => appt.patientPhone?.includes(bookingSearchQuery) || bookingSearchQuery === "").length === 0 ? (
+                {todayBookings.filter(appt => {
+                  const phone = appt.Patient?.phone || appt.patientPhone || "";
+                  return phone.includes(bookingSearchQuery) || bookingSearchQuery === "";
+                }).length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center p-4">No bookings found.</p>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {todayBookings
-                      .filter(appt => appt.patientPhone?.includes(bookingSearchQuery) || bookingSearchQuery === "")
+                      .filter(appt => {
+                        const phone = appt.Patient?.phone || appt.patientPhone || "";
+                        return phone.includes(bookingSearchQuery) || bookingSearchQuery === "";
+                      })
                       .map((appt) => (
                         <div 
                           key={appt.id} 
@@ -799,18 +896,86 @@ export function PhoneBookingPane() {
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <div className="font-medium text-sm">{appt.patientName}</div>
+                              <div className="font-medium text-sm">{appt.Patient?.fullName || appt.patientName || "Unknown Patient"}</div>
                               <div className="text-xs text-muted-foreground mt-0.5">
-                                {appt.patientPhone}
+                                {appt.Patient?.phone || appt.patientPhone || "No Phone"}
                               </div>
                             </div>
                             <div className="text-right">
                               <div className="text-sm font-medium text-primary">Token #{appt.tokenNumber}</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {appt.department === "CONSULTATION" ? `Dr. ${appt.doctorName || "General"}` : appt.department}
-                              </div>
                             </div>
                           </div>
+                          
+                          {/* List all items booked in this reference */}
+                          {selectedBookingId === appt.id && (
+                            <div className="mt-4 flex flex-col gap-2">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Selected Items</h4>
+                              {appt.groupedTokens?.map((t: any) => {
+                                if (t.department === "CONSULTATION") {
+                                  return (
+                                    <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                          <Stethoscope className="w-4 h-4 text-primary" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                          <span className="font-medium text-sm">Dr. {t.User?.fullName || t.doctorName || "General"}</span>
+                                          <span className="text-xs text-muted-foreground">Doctor Consultation</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                
+                                if (t.department === "LAB") {
+                                  return (
+                                    <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                                      <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                                          <FlaskConical className="w-4 h-4 text-blue-500" />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                          <span className="font-medium text-sm truncate">Lab Tests</span>
+                                          <span className="text-xs text-muted-foreground">Lab Test</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                if (t.department === "EXTRA_SERVICE") {
+                                  return (
+                                    <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                                      <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
+                                        <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                                          <FilePlus2 className="w-4 h-4 text-purple-500" />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                          <span className="font-medium text-sm truncate">Extra Services</span>
+                                          <span className="text-xs text-muted-foreground">Extra Service</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                return null;
+                              })}
+                            </div>
+                          )}
+                          
+                          {/* Compact view if not selected */}
+                          {selectedBookingId !== appt.id && (
+                            <div className="mt-3 pt-2 border-t flex flex-wrap gap-1">
+                              {appt.groupedTokens?.map((t: any) => (
+                                <span key={t.id} className="text-[10px] bg-muted px-2 py-0.5 rounded-full font-medium">
+                                  {t.department === "CONSULTATION" ? `Dr. ${t.User?.fullName || t.doctorName || "General"}` : 
+                                   t.department === "EXTRA_SERVICE" ? "Extra Services" : 
+                                   t.department === "LAB" ? "Lab Tests" : t.department}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                     ))}
                   </div>
@@ -821,9 +986,32 @@ export function PhoneBookingPane() {
                 <DialogClose render={
                   <Button 
                     disabled={!selectedBookingId}
-                    onClick={() => {
+                    onClick={async () => {
                       const selectedAppt = todayBookings.find(b => b.id === selectedBookingId);
                       if (selectedAppt) {
+                        try {
+                          const res = await apiFetch(`${API}/barcode/${selectedAppt.id}`);
+                          if (res.ok) {
+                            const data = await res.json();
+                            if (data.type === "APPOINTMENT") {
+                              sendAppointmentToPOS({
+                                appointmentId: data.data.appointment.id,
+                                tokenNumber: data.data.appointment.tokenNumber,
+                                patientName: data.data.appointment.Patient?.fullName,
+                                doctorName: data.data.appointment.User?.fullName,
+                                fee: data.data.appointment.User?.consultationFee || 2500,
+                                isUpfront: data.data.appointment.User?.feeType === "UPFRONT",
+                                invoice: data.data.invoice,
+                                allAppointments: data.data.allAppointments || []
+                              });
+                              toast.success("Sent to POS for checkout.");
+                              return;
+                            }
+                          }
+                        } catch (e) {
+                           console.error(e);
+                        }
+                        // Fallback if barcode API fails
                         const docInfo = doctors.find(d => d.fullName === selectedAppt.doctorName);
                         sendAppointmentToPOS({
                           appointmentId: selectedAppt.id,
@@ -831,7 +1019,8 @@ export function PhoneBookingPane() {
                           patientName: selectedAppt.patientName,
                           doctorName: selectedAppt.doctorName,
                           fee: docInfo?.consultationFee || 2500,
-                          isUpfront: docInfo?.feeType === "UPFRONT"
+                          isUpfront: docInfo?.feeType === "UPFRONT",
+                          allAppointments: selectedAppt.groupedTokens || []
                         });
                         toast.success("Sent to POS for checkout.");
                       }
@@ -846,6 +1035,45 @@ export function PhoneBookingPane() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Success Popup */}
+      <Dialog open={successPopupOpen} onOpenChange={setSuccessPopupOpen}>
+        <DialogContent className="sm:max-w-[425px] text-center">
+          <DialogHeader>
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-center">Booking Successful!</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-muted-foreground mb-4">The phone booking has been successfully recorded.</p>
+            <div className="bg-muted p-4 rounded-lg text-left">
+              <div className="flex flex-col gap-2">
+                {successTokens.map((t, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                    <span className="font-medium text-foreground">
+                      {t.department === "CONSULTATION" ? `Dr. ${t.User?.fullName || t.doctorName || "General"}` : 
+                       t.department === "EXTRA_SERVICE" ? "Extra Services" : 
+                       t.department === "LAB" ? "Lab Tests" : t.department}
+                    </span>
+                    <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-bold">
+                      Token #{t.tokenNumber}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4 italic">
+              * Remember to checkout this booking in POS when the patient arrives.
+            </p>
+          </div>
+          <div className="flex justify-center mt-2">
+            <Button onClick={() => setSuccessPopupOpen(false)} className="w-full">
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
