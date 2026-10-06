@@ -469,7 +469,7 @@ export default function ConsultationPage() {
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Token Number</p>
             <p className="text-2xl font-black text-foreground tracking-tight">Visit #04</p>
             <p className="font-medium text-muted-foreground text-xs mt-3">Started 10:42 AM</p>
-            <p className="font-mono text-[10px] text-muted-foreground mt-1 opacity-50" title={patient.id}>ID: {patient.id.substring(0,8)}</p>
+            <p className="font-mono text-[10px] text-muted-foreground mt-1 opacity-50" title={patient.id}>ID: {patient.id ? patient.id.substring(0,8) : "N/A"}</p>
           </div>
         </div>
       </div>
