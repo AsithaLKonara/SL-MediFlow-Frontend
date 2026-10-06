@@ -21,7 +21,7 @@ interface Metrics {
 }
 
 export default function DoctorOverview() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +29,9 @@ export default function DoctorOverview() {
     if (!user) return;
     
     // Fetch tokens for this doctor
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user.id}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then((r) => r.json())
       .then((res: any) => { 
         const tokens: any[] = Array.isArray(res) ? res : (res.data || []);
@@ -70,7 +72,7 @@ export default function DoctorOverview() {
          console.error(err);
          setLoading(false);
       });
-  }, [user]);
+  }, [user, token]);
 
   if (loading || !metrics) {
     return (

@@ -29,20 +29,43 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   COMPLETED:       { label: "Completed",       className: "bg-green-500/10 text-green-600 dark:text-green-400" },
 };
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 export default function DoctorQueuePage() {
+  const { user, token } = useAuth();
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/doctor/queue").then((r) => r.json()).then((d) => {
-      const activeQueue = (d.data || []).filter((q: any) => {
-        const s = (q.status || "").toUpperCase();
-        return s !== "COMPLETED" && s !== "PRESCRIPTION_ISSUED" && s !== "CANCELLED";
-      });
+    if (!user) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then((r) => r.json()).then((d) => {
+      const tokens = Array.isArray(d) ? d : (d.data || []);
+      const activeQueue = tokens
+        .filter((q: any) => {
+          const s = (q.status || "").toUpperCase();
+          return s !== "COMPLETED" && s !== "PRESCRIPTION_ISSUED" && s !== "CANCELLED";
+        })
+        .map((t: any) => {
+          const p = t.Patient || t.patient || {};
+          return {
+             id: t.id,
+             queueNo: t.tokenNumber,
+             patientId: p.id || t.patientId,
+             patientName: p.fullName || "Unknown",
+             age: p.age || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
+             gender: p.gender || "UNKNOWN",
+             reason: t.department || "Consultation",
+             priority: "NORMAL",
+             status: (t.status === "BOOKED" ? "WAITING" : (t.status === "IN_PROGRESS" ? "IN_CONSULTATION" : t.status)),
+             waitingSince: t.createdAt
+          };
+        });
       setQueue(activeQueue);
       setLoading(false);
-    });
-  }, []);
+    }).catch(() => setLoading(false));
+  }, [user, token]);
 
   const waitingCount = queue.filter((q) => q.status === "WAITING").length;
 

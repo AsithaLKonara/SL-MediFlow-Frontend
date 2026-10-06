@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ patientId: string }> }
 ) {
   const { patientId } = await params;
   try {
+    const authHeader = request.headers.get("Authorization") || "";
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/patients/${patientId}`, {
-      cache: "no-store"
+      cache: "no-store",
+      headers: { Authorization: authHeader }
     });
     if (!res.ok) {
       return NextResponse.json({ error: "Patient not found" }, { status: 404 });
@@ -26,9 +28,13 @@ export async function POST(
   const { patientId } = await params;
   try {
     const body = await request.json();
+    const authHeader = request.headers.get("Authorization") || "";
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}/update`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        Authorization: authHeader
+      },
       body: JSON.stringify(body)
     });
     if (!res.ok) {

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 
 export default function PrescriptionHistoryPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -45,12 +45,21 @@ export default function PrescriptionHistoryPage() {
         ? `${process.env.NEXT_PUBLIC_API_URL}/prescriptions?doctorId=${user.id}`
         : `${process.env.NEXT_PUBLIC_API_URL}/prescriptions`;
         
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
-      setPrescriptions(data);
+      if (res.ok && Array.isArray(data)) {
+        setPrescriptions(data);
+      } else {
+        console.error("API returned error or non-array:", data);
+        toast.error(data.error || "Failed to load prescription history");
+        setPrescriptions([]);
+      }
     } catch (e) {
       console.error("Failed to load prescriptions", e);
       toast.error("Failed to load prescription history");
+      setPrescriptions([]);
     } finally {
       setLoading(false);
     }
@@ -147,7 +156,10 @@ export default function PrescriptionHistoryPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${editingRx.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           diagnosis: editDiagnosis,
           clinicalNotes: editNotes,
@@ -187,7 +199,8 @@ export default function PrescriptionHistoryPage() {
     if (window.confirm(`Are you sure you want to delete prescription for ${rx.patientName}?`)) {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}`, {
-          method: "DELETE"
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
           toast.success("Prescription deleted successfully");

@@ -60,7 +60,7 @@ export default function ConsultationPage({
 }) {
   const { patientId } = use(params);
   const { isCollapsed } = useSidebar();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,7 +103,10 @@ export default function ConsultationPage({
     try {
       const res = await fetch(`/api/doctor/patients/${patientId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           fullName: editPatientData.name,
           phone: editPatientData.contact,
@@ -128,7 +131,9 @@ export default function ConsultationPage({
   };
 
   useEffect(() => {
-    fetch(`/api/doctor/patients/${patientId}`)
+    fetch(`/api/doctor/patients/${patientId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then((r) => r.json())
       .then((d) => { 
         setPatient(d); 
@@ -142,7 +147,9 @@ export default function ConsultationPage({
         setLoading(false); 
       });
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then((r) => r.json())
       .then((data) => {
         const meds = data.data || data;
@@ -154,7 +161,9 @@ export default function ConsultationPage({
       })
       .catch((e) => console.error("Failed to load medicines", e));
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then((r) => r.json())
       .then((data) => setAvailableLabTests(data))
       .catch((e) => console.error("Failed to load lab catalog", e));
@@ -277,7 +286,10 @@ export default function ConsultationPage({
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
 
@@ -300,7 +312,10 @@ export default function ConsultationPage({
         await Promise.all(selectedTests.map(test => 
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify({
               patientId: patient?.id,
               visitId: patient.activeVisitId,
@@ -328,7 +343,10 @@ export default function ConsultationPage({
       const finalStatus = addedDrugs.length > 0 ? "prescription_issued" : "COMPLETED";
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           patientId: patient?.id,
           doctorId: user.id,
