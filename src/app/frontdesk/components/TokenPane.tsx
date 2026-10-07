@@ -479,7 +479,7 @@ export function TokenPane() {
 
     // Optimistically lock UI immediately (POSPane will also broadcast IN_PROGRESS back)
     setInPosPrescriptionId(rx.id);
-    sendToPOS(cartItems, rx.id);
+    sendToPOS(cartItems, rx.id, (rx as any).doctor, (rx as any).consultationPaid);
     toast.success(`${cartItems.length} medicine(s) sent to POS — complete checkout to dispense.`);
   };
 

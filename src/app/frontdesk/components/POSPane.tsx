@@ -98,7 +98,7 @@ export function POSPane() {
   // Listen for prescription items or tokens pushed from the Rx/Token tab
   useEffect(() => {
     onPrescriptionReceived(
-      (rxItems, rxId) => {
+      (rxItems, rxId, doctor, consultationPaid) => {
         setCart((prev) => {
           const updated = [...prev];
           for (const rxItem of rxItems) {
@@ -112,6 +112,16 @@ export function POSPane() {
           return updated;
         });
         setActivePrescriptionId(rxId);
+
+        // Check for Post Pay Consultation Fee from TokenPane
+        if (doctor?.feeType === "POST" && !consultationPaid) {
+          setPostPayConsultation({
+            id: doctor.id,
+            doctorName: doctor.fullName || doctor.name || "Doctor",
+            price: doctor.consultationFee || 2500
+          });
+        }
+
         // Mark prescription as IN_PROGRESS on backend
         apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxId}/status`, {
           method: "PATCH",
@@ -238,7 +248,7 @@ export function POSPane() {
             if (rx.visitId) setActiveVisitId(rx.visitId);
             
             // Check for Post Pay Consultation Fee
-            if (rx.doctor?.feeType === "POST") {
+            if (rx.doctor?.feeType === "POST" && !data.consultationPaid) {
               setPostPayConsultation({
                 id: rx.doctor.id,
                 doctorName: rx.doctor.fullName || rx.doctorName,
@@ -312,6 +322,15 @@ export function POSPane() {
               setActivePrescriptionId(rx.id);
               if (rx.patientId) setActivePatientId(rx.patientId);
               if (rx.visitId) setActiveVisitId(rx.visitId);
+
+              // Inject POST pay consultation if not paid
+              if (appointment.User?.feeType === "POST" && !data.consultationPaid) {
+                setPostPayConsultation({
+                  id: appointment.User.id,
+                  doctorName: appointment.User.fullName,
+                  price: appointment.User.consultationFee || 2500
+                });
+              }
 
               apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
                 method: "PATCH",
@@ -845,6 +864,15 @@ export function POSPane() {
                       price: item.price,
                       total: item.qty * item.price
                     }));
+
+                    if (postPayConsultation) {
+                      combinedItems.push({
+                        name: `Doctor Fee (Post Pay) - Dr. ${postPayConsultation.doctorName}`,
+                        qty: 1,
+                        price: postPayConsultation.price,
+                        total: postPayConsultation.price
+                      });
+                    }
                     
                     let tokenResultTokens: any[] = [];
 

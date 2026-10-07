@@ -108,8 +108,8 @@ export function useRxToPOS() {
 
   /** TokenPane → POSPane: send prescription items */
   const sendToPOS = useCallback(
-    (items: CartItem[], rxId: string) => {
-      channel?.postMessage({ type: "RX_ITEMS", items, rxId });
+    (items: CartItem[], rxId: string, doctor?: any, consultationPaid?: boolean) => {
+      channel?.postMessage({ type: "RX_ITEMS", items, rxId, doctor, consultationPaid });
     },
     [channel]
   );
@@ -133,13 +133,13 @@ export function useRxToPOS() {
   /** POSPane listens for incoming prescription or token */
   const onPrescriptionReceived = useCallback(
     (
-      rxHandler: (items: CartItem[], rxId: string) => void,
+      rxHandler: (items: CartItem[], rxId: string, doctor?: any, consultationPaid?: boolean) => void,
       tokenHandler?: (payload: TokenPayload) => void
     ) => {
       if (!channel) return;
       channel.onmessage = (e) => {
         if (e.data?.type === "RX_ITEMS") {
-          rxHandler(e.data.items as CartItem[], e.data.rxId as string);
+          rxHandler(e.data.items as CartItem[], e.data.rxId as string, e.data.doctor, e.data.consultationPaid);
         } else if (e.data?.type === "TOKEN_CHECKOUT" && tokenHandler) {
           tokenHandler(e.data.payload);
         } else if (e.data?.type === "APPOINTMENT_CHECKOUT" && tokenHandler) {
