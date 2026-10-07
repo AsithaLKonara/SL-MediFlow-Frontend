@@ -155,6 +155,43 @@ export default function PharmacistPOSPage() {
              }).catch(console.error);
            }
         }
+      } else if (type === "APPOINTMENT") {
+        const prescriptions = data.prescriptions || [];
+        if (prescriptions.length > 0) {
+          let count = 0;
+          for (const rx of prescriptions) {
+            for (const item of rx.items || []) {
+              if (item.medicineId && item.medicine) {
+                const price = item.medicine.stockBatches?.[0]?.unitPrice ?? 0;
+                addToCart({
+                  id: item.medicine.id,
+                  name: item.medicine.name,
+                  unitPrice: price,
+                  stock: item.medicine.stockBatches?.[0]?.currentQuantity ?? 0,
+                  category: item.medicine.category,
+                  itemType: item.medicine.itemType,
+                  barcode: item.medicine.barcode || "",
+                });
+                count++;
+              }
+            }
+            // Mark prescription as COMPLETED
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "COMPLETED" }),
+            }).catch(console.error);
+          }
+          if (count > 0) {
+            setPatientId(data.appointment?.patientId || "");
+            setPatientName(data.appointment?.Patient?.name || "Walk-in");
+            toast.success(`Loaded ${count} items from Token Prescriptions.`);
+          } else {
+             toast.info("No medicine items found in this token's prescriptions.");
+          }
+        } else {
+          toast.info("No prescriptions found for this Token.");
+        }
       }
     } catch (e) {
       console.error(e);

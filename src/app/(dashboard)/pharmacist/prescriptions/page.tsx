@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Search, PackageCheck, Banknote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
+import { useBarcodeScanner } from "@/app/frontdesk/hooks/useBarcodeScanner";
 
 interface Drug {
   id: string;
@@ -35,6 +36,24 @@ export default function PharmacyDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeRx, setActiveRx] = useState<Prescription | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const processBarcode = (code: string) => {
+    const match = prescriptions.find(p => 
+      p.id.toLowerCase() === code.toLowerCase() || 
+      p.patientName.toLowerCase().includes(code.toLowerCase()) ||
+      p.visitId === code
+    );
+    if (match) {
+      setActiveRx(match);
+      setSearchQuery("");
+    } else {
+      toast.error("Prescription not found.");
+    }
+  };
+
+  useBarcodeScanner((barcode) => {
+    processBarcode(barcode);
+  });
 
   useEffect(() => {
     fetchPrescriptions();
@@ -91,13 +110,7 @@ export default function PharmacyDashboardPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const match = prescriptions.find(p => p.id.toLowerCase() === searchQuery.toLowerCase() || p.patientName.toLowerCase().includes(searchQuery.toLowerCase()));
-    if (match) {
-      setActiveRx(match);
-      setSearchQuery("");
-    } else {
-      toast.error("Prescription not found.");
-    }
+    processBarcode(searchQuery);
   };
 
   const updateDispenseQty = (drugId: string, val: string) => {
