@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
 
 export type CartItem = {
   id: string;
@@ -25,34 +26,39 @@ const RX_TO_POS_CHANNEL = "AMAZ_RX_TO_POS";
 
 export function useCartSync(isSender = false) {
   const [state, setState] = useState<SyncState>({ cart: [], subtotal: 0, total: 0, checkout: { method: null, status: "IDLE" } });
-  const [channel, setChannel] = useState<BroadcastChannel | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    // Only works in browser
     if (typeof window === "undefined") return;
 
-    const bc = new BroadcastChannel(CHANNEL_NAME);
-    setChannel(bc);
+    const token = localStorage.getItem("amaz_token");
+    const s = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001", {
+      auth: { token }
+    });
+    setSocket(s);
+
+    const room = "POS_DISPLAY_SYNC";
+    s.emit("join", room);
 
     if (!isSender) {
-      bc.onmessage = (event) => {
-        setState(event.data);
-      };
+      s.on("cart_updated", (data: any) => {
+        setState(data);
+      });
     }
 
     return () => {
-      bc.close();
+      s.disconnect();
     };
   }, [isSender]);
 
   const updateState = useCallback(
     (newState: SyncState) => {
       setState(newState);
-      if (isSender && channel) {
-        channel.postMessage(newState);
+      if (isSender && socket) {
+        socket.emit("sync_cart", { room: "POS_DISPLAY_SYNC", state: newState });
       }
     },
-    [isSender, channel]
+    [isSender, socket]
   );
 
   return { state, updateState };
