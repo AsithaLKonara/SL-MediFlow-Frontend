@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { Button } from "@/components/ui/button";
 import { DoctorStatus } from "../../../page";
 import { Clock, LogOut, CheckCircle2 } from "lucide-react";
@@ -15,6 +17,7 @@ export function DoctorStatusControl({
 }) {
   const isArrived = doctor.attendance?.status === "ARRIVED";
 
+  const { token } = useAuth();
   const [matrixOpen, setMatrixOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isMarkingOut, setIsMarkingOut] = useState(false);
@@ -26,7 +29,7 @@ export function DoctorStatusControl({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ status: "ARRIVED", roomNumber, startTime, endTime })
       });
@@ -48,7 +51,7 @@ export function DoctorStatusControl({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ status: "LEFT", forceExit })
       });

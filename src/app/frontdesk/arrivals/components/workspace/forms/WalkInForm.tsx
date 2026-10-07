@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,7 @@ export function WalkInForm({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
+  const { token } = useAuth();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = setExternalOpen || setInternalOpen;
@@ -40,7 +43,7 @@ export function WalkInForm({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ doctorId, sessionId: sessionId || "", patient: formData })
       });

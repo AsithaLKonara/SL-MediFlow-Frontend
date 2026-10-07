@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -15,6 +17,7 @@ export function EditSessionForm({
   initialData: { sessionName: string, startTime: string, endTime: string, roomNumber?: string };
   onUpdateSuccess?: () => void;
 }) {
+  const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +31,7 @@ export function EditSessionForm({
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           sessionName: formData.sessionName,

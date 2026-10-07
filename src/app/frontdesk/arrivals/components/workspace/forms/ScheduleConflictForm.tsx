@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +11,7 @@ import { toast } from "sonner";
 import { DoctorStatus } from "../../../page";
 
 export function ScheduleConflictForm({ doctor, onComplete }: { doctor: DoctorStatus; onComplete?: () => void }) {
+  const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
@@ -46,7 +49,7 @@ export function ScheduleConflictForm({ doctor, onComplete }: { doctor: DoctorSta
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           doctorId: doctor.id,

@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,8 @@ interface Room {
 }
 
 export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, selectedDate, isAssigning }: RoomMatrixModalProps) {
+  const { token } = useAuth();
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
@@ -43,7 +47,7 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
     try {
       setLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/rooms/matrix?date=${selectedDate.toISOString()}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error("Failed to fetch rooms");
       const data = await res.json();

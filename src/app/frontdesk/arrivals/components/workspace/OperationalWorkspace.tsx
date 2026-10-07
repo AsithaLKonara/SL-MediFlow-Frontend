@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { useState, useEffect } from "react";
 import { DoctorStatus } from "../../page";
 import { DoctorStatusControl } from "./right-panel/DoctorStatusControl";
@@ -57,7 +59,7 @@ export function OperationalWorkspace({
   const fetchContext = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const { token } = useAuth();
       const headers = { 'Authorization': `Bearer ${token}` };
 
       // 1. Fetch Calendar Aggregation

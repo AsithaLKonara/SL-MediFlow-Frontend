@@ -21,6 +21,8 @@ export interface DoctorStatus {
 }
 
 export default function EnhancedDoctorArrivalsPage() {
+  const { token } = useAuth();
+
   const router = useRouter();
   const [doctors, setDoctors] = useState<DoctorStatus[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
@@ -40,6 +42,8 @@ export default function EnhancedDoctorArrivalsPage() {
   }, [user?.id]);
 
   const handleAssignNurse = () => {
+  const { token } = useAuth();
+
     if (selectedDoctorId && user?.id) {
       localStorage.setItem(`assignedDoctorId_${user.id}`, selectedDoctorId);
       setAssignedDoctorId(selectedDoctorId);
@@ -62,7 +66,7 @@ export default function EnhancedDoctorArrivalsPage() {
     try {
       if (!silent) setIsLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${selectedDate.toISOString()}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
         const errText = await res.text();

@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -8,6 +10,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Maximize } from "lucide-react";
 
 export default function CustomerDisplayPage() {
+  const { token } = useAuth();
+
   const [doctors, setDoctors] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +40,8 @@ export default function CustomerDisplayPage() {
   }, [doctors]); // Re-bind if doctors change (so rows might change)
 
   const toggleFullScreen = () => {
+  const { token } = useAuth();
+
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch((err) => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
@@ -57,7 +63,7 @@ export default function CustomerDisplayPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (res.ok) {

@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -17,6 +19,7 @@ export function ManageTokensForm({
   sessionName: string;
   onUpdateSuccess?: () => void;
 }) {
+  const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [isUnlimited, setIsUnlimited] = useState(currentLimit >= 9999);
   const [limit, setLimit] = useState(currentLimit >= 9999 ? 40 : currentLimit);
@@ -32,7 +35,7 @@ export function ManageTokensForm({
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           tokenCapacity: finalLimit

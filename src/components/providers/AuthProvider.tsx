@@ -29,60 +29,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const validateSession = async () => {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
-
-      if (storedToken && storedUser) {
-        try {
-          // Verify token against server
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-            headers: { Authorization: `Bearer ${storedToken}` }
-          });
-          
-          if (res.status === 401 || res.status === 403) {
-            throw new Error("Session expired or invalid");
-          } else if (!res.ok) {
-            // Check if user simply doesn't exist in DB (e.g. after re-seed)
-            try {
-              const errData = await res.clone().json();
-              if (errData?.error === "User not found") {
-                throw new Error("Session expired or invalid");
-              }
-            } catch (parseErr) {
-              // Not a JSON error body, keep session alive for network issues
-            }
-            console.warn(`Session validation returned ${res.status}, keeping session active.`);
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-            setIsLoading(false);
-            return;
-          }
-          
-          const userData = await res.json();
-          // Update user in case roles/details changed
-          const validatedUser = { 
-            ...JSON.parse(storedUser), 
-            ...userData,
-            role: userData.Role?.name || JSON.parse(storedUser).role
-          };
-          
-          setToken(storedToken);
-          setUser(validatedUser);
-          localStorage.setItem("user", JSON.stringify(validatedUser));
-        } catch (error) {
-          console.error("Session validation failed:", error);
-          // Only clear local storage if we definitively know the token is bad (401/403)
-          if (error instanceof Error && error.message === "Session expired or invalid") {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            setToken(null);
-            setUser(null);
-          } else {
-            // Keep the session for network errors / server downtime
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-          }
+      try {
+        // Hydrate from HttpOnly cookie via /auth/refresh
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+          credentials: "include"
+        });
+        
+        if (!res.ok) {
+          throw new Error("Session expired or invalid");
         }
+        
+        const data = await res.json();
+        setToken(data.token);
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      } catch (error) {
+        console.error("Session validation failed:", error);
+        localStorage.removeItem("user");
+        setToken(null);
+        setUser(null);
       }
       setIsLoading(false);
     };
@@ -93,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
   };
 
@@ -114,9 +78,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // For Nurse and Receptionist, we could add similar logic if backend supports it.
     }
 
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include"
+      });
+    } catch (e) {
+      console.error("Failed to logout from server", e);
+    }
+
     setToken(null);
     setUser(null);
-    localStorage.removeItem("token");
     localStorage.removeItem("user");
     router.push("/login");
   };

@@ -1,3 +1,5 @@
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import { useState } from "react";
 import { DoctorStatus } from "../../../page";
 import { Check, Clock, User, X, ChevronRight, Play } from "lucide-react";
@@ -17,11 +19,14 @@ export function TokenBoardMatrix({
   tokens: any[]; 
   onTokenUpdate: () => void 
 }) {
+  const { token } = useAuth();
   const [selectedToken, setSelectedToken] = useState<any | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
 
   const getTokenIcon = (status: string) => {
+  const { token } = useAuth();
+
     switch (status) {
       case "COMPLETED": return <Check className="w-3 h-3 text-green-500" />;
       case "ARRIVED":
@@ -65,7 +70,7 @@ export function TokenBoardMatrix({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ status: action })
       });
