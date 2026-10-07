@@ -87,10 +87,10 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl bg-zinc-950 border-zinc-800 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Room Assignment Matrix</DialogTitle>
-          <DialogDescription className="text-zinc-400">
+      <DialogContent className="max-w-5xl bg-zinc-950 border-zinc-800 text-white p-6 md:p-10">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-3xl font-bold tracking-tight">Room Assignment Matrix</DialogTitle>
+          <DialogDescription className="text-lg text-zinc-400 mt-2">
             Assign {doctorName} to a consultation room.
           </DialogDescription>
         </DialogHeader>
@@ -101,29 +101,33 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="grid grid-cols-5 gap-3 max-h-[400px] overflow-y-auto pr-2">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               {rooms.map(room => (
                 <div 
                   key={room.id}
                   onClick={() => setSelectedRoom(room.name)}
-                  className={`p-3 rounded-xl border cursor-pointer transition-colors ${
+                  className={`p-4 md:p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
                     selectedRoom === room.name 
-                      ? 'border-orange-500 bg-orange-500/10' 
-                      : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+                      ? 'border-orange-500 bg-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.15)] scale-[1.02]' 
+                      : 'border-zinc-800 bg-zinc-900/80 hover:border-zinc-600 hover:bg-zinc-800'
                   }`}
                 >
-                  <div className="font-semibold text-sm">{room.name}</div>
-                  <div className="text-[10px] text-zinc-500 mt-1 space-y-1">
+                  <div className="font-bold text-xl md:text-2xl text-zinc-100 mb-3">{room.name}</div>
+                  <div className="text-sm text-zinc-400 space-y-2 font-medium">
                     {room.bookings.length === 0 ? (
-                      <span className="text-green-500">Available</span>
+                      <div className="flex items-center gap-2 text-green-500 bg-green-500/10 px-3 py-1.5 rounded-lg w-fit">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        Available
+                      </div>
                     ) : (
                       room.bookings.map((b, i) => (
-                        <div key={i} className="bg-zinc-800 p-1 rounded">
-                          <span className={b.status === "LEFT" ? "text-zinc-400 line-through" : "text-orange-400"}>
-                            {b.startTime}-{b.endTime}
+                        <div key={i} className="bg-zinc-950/50 border border-zinc-800/80 p-2.5 rounded-lg space-y-1">
+                          <span className={`block font-semibold ${b.status === "LEFT" ? "text-zinc-500 line-through" : "text-orange-400"}`}>
+                            {b.startTime} - {b.endTime}
                           </span>
-                          <br/>
-                          <span className="truncate block max-w-full" title={b.doctorName}>{b.doctorName}</span>
+                          <span className={`truncate block max-w-full text-sm ${b.status === "LEFT" ? "text-zinc-600" : "text-zinc-300"}`} title={b.doctorName}>
+                            {b.doctorName}
+                          </span>
                         </div>
                       ))
                     )}
@@ -132,32 +136,32 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-zinc-900 rounded-xl border border-zinc-800">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">Expected Start Time</label>
+            <div className="grid grid-cols-2 gap-6 mt-8 p-6 md:p-8 bg-zinc-900/60 rounded-2xl border-2 border-zinc-800/50">
+              <div className="space-y-3">
+                <label className="text-base font-semibold text-zinc-300 uppercase tracking-wider">Expected Start Time</label>
                 <Input 
                   type="time" 
                   value={startTime} 
                   onChange={e => setStartTime(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-orange-500"
+                  className="h-14 text-xl font-medium bg-zinc-950 border-2 border-zinc-800 focus-visible:ring-orange-500 focus-visible:border-orange-500 transition-all rounded-xl"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">Expected End Time</label>
+              <div className="space-y-3">
+                <label className="text-base font-semibold text-zinc-300 uppercase tracking-wider">Expected End Time</label>
                 <Input 
                   type="time" 
                   value={endTime} 
                   onChange={e => setEndTime(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-orange-500"
+                  className="h-14 text-xl font-medium bg-zinc-950 border-2 border-zinc-800 focus-visible:ring-orange-500 focus-visible:border-orange-500 transition-all rounded-xl"
                 />
               </div>
             </div>
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={handleAssign} isLoading={isAssigning}>Assign Room</Button>
+        <DialogFooter className="mt-6 md:mt-8 gap-3">
+          <Button variant="ghost" className="h-12 px-6 text-base font-medium rounded-xl hover:bg-zinc-800 hover:text-white transition-colors" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="h-12 px-8 text-base font-bold rounded-xl bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/20 transition-all active:scale-95" onClick={handleAssign} isLoading={isAssigning}>Assign Room</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
