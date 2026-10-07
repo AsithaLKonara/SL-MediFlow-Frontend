@@ -1,7 +1,7 @@
 "use client";
 
 import { useCartSync } from "../frontdesk/hooks/useCartSync";
-import { ShoppingBag, BellRing, Receipt } from "lucide-react";
+import { ShoppingBag, BellRing, Receipt, Maximize } from "lucide-react";
 import Image from "next/image";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -12,6 +12,18 @@ export default function CustomerDisplayPage() {
   const { state } = useCartSync(false); // Receiver
   const [mounted, setMounted] = useState(false);
   const [calledTokens, setCalledTokens] = useState<{ id: string; number: string; doctor: string; room?: string; specialty?: string }[]>([]);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -61,6 +73,14 @@ export default function CustomerDisplayPage() {
           </div>
           <h2 className="text-xl md:text-2xl font-bold text-secondary">Now Serving</h2>
         </div>
+
+        <button 
+          onClick={toggleFullscreen}
+          className="absolute top-4 right-4 md:top-8 md:right-8 w-12 h-12 bg-secondary/20 hover:bg-secondary/40 rounded-xl flex items-center justify-center transition-colors"
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-6 h-6 text-secondary" />
+        </button>
 
         {calledTokens.length > 0 ? (
           <div className="w-full flex flex-col items-center animate-in zoom-in duration-500">

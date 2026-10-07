@@ -166,8 +166,56 @@ export function POSPane() {
 
   // Sync to display whenever cart changes, but preserve checkout state
   useEffect(() => {
-    updateState({ ...state, cart, subtotal, total });
-  }, [cart, subtotal, total]); // Removed updateState from dependency to prevent loop
+    let displayCart = [...cart];
+
+    // Convert pendingTokenPayload into displayCart items
+    if (pendingTokenPayload) {
+      if (pendingTokenPayload.isUpfront) {
+        displayCart.push({
+          id: 'token-consult',
+          name: `Specialist Consultation (Upfront) - Dr. ${pendingTokenPayload.doctorName || ''}`,
+          qty: 1,
+          price: pendingTokenPayload.doctorFee || 2500
+        });
+      }
+      pendingTokenPayload.tests?.forEach((t: any) => {
+        const p = pendingTokenPayload.customLabPrices?.[t.id] ?? t.price;
+        displayCart.push({ id: t.id, name: `Lab Test: ${t.name}`, qty: 1, price: p });
+      });
+      pendingTokenPayload.services?.forEach((s: any) => {
+        const p = pendingTokenPayload.customServicePrices?.[s.id] ?? s.price;
+        displayCart.push({ id: s.id, name: `Extra Service: ${s.name}`, qty: 1, price: p });
+      });
+    }
+
+    // Convert pendingAppointmentPayload into displayCart items
+    if (pendingAppointmentPayload) {
+      if (pendingAppointmentPayload.invoice?.lineItems?.length > 0) {
+        pendingAppointmentPayload.invoice.lineItems.forEach((li: any) => {
+          displayCart.push({ id: li.id, name: li.description, qty: li.quantity, price: li.unitPrice });
+        });
+      } else if (pendingAppointmentPayload.isUpfront) {
+         displayCart.push({
+           id: `appt-consult`,
+           name: `Consultation - Dr. ${pendingAppointmentPayload.doctorName || ''}`,
+           qty: 1,
+           price: pendingAppointmentPayload.fee || 0
+         });
+      }
+    }
+
+    // Convert postPayConsultation into displayCart items
+    if (postPayConsultation) {
+       displayCart.push({
+         id: `postpay-consult`,
+         name: `Consultation (Post-Pay) - Dr. ${postPayConsultation.doctorName}`,
+         qty: 1,
+         price: postPayConsultation.price
+       });
+    }
+
+    updateState({ ...state, cart: displayCart, subtotal, total });
+  }, [cart, subtotal, total, pendingTokenPayload, pendingAppointmentPayload, postPayConsultation]); // Removed updateState from dependency to prevent loop
 
   const handleQtyChange = (id: string, qty: number) => {
     setCart(prev => prev.map(item => item.id === id ? { ...item, qty: Math.max(1, qty) } : item));
