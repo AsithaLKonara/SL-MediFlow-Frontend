@@ -1,6 +1,6 @@
-import { useAuth } from "@/components/providers/AuthProvider";
-
 "use client";
+
+import { useAuth } from "@/components/providers/AuthProvider";
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
