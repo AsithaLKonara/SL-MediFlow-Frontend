@@ -25,8 +25,6 @@ export function TokenBoardMatrix({
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
 
   const getTokenIcon = (status: string) => {
-  const { token } = useAuth();
-
     switch (status) {
       case "COMPLETED": return <Check className="w-3 h-3 text-green-500" />;
       case "ARRIVED":

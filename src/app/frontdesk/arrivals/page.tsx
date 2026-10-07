@@ -42,7 +42,6 @@ export default function EnhancedDoctorArrivalsPage() {
   }, [user?.id]);
 
   const handleAssignNurse = () => {
-  const { token } = useAuth();
 
     if (selectedDoctorId && user?.id) {
       localStorage.setItem(`assignedDoctorId_${user.id}`, selectedDoctorId);

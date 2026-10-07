@@ -36,7 +36,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         
         if (!res.ok) {
-          throw new Error("Session expired or invalid");
+          // If not ok, it means no valid session cookie. Just clear state silently.
+          localStorage.removeItem("user");
+          setToken(null);
+          setUser(null);
+          setIsLoading(false);
+          return;
         }
         
         const data = await res.json();

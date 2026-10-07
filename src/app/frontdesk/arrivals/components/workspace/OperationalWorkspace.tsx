@@ -29,6 +29,8 @@ export function OperationalWorkspace({
   // We assume the first session is the active one for simplicity
   const activeSession = doctor.sessions && doctor.sessions.length > 0 ? doctor.sessions[0] : null;
 
+  const { token } = useAuth();
+  
   useEffect(() => {
     fetchContext();
 
@@ -59,7 +61,6 @@ export function OperationalWorkspace({
   const fetchContext = async () => {
     try {
       setIsLoading(true);
-      const { token } = useAuth();
       const headers = { 'Authorization': `Bearer ${token}` };
 
       // 1. Fetch Calendar Aggregation
