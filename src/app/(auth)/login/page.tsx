@@ -94,8 +94,6 @@ export default function LoginPage() {
     { label: "Doctor", email: "dr1@amaz.com" },
     { label: "Nurse", email: "nurse@amaz.com" },
     { label: "Lab", email: "labtech@amaz.com" },
-    { label: "Pharmacist", email: "pharmacy@amaz.com" },
-    { label: "Cashier", email: "cashier@amaz.com" },
   ];
 
   const handleQuickLogin = (email: string) => {
