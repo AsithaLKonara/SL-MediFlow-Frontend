@@ -465,8 +465,8 @@ export default function PrescriptionHistoryPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Changes"}
+            <Button onClick={handleSaveEdit} isLoading={isSaving}>
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

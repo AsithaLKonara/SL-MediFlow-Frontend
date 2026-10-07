@@ -11,6 +11,7 @@ interface RoomMatrixModalProps {
   doctorName: string;
   onAssign: (roomNumber: string, startTime: string, endTime: string) => void;
   selectedDate: Date;
+  isAssigning?: boolean;
 }
 
 interface Room {
@@ -25,7 +26,7 @@ interface Room {
   }[];
 }
 
-export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, selectedDate }: RoomMatrixModalProps) {
+export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, selectedDate, isAssigning }: RoomMatrixModalProps) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
@@ -152,7 +153,7 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={handleAssign}>Assign Room</Button>
+          <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={handleAssign} isLoading={isAssigning}>Assign Room</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

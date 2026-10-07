@@ -218,6 +218,22 @@ export function TokenPane() {
       .catch(console.error);
   }, [selectedServiceIds.size]);
 
+  const fetchPendingPrescriptions = useCallback(async () => {
+    if (!token) return;
+    setRxLoading(true);
+    try {
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/pending`);
+      if (!res.ok) throw new Error("Failed to fetch prescriptions");
+      const data: Prescription[] = await res.json();
+      setPendingPrescriptions(data);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load pending prescriptions.");
+    } finally {
+      setRxLoading(false);
+    }
+  }, [token, apiFetch, selectedDate]);
+
   useEffect(() => {
     socketRef.current = io(SOCKET_URL);
     
@@ -229,11 +245,13 @@ export function TokenPane() {
 
     socketRef.current.on("connect", refreshAll);
     socketRef.current.on("TOKEN_STATUS_UPDATED", refreshAll);
+    socketRef.current.on("prescription_created", fetchPendingPrescriptions);
+    socketRef.current.on("prescription_status_updated", fetchPendingPrescriptions);
 
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, [selectedDocId, selectedTestIds.size, selectedServiceIds.size, fetchDocTokens, fetchLabTokens, fetchServiceTokens]);
+  }, [selectedDocId, selectedTestIds.size, selectedServiceIds.size, fetchDocTokens, fetchLabTokens, fetchServiceTokens, fetchPendingPrescriptions]);
 
   const resetForm = () => {
     setPatientName("");
@@ -270,21 +288,7 @@ export function TokenPane() {
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
   const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
 
-  const fetchPendingPrescriptions = useCallback(async () => {
-    if (!token) return;
-    setRxLoading(true);
-    try {
-      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/pending`);
-      if (!res.ok) throw new Error("Failed to fetch prescriptions");
-      const data: Prescription[] = await res.json();
-      setPendingPrescriptions(data);
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to load pending prescriptions.");
-    } finally {
-      setRxLoading(false);
-    }
-  }, [token, apiFetch, selectedDate]);
+
 
   useEffect(() => {
     if (!token) return;

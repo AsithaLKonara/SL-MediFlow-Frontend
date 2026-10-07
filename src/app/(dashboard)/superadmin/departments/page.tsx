@@ -48,6 +48,10 @@ export default function DepartmentsPage() {
   const [availableDoctors, setAvailableDoctors] = useState<User[]>([]);
   const [assignDoctorId, setAssignDoctorId] = useState<string>("");
   
+  const [isSavingDept, setIsSavingDept] = useState(false);
+  const [isSavingFee, setIsSavingFee] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  
   const { token } = useAuth();
   const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -86,7 +90,8 @@ export default function DepartmentsPage() {
   const handleSaveDepartment = async () => {
     try {
       if (!deptForm.name.trim()) return toast.error("Name is required");
-
+      
+      setIsSavingDept(true);
       const method = editingDept ? "PUT" : "POST";
       const url = editingDept ? `${API}/admin/departments/${editingDept.id}` : `${API}/admin/departments`;
       
@@ -107,6 +112,8 @@ export default function DepartmentsPage() {
       fetchDepartments();
     } catch (e: any) {
       toast.error(e.message || "An error occurred");
+    } finally {
+      setIsSavingDept(false);
     }
   };
 
@@ -133,6 +140,7 @@ export default function DepartmentsPage() {
   const handleSaveDoctorFee = async () => {
     if (!selectedDoctor) return;
     try {
+      setIsSavingFee(true);
       // Direct call to backend for doctor update
       const res = await fetch(`${API}/admin/departments/doctor/${selectedDoctor.id}`, {
         method: "PUT",
@@ -153,12 +161,15 @@ export default function DepartmentsPage() {
       fetchDepartments();
     } catch (e: any) {
       toast.error(e.message || "Failed to update doctor fee");
+    } finally {
+      setIsSavingFee(false);
     }
   };
 
   const handleAssignDoctor = async () => {
     if (!assignDoctorId || !activeDeptId) return toast.error("Please select a doctor");
     try {
+      setIsAssigning(true);
       const res = await fetch(`${API}/admin/departments/doctor/${assignDoctorId}`, {
         method: "PUT",
         headers: { 
@@ -176,6 +187,8 @@ export default function DepartmentsPage() {
       fetchDepartments();
     } catch (e: any) {
       toast.error(e.message || "Failed to assign doctor");
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -403,7 +416,7 @@ export default function DepartmentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeptModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveDepartment}>Save</Button>
+            <Button onClick={handleSaveDepartment} isLoading={isSavingDept}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -440,7 +453,7 @@ export default function DepartmentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDoctorModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveDoctorFee}>Update Fee</Button>
+            <Button onClick={handleSaveDoctorFee} isLoading={isSavingFee}>Update Fee</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -471,7 +484,7 @@ export default function DepartmentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAssignModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleAssignDoctor}>Assign Doctor</Button>
+            <Button onClick={handleAssignDoctor} isLoading={isAssigning}>Assign Doctor</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

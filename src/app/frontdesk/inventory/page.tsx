@@ -35,6 +35,7 @@ export default function FrontDeskInventoryPage() {
   const [qty, setQty] = useState("100");
   const [price, setPrice] = useState("10.00");
   const [expiry, setExpiry] = useState("");
+  const [isRestocking, setIsRestocking] = useState(false);
 
   const router = useRouter();
 
@@ -82,6 +83,7 @@ export default function FrontDeskInventoryPage() {
     if (!selectedMed) return;
     
     try {
+      setIsRestocking(true);
       const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/stock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,6 +104,8 @@ export default function FrontDeskInventoryPage() {
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsRestocking(false);
     }
   };
 
@@ -216,7 +220,7 @@ export default function FrontDeskInventoryPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRestockOpen(false)}>Cancel</Button>
-            <Button onClick={handleRestock}>Add Stock</Button>
+            <Button onClick={handleRestock} isLoading={isRestocking}>Add Stock</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

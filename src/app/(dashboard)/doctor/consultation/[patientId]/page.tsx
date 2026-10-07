@@ -65,6 +65,7 @@ export default function ConsultationPage() {
   const [loading, setLoading] = useState(true);
   const [visitCompleted, setVisitCompleted] = useState(false);
   const [createdPrescription, setCreatedPrescription] = useState<any>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const [isEditingPatient, setIsEditingPatient] = useState(false);
   const [editPatientData, setEditPatientData] = useState({ name: "", contact: "", age: "", gender: "", bloodGroup: "" });
@@ -265,6 +266,7 @@ export default function ConsultationPage() {
     }
 
     try {
+      setIsCompleting(true);
       const payload = {
         patientId: patient?.id,
         patientName: patient?.name,
@@ -273,14 +275,22 @@ export default function ConsultationPage() {
         doctorName: user.fullName || "Doctor",
         diagnosis,
         clinicalNotes: notes,
-        items: addedDrugs.map(d => ({
-          medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id,
-          drugName: d.drug,
-          dosage: d.dosage,
-          frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,
-          duration: d.duration,
-          instructions: d.instructions
-        }))
+        items: addedDrugs.map(d => {
+          const timesPerDay = parseInt(d.timesPerDay) || 1;
+          const tabletsPerTime = parseInt(d.tabletsPerTime) || 1;
+          const durationVal = parseInt(d.duration) || 1;
+          const dispenseQty = timesPerDay * tabletsPerTime * durationVal;
+
+          return {
+            medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id,
+            drugName: d.drug,
+            dosage: d.dosage,
+            frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,
+            duration: d.duration,
+            instructions: d.instructions,
+            dispenseQty
+          };
+        })
       };
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions`, {
@@ -354,6 +364,8 @@ export default function ConsultationPage() {
       });
     } catch (e) {
       console.error("Failed to update token status", e);
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -841,6 +853,7 @@ export default function ConsultationPage() {
                 size="lg" 
                 onClick={handleCompleteConsultation}
                 disabled={visitCompleted}
+                isLoading={isCompleting}
                 className="bg-primary hover:bg-primary text-white min-w-[220px]"
               >
                 <CheckCircle2 className="w-5 h-5 mr-2" />

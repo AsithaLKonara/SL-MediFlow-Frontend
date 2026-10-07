@@ -1,0 +1,150 @@
+[
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/cashier/process/[paymentId]/page.tsx",
+    "issues": [
+      "Line 221: Missing disabled state -> <Button onClick={() => toast.info(\"Printing receipt...\")} className=\"w-full gap-2 text-base h-12\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/doctor/consultation/[patientId]/page.tsx",
+    "issues": [
+      "Line 740: Missing disabled state -> <Button type=\"button\" onClick={handleAddOrUpdateDrug} className=\"h-10 min-w-[120px]\">",
+      "Line 844: Missing disabled state -> <Button size=\"lg\" onClick={() => window.location.href = \"/doctor/queue\"} className=\"bg-primary hover:bg-primary text-white\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/doctor/prescriptions/page.tsx",
+    "issues": [
+      "Line 425: Missing disabled state -> <Button type=\"button\" variant=\"secondary\" className=\"w-full\" onClick={handleAddEditDrug}>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/frontdesk/billing/page.tsx",
+    "issues": [
+      "Line 178: Missing disabled state -> <Button variant={paymentMethod === \"CASH\" ? \"default\" : \"outline\"} className=\"h-14\" onClick={() => setPaymentMethod(\"CASH\")}>",
+      "Line 181: Missing disabled state -> <Button variant={paymentMethod === \"CARD\" ? \"default\" : \"outline\"} className=\"h-14\" onClick={() => setPaymentMethod(\"CARD\")}>",
+      "Line 184: Missing disabled state -> <Button variant={paymentMethod === \"BANK\" ? \"default\" : \"outline\"} className=\"h-14\" onClick={() => setPaymentMethod(\"BANK\")}>",
+      "Line 205: Missing disabled state -> <Button className=\"bg-green-600 hover:bg-green-700 text-white\" onClick={() => { setInvoice(null); setSearchQuery(\"\"); }}>Next Patient</Button>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/labtech/queue/page.tsx",
+    "issues": [
+      "Line 110: Missing disabled state -> <Button onClick={() => toast.info(\"Opening test entry form for \" + token.Patient.fullName + \"... (Coming soon)\")} className=\"bg-secondary hover:bg-secondary/90 text-secondary-foreground\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/pharmacist/billing/page.tsx",
+    "issues": [
+      "Line 296: Missing disabled state -> <Button onClick={() => { setGeneratedBill(null); setCart([]); setPatientId(\"\"); setPatientName(\"\"); }} className=\"bg-primary hover:bg-primary/90 text-white\">New Transaction</Button>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/pharmacist/inventory/page.tsx",
+    "issues": [
+      "Line 88: Missing disabled state -> <Button onClick={() => toast.info(\"Add New Stock modal coming soon.\")} className=\"bg-primary hover:bg-primary/90 text-white\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/pharmacist/prescriptions/page.tsx",
+    "issues": [
+      "Line 276: Missing disabled state -> <Button onClick={() => setActiveRx(rx)} className=\"bg-primary text-white w-full sm:w-auto\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/receptionist/patients/page.tsx",
+    "issues": [
+      "Line 102: Missing disabled state -> <Button onClick={() => setShowForm(true)} className=\"bg-primary text-white hidden sm:flex\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/receptionist/queue/page.tsx",
+    "issues": [
+      "Line 72: Missing disabled state -> <Button onClick={() => router.push(\"/receptionist/patients\")}>Go back to Patient Search</Button>",
+      "Line 209: Missing disabled state -> <Button className=\"h-12 bg-primary text-white\" onClick={() => router.push(\"/receptionist\")}>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/superadmin/departments/page.tsx",
+    "issues": [
+      "Line 230: Missing disabled state -> <Button onClick={openNewDept} className=\"bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20\">",
+      "Line 406: Missing disabled state -> <Button onClick={handleSaveDepartment}>Save</Button>",
+      "Line 443: Missing disabled state -> <Button onClick={handleSaveDoctorFee}>Update Fee</Button>",
+      "Line 474: Missing disabled state -> <Button onClick={handleAssignDoctor}>Assign Doctor</Button>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/superadmin/extra-services/page.tsx",
+    "issues": [
+      "Line 130: Missing disabled state -> <Button onClick={openNewServiceModal} className=\"bg-primary hover:bg-primary/90 text-white shadow-md\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/superadmin/inventory/page.tsx",
+    "issues": [
+      "Line 423: Missing disabled state -> <Button onClick={openAddDrugModal} className=\"bg-primary hover:bg-primary/90 text-white shadow-md\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/superadmin/lab-tests/page.tsx",
+    "issues": [
+      "Line 177: Missing disabled state -> <Button onClick={() => setIsNewOpen(true)} className=\"bg-primary hover:bg-primary/90 text-white\">",
+      "Line 372: Missing disabled state -> <Button onClick={handleDelete} className=\"bg-red-600 hover:bg-red-700 text-white\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/(dashboard)/superadmin/staff/page.tsx",
+    "issues": [
+      "Line 214: Missing disabled state -> <Button onClick={openAddModal} className=\"bg-primary hover:bg-primary/90 text-white\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/frontdesk/arrivals/components/workspace/right-panel/DoctorStatusControl.tsx",
+    "issues": [
+      "Line 82: Missing disabled state -> <Button onClick={() => setMatrixOpen(true)} className=\"w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white gap-2\">",
+      "Line 87: Missing disabled state -> <Button variant=\"destructive\" onClick={() => handleMarkOut(false)} className=\"w-full sm:w-auto gap-2\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/frontdesk/arrivals/components/workspace/right-panel/RoomMatrixModal.tsx",
+    "issues": [
+      "Line 155: Missing disabled state -> <Button className=\"bg-orange-600 hover:bg-orange-700 text-white\" onClick={handleAssign}>Assign Room</Button>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/frontdesk/components/ArrivalsPane.tsx",
+    "issues": [
+      "Line 104: Missing disabled state -> <Button size=\"sm\" className=\"w-full bg-primary hover:bg-primary/90\" onClick={() => handleArrive(apt.id)}>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/frontdesk/components/POSPane.tsx",
+    "issues": [
+      "Line 705: Missing disabled state -> <Button className=\"flex-1 h-12\" onClick={() => handleCloseCheckout()}>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/frontdesk/components/PhoneBookingPane.tsx",
+    "issues": [
+      "Line 1071: Missing disabled state -> <Button onClick={() => setSuccessPopupOpen(false)} className=\"w-full\">"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/frontdesk/inventory/page.tsx",
+    "issues": [
+      "Line 219: Missing disabled state -> <Button onClick={handleRestock}>Add Stock</Button>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/frontdesk/page.tsx",
+    "issues": [
+      "Line 53: Missing disabled state -> <Button variant=\"destructive\" onClick={closeShift}>"
+    ]
+  },
+  {
+    "file": "/Volumes/240GB SSD/Projects/AMAZ-Hospital/Frontend/src/app/lab-report-preview/page.tsx",
+    "issues": [
+      "Line 71: Missing disabled state -> <Button onClick={handlePrint} className=\"bg-blue-600 hover:bg-blue-700\">"
+    ]
+  }
+]

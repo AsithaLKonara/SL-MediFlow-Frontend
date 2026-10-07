@@ -112,8 +112,8 @@ export default function LabTechOverview() {
             placeholder="Scan Token (e.g. A-12)" 
             className="border-0 bg-transparent focus-visible:ring-0 shadow-none flex-1 text-lg"
           />
-          <Button type="submit" disabled={searching || !tokenSearch.trim()}>
-            {searching ? "..." : <ArrowRight className="w-5 h-5" />}
+          <Button type="submit" disabled={!tokenSearch.trim()} isLoading={searching}>
+            <ArrowRight className="w-5 h-5" />
           </Button>
         </form>
       </div>

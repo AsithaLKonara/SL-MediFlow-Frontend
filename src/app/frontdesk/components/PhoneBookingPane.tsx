@@ -841,9 +841,11 @@ export function PhoneBookingPane() {
         <Button 
           className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
           onClick={handleBook}
-          disabled={isBooking || (!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0) || !selectedDate}
+          disabled={(!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0) || !selectedDate}
+          isLoading={isBooking}
+          loadingText="Book Phone Token"
         >
-          {isBooking ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Phone className="w-5 h-5 mr-2" />}
+          <Phone className="w-5 h-5 mr-2" />
           Book Phone Token
         </Button>
       </div>

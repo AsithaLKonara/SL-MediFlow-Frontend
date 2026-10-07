@@ -140,9 +140,9 @@ export default function LabCatalogManager() {
               <CardDescription>Define the biomarkers, units, and reference ranges.</CardDescription>
             </div>
             {selectedTest && (
-              <Button onClick={handleSave} disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
+              <Button onClick={handleSave} isLoading={saving} loadingText="Save Template" className="bg-red-600 hover:bg-red-700 text-white">
                 <Save className="w-4 h-4 mr-2" />
-                {saving ? "Saving..." : "Save Template"}
+                Save Template
               </Button>
             )}
           </CardHeader>

@@ -31,7 +31,7 @@ export default function PharmacistPOSPage() {
   const [patientName, setPatientName] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [generating, setGenerating] = useState(false);
+  const [generatingMode, setGeneratingMode] = useState<"SETTLE" | "CASHIER" | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [generatedBill, setGeneratedBill] = useState<{ id: string; items: CartItem[]; total: number; patientName: string; patientId: string; issuedAt: string, status: string } | null>(null);
   
@@ -205,7 +205,7 @@ export default function PharmacistPOSPage() {
     if (!patientId || !patientName) { toast.error("Enter patient ID and name."); return; }
     if (cart.length === 0) { toast.error("Cart is empty."); return; }
     
-    setGenerating(true);
+    setGeneratingMode(action);
     setTimeout(() => {
       const bill = {
         id: `BILL-${billCounter++}`,
@@ -233,7 +233,7 @@ export default function PharmacistPOSPage() {
       }
 
       setGeneratedBill(bill);
-      setGenerating(false);
+      setGeneratingMode(null);
       
       if (action === "SETTLE") {
         toast.success(`Bill settled. Total: LKR ${total.toFixed(2)}`);
@@ -384,7 +384,8 @@ export default function PharmacistPOSPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Button 
                   onClick={() => processBill("CASHIER")}
-                  disabled={generating || cart.length === 0}
+                  disabled={generatingMode !== null || cart.length === 0}
+                  isLoading={generatingMode === "CASHIER"}
                   variant="outline" 
                   className="h-14 font-semibold text-base border-primary/20 hover:bg-primary/5 hover:text-primary"
                 >
@@ -392,7 +393,8 @@ export default function PharmacistPOSPage() {
                 </Button>
                 <Button 
                   onClick={() => processBill("SETTLE")}
-                  disabled={generating || cart.length === 0}
+                  disabled={generatingMode !== null || cart.length === 0}
+                  isLoading={generatingMode === "SETTLE"}
                   className="h-14 font-semibold text-base bg-green-600 hover:bg-green-700 text-white"
                 >
                   <CreditCard className="w-5 h-5 mr-2" /> Settle Payment

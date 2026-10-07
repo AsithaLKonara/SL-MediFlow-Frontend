@@ -16,9 +16,12 @@ export function DoctorStatusControl({
   const isArrived = doctor.attendance?.status === "ARRIVED";
 
   const [matrixOpen, setMatrixOpen] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [isMarkingOut, setIsMarkingOut] = useState(false);
 
   const handleAssignRoom = async (roomNumber: string, startTime: string, endTime: string) => {
     try {
+      setIsAssigning(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/attendance`, {
         method: 'PUT',
         headers: {
@@ -33,11 +36,14 @@ export function DoctorStatusControl({
       onRefresh();
     } catch (err: any) {
       toast.error(`Failed to assign room: ${err.message}`);
+    } finally {
+      setIsAssigning(false);
     }
   };
 
   const handleMarkOut = async (forceExit: boolean = false) => {
     try {
+      setIsMarkingOut(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/attendance`, {
         method: 'PUT',
         headers: {
@@ -63,6 +69,8 @@ export function DoctorStatusControl({
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || "Failed to mark out");
+    } finally {
+      setIsMarkingOut(false);
     }
   };
 
@@ -84,7 +92,7 @@ export function DoctorStatusControl({
             Assign Room
           </Button>
         ) : (
-          <Button variant="destructive" onClick={() => handleMarkOut(false)} className="w-full sm:w-auto gap-2">
+          <Button variant="destructive" onClick={() => handleMarkOut(false)} isLoading={isMarkingOut} className="w-full sm:w-auto gap-2">
             <LogOut className="w-4 h-4" />
             Mark Out
           </Button>
@@ -97,6 +105,7 @@ export function DoctorStatusControl({
         doctorName={doctor.fullName}
         onAssign={handleAssignRoom}
         selectedDate={new Date()}
+        isAssigning={isAssigning}
       />
     </div>
   );

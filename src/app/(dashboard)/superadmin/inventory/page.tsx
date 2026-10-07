@@ -586,8 +586,8 @@ export default function SuperAdminInventoryPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsRestockOpen(false)} disabled={saving}>Cancel</Button>
-            <Button onClick={handleRestock} disabled={saving} className="bg-primary hover:bg-primary/90">
-              {saving ? "Confirming..." : "Confirm Stock Arrival"}
+            <Button onClick={handleRestock} isLoading={saving} className="bg-primary hover:bg-primary/90">
+              Confirm Stock Arrival
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -661,8 +661,8 @@ export default function SuperAdminInventoryPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsAddDrugOpen(false)} disabled={addingDrug}>Cancel</Button>
-            <Button onClick={handleAddDrug} disabled={addingDrug} className="bg-primary hover:bg-primary/90">
-              {addingDrug ? "Creating..." : "Create Medical Drug"}
+            <Button onClick={handleAddDrug} isLoading={addingDrug} className="bg-primary hover:bg-primary/90">
+              Create Medical Drug
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -741,8 +741,8 @@ export default function SuperAdminInventoryPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsAddNonMedOpen(false)} disabled={addingNonMed}>Cancel</Button>
-            <Button onClick={handleAddNonMed} disabled={addingNonMed} className="bg-primary hover:bg-primary/90">
-              {addingNonMed ? "Creating..." : "Create Item"}
+            <Button onClick={handleAddNonMed} isLoading={addingNonMed} className="bg-primary hover:bg-primary/90">
+              Create Item
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -782,8 +782,8 @@ export default function SuperAdminInventoryPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={savingEdit}>Cancel</Button>
-            <Button onClick={handleEditSave} disabled={savingEdit} className="bg-primary hover:bg-primary/90">
-              {savingEdit ? "Saving..." : "Save Changes"}
+            <Button onClick={handleEditSave} isLoading={savingEdit} className="bg-primary hover:bg-primary/90">
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

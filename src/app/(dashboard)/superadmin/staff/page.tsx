@@ -421,7 +421,7 @@ export default function StaffManagementPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+              <Button type="submit" isLoading={saving}>Save Changes</Button>
             </DialogFooter>
           </form>
         </DialogContent>

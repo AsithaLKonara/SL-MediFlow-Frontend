@@ -216,9 +216,9 @@ export default function PharmacyDashboardPage() {
                 <p className="text-3xl font-bold text-primary mb-4">Rs. {total.toFixed(2)}</p>
                 <div className="flex gap-3 justify-end">
                   <Button variant="outline" size="lg">Hold</Button>
-                  <Button size="lg" className="bg-primary text-white" onClick={handleDispense} disabled={submitting}>
+                  <Button size="lg" className="bg-primary text-white" onClick={handleDispense} isLoading={submitting} loadingText="Dispense Medicines">
                     <PackageCheck className="w-5 h-5 mr-2" />
-                    {submitting ? "Processing..." : "Dispense Medicines"}
+                    Dispense Medicines
                   </Button>
                 </div>
               </div>

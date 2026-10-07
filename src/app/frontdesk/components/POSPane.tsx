@@ -772,7 +772,9 @@ export function POSPane() {
 
               <Button 
                 className="w-full h-12 text-lg" 
-                disabled={(total > 0 && !paymentMethod) || isProcessing || isCardProcessing}
+                disabled={(total > 0 && !paymentMethod)}
+                isLoading={isProcessing || isCardProcessing}
+                loadingText="Processing..."
                 onClick={async () => {
                   if (isProcessing) return;
                   setIsProcessing(true);
@@ -953,11 +955,7 @@ export function POSPane() {
                   }
                 }}
               >
-                {isProcessing || isCardProcessing ? (
-                  <span className="flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</span>
-                ) : (
-                  "Complete Payment"
-                )}
+                Complete Payment
               </Button>
             </div>
               </>

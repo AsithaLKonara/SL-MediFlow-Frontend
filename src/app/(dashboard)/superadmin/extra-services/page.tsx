@@ -162,7 +162,7 @@ export default function ExtraServicesPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsNewOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateService} disabled={saving}>{saving ? "Saving..." : "Create Service"}</Button>
+              <Button onClick={handleCreateService} isLoading={saving}>Create Service</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

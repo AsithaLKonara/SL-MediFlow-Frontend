@@ -187,10 +187,12 @@ export default function CentralizedBillingPage() {
                     </div>
                     <Button 
                       className="w-full h-14 text-lg font-bold" 
-                      disabled={!paymentMethod || processing}
+                      disabled={!paymentMethod}
+                      isLoading={processing}
+                      loadingText="Processing Payment..."
                       onClick={handlePay}
                     >
-                      {processing ? "Processing Payment..." : `Collect LKR ${invoice.totalAmount.toFixed(2)}`}
+                      Collect LKR {invoice.totalAmount.toFixed(2)}
                     </Button>
                   </div>
                 )}

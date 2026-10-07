@@ -72,14 +72,11 @@ export function POSHistoryModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* @ts-expect-error asChild is a valid prop for standard Radix but Base UI typings might miss it */}
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <History className="w-4 h-4 mr-2" />
-          History
-        </Button>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <History className="w-4 h-4 mr-2" />
+        History
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>POS History</DialogTitle>
         </DialogHeader>

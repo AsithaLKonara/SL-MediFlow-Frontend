@@ -348,9 +348,9 @@ export default function LabResultsPage({
         {published && <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">✓ Published</Badge>}
 
         {/* Save */}
-        <Button variant="outline" size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={handleSave} isLoading={saving} className="gap-1.5">
           <Save className="w-4 h-4" />
-          {saving ? "Saving…" : "Save"}
+          Save
         </Button>
 
         {/* Print */}
@@ -361,12 +361,13 @@ export default function LabResultsPage({
         {/* Publish */}
         <Button
           onClick={handlePublish}
-          disabled={publishing || published}
+          disabled={published}
+          isLoading={publishing}
           size="sm"
           className="gap-1.5 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
         >
           <Globe className="w-4 h-4" />
-          {publishing ? "Publishing…" : published ? "Published" : "Publish & SMS"}
+          {published ? "Published" : "Publish & SMS"}
         </Button>
       </div>
 

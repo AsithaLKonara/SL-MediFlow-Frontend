@@ -224,7 +224,7 @@ export default function LabTestTemplatesPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsNewOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateTest} disabled={saving}>{saving ? "Saving..." : "Create Test"}</Button>
+              <Button onClick={handleCreateTest} isLoading={saving}>Create Test</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -352,7 +352,7 @@ export default function LabTestTemplatesPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+            <Button onClick={handleEditSave} isLoading={saving}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -369,8 +369,8 @@ export default function LabTestTemplatesPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-            <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">
-              {saving ? "Deleting..." : "Delete Test"}
+            <Button onClick={handleDelete} isLoading={saving} className="bg-red-600 hover:bg-red-700 text-white">
+              Delete Test
             </Button>
           </DialogFooter>
         </DialogContent>

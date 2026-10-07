@@ -19,6 +19,7 @@ interface Appointment {
 export function ArrivalsPane() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const API = process.env.NEXT_PUBLIC_API_URL;
@@ -44,6 +45,7 @@ export function ArrivalsPane() {
 
   const handleArrive = async (id: string) => {
     try {
+      setLoadingId(id);
       const res = await fetch(`${API}/booking/${id}/arrive`, {
         method: "PATCH",
       });
@@ -56,6 +58,8 @@ export function ArrivalsPane() {
       }
     } catch (e) {
       toast.error("Error connecting to server");
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -101,7 +105,7 @@ export function ArrivalsPane() {
 
                 {apt.status !== "WAITING" && (
                   <div className="pt-3 border-t border-border">
-                    <Button size="sm" className="w-full bg-primary hover:bg-primary/90" onClick={() => handleArrive(apt.id)}>
+                    <Button size="sm" className="w-full bg-primary hover:bg-primary/90" onClick={() => handleArrive(apt.id)} isLoading={loadingId === apt.id}>
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Mark Arrived & Bill
                     </Button>
