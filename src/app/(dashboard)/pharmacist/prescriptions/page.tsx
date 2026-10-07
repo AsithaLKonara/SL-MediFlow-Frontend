@@ -37,17 +37,41 @@ export default function PharmacyDashboardPage() {
   const [activeRx, setActiveRx] = useState<Prescription | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const processBarcode = (code: string) => {
-    const match = prescriptions.find(p => 
-      p.id.toLowerCase() === code.toLowerCase() || 
-      p.patientName.toLowerCase().includes(code.toLowerCase()) ||
-      p.visitId === code
-    );
-    if (match) {
-      setActiveRx(match);
-      setSearchQuery("");
-    } else {
-      toast.error("Prescription not found.");
+  const processBarcode = async (code: string) => {
+    if (!code) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${code}`);
+      if (res.ok) {
+        const { type, data } = await res.json();
+        
+        if (type === "PRESCRIPTION") {
+          setActiveRx(data);
+          setSearchQuery("");
+          return;
+        } else if (type === "APPOINTMENT" && data.prescriptions && data.prescriptions.length > 0) {
+          // If a token barcode is scanned, load its prescription
+          const rx = data.prescriptions[0];
+          setActiveRx(rx);
+          setSearchQuery("");
+          return;
+        }
+      }
+      
+      // Fallback to local search
+      const match = prescriptions.find(p => 
+        p.id.toLowerCase() === code.toLowerCase() || 
+        p.patientName.toLowerCase().includes(code.toLowerCase()) ||
+        p.visitId === code
+      );
+      if (match) {
+        setActiveRx(match);
+        setSearchQuery("");
+      } else {
+        toast.error("Prescription not found.");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Error searching prescription.");
     }
   };
 

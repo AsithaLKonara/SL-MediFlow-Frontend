@@ -165,7 +165,7 @@ export default function ConsultationPage() {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then((r) => r.json())
-      .then((data) => setAvailableLabTests(data))
+      .then((data) => setAvailableLabTests(Array.isArray(data) ? data : (data.data || [])))
       .catch((e) => console.error("Failed to load lab catalog", e));
 
     const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace('/api', '');
@@ -318,38 +318,29 @@ export default function ConsultationPage() {
     
     if (selectedTests.length > 0) {
       try {
-        await Promise.all(selectedTests.map(test => 
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
-            method: "POST",
-            headers: { 
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              patientId: patient?.id,
-              visitId: patient.activeVisitId,
-              testId: test.id,
-              doctorId: user.id,
-              priority: isUrgent ? "URGENT" : "ROUTINE"
-            })
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            patientId: patient?.id,
+            visitId: patient.activeVisitId,
+            testIds: selectedTests.map(t => t.id),
+            doctorId: user.id,
+            priority: isUrgent ? "URGENT" : "ROUTINE"
           })
-        ));
+        });
         toast.success("Lab orders forwarded to Laboratory.");
       } catch (e) {
         console.error("Failed to send lab requests", e);
       }
     }
 
-    // Delay redirect to allow user to print
-    if (addedDrugs.length === 0) {
-      setTimeout(() => {
-        window.location.href = "/doctor/queue";
-      }, 1500);
-    }
-
     // 4. Update Token Status
     try {
-      const finalStatus = addedDrugs.length > 0 ? "prescription_issued" : "COMPLETED";
+      const finalStatus = "COMPLETED";
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/status`, {
         method: "PATCH",
         headers: { 
@@ -367,6 +358,11 @@ export default function ConsultationPage() {
     } finally {
       setIsCompleting(false);
     }
+
+    // Delay redirect to allow user to print
+    setTimeout(() => {
+      window.location.href = "/doctor/queue";
+    }, 1500);
   };
 
   if (loading || !patient) {

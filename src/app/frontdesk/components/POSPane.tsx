@@ -268,7 +268,7 @@ export function POSPane() {
         });
         toast.success(`Added ${data.title}`);
       } else if (type === "APPOINTMENT") {
-        const { appointment, invoice } = data;
+        const { appointment, invoice, prescriptions } = data;
         if (appointment.status === "COMPLETED" || appointment.status === "CANCELLED") {
           toast.error(`Appointment is already ${appointment.status}`);
           return;
@@ -282,7 +282,49 @@ export function POSPane() {
           fee: appointment.User?.consultationFee || 2500,
           invoice: invoice
         });
-        toast.success(`Appointment loaded for checkout`);
+
+        // Auto-load prescriptions into the RX cart if available
+        if (prescriptions && prescriptions.length > 0) {
+          const rx = prescriptions[0];
+          if (rx.status !== "DISPENSED" && rx.items) {
+            const cartItems: CartItem[] = rx.items
+              .filter((item: any) => item.medicineId && item.medicine)
+              .map((item: any) => ({
+                id: item.medicine.id,
+                name: item.medicine.name,
+                qty: item.dispenseQty || 1,
+                price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
+              }));
+            
+            if (cartItems.length > 0) {
+              setCart(prev => {
+                const updated = [...prev];
+                for (const rxItem of cartItems) {
+                  const idx = updated.findIndex((i) => i.id === rxItem.id);
+                  if (idx >= 0) {
+                    updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+                  } else {
+                    updated.push(rxItem);
+                  }
+                }
+                return updated;
+              });
+              setActivePrescriptionId(rx.id);
+              if (rx.patientId) setActivePatientId(rx.patientId);
+              if (rx.visitId) setActiveVisitId(rx.visitId);
+
+              apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "IN_PROGRESS" }),
+              }).catch(console.error);
+              notifyRxStatus(rx.id, "IN_PROGRESS");
+              toast.success(`Loaded prescription from token.`);
+            }
+          }
+        } else {
+          toast.success(`Appointment loaded for checkout`);
+        }
       }
     } catch (e) {
       console.error(e);

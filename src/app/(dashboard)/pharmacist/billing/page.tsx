@@ -151,7 +151,7 @@ export default function PharmacistPOSPage() {
              fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
                method: "PATCH",
                headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ status: "COMPLETED" }), // Dispensed!
+               body: JSON.stringify({ status: "DISPENSED" }), // Dispensed!
              }).catch(console.error);
            }
         }
@@ -179,7 +179,7 @@ export default function PharmacistPOSPage() {
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: "COMPLETED" }),
+              body: JSON.stringify({ status: "DISPENSED" }),
             }).catch(console.error);
           }
           if (count > 0) {

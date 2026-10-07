@@ -76,7 +76,7 @@ export function POSHistoryModal() {
         <History className="w-4 h-4 mr-2" />
         History
       </DialogTrigger>
-      <DialogContent className="max-w-7xl w-[95vw] max-h-[80vh] flex flex-col">
+      <DialogContent className="w-[95vw] max-w-4xl sm:max-w-5xl md:max-w-6xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>POS History</DialogTitle>
         </DialogHeader>
