@@ -30,31 +30,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const validateSession = async () => {
       try {
-        // Hydrate from HttpOnly cookie via /auth/refresh
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
-          credentials: "include"
-        });
+        const storedToken = localStorage.getItem("token");
+        const storedUserStr = localStorage.getItem("user");
         
-        if (!res.ok) {
-          // If not ok, it means no valid session cookie. Just clear state silently.
-          localStorage.removeItem("user");
-          setToken(null);
-          setUser(null);
-          setIsLoading(false);
-          return;
+        if (storedToken && storedUserStr) {
+          // Pre-hydrate for immediate UI access
+          setToken(storedToken);
+          setUser(JSON.parse(storedUserStr));
+          setIsLoading(false); // Render UI immediately
+          
+          // Verify with backend silently
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+            headers: {
+              Authorization: `Bearer ${storedToken}`
+            },
+            credentials: "include"
+          });
+          
+          if (!res.ok) {
+            throw new Error("Invalid session");
+          }
+          
+          const data = await res.json();
+          setToken(data.token);
+          setUser(data.user);
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+        } else {
+          // Attempt pure HttpOnly cookie refresh as fallback
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+            credentials: "include"
+          });
+          
+          if (!res.ok) {
+            throw new Error("No session");
+          }
+          
+          const data = await res.json();
+          setToken(data.token);
+          setUser(data.user);
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
         }
-        
-        const data = await res.json();
-        setToken(data.token);
-        setUser(data.user);
-        localStorage.setItem("user", JSON.stringify(data.user));
       } catch (error) {
         console.error("Session validation failed:", error);
         localStorage.removeItem("user");
+        localStorage.removeItem("token");
         setToken(null);
         setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     validateSession();
@@ -63,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
+    localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
   };
 
@@ -94,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setToken(null);
     setUser(null);
+    localStorage.removeItem("token");
     localStorage.removeItem("user");
     router.push("/login");
   };
