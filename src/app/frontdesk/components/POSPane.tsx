@@ -170,12 +170,12 @@ export function POSPane() {
 
     // Convert pendingTokenPayload into displayCart items
     if (pendingTokenPayload) {
-      if (pendingTokenPayload.isUpfront) {
+      if (pendingTokenPayload.doctorId) {
         displayCart.push({
           id: 'token-consult',
-          name: `Specialist Consultation (Upfront) - Dr. ${pendingTokenPayload.doctorName || ''}`,
+          name: `Consultation${pendingTokenPayload.isUpfront ? ' (Upfront)' : ''} - Dr. ${pendingTokenPayload.doctorName || ''}`,
           qty: 1,
-          price: pendingTokenPayload.doctorFee || 2500
+          price: pendingTokenPayload.doctorFee || 0
         });
       }
       pendingTokenPayload.tests?.forEach((t: any) => {
@@ -202,6 +202,25 @@ export function POSPane() {
            price: pendingAppointmentPayload.fee || 0
          });
       }
+
+      // Add post-pay consultations from the appointment payload
+      pendingAppointmentPayload.allAppointments?.filter((appt: any) => appt.department === "CONSULTATION").forEach((appt: any, idx: number) => {
+        const isUpfront = appt.User?.feeType === "UPFRONT";
+        const fee = appt.User?.consultationFee || 2500;
+        const docName = appt.User?.fullName || appt.doctorName || "Doctor";
+        
+        // If it's upfront AND we have an invoice, it should already be in the invoice line items.
+        if (isUpfront && pendingAppointmentPayload.invoice?.lineItems?.some((li: any) => li.department === "CONSULTATION" && li.description.includes(docName))) {
+           return;
+        }
+
+        displayCart.push({
+          id: `appt-postpay-${idx}`,
+          name: `Consultation - Dr. ${docName}`,
+          qty: 1,
+          price: isUpfront ? fee : 0 // The UI shows LKR 0.00 for actual Post Pay but LKR fee if it's upfront but not invoiced
+        });
+      });
     }
 
     // Convert postPayConsultation into displayCart items
