@@ -128,22 +128,19 @@ export default function CustomerDisplayPage() {
       {/* Main Content — fills remaining height, no page scroll */}
       <main className="flex-1 flex flex-col min-h-0 px-8 pb-8 md:px-12 md:pb-12">
         <div className="flex flex-col flex-1 min-h-0 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
-          {/* Sticky column headers */}
-          <Table>
-            <TableHeader className="bg-slate-50/80 sticky top-0 z-10 shadow-sm">
-              <TableRow className="border-b-2 border-slate-200 hover:bg-transparent">
-                <TableHead className="text-xl py-5 px-8 font-bold text-slate-700 w-[30%]">Doctor</TableHead>
-                <TableHead className="text-xl py-5 px-6 font-bold text-slate-700 w-[22%] text-center">Designation</TableHead>
-                <TableHead className="text-xl py-5 px-6 font-bold text-slate-700 w-[13%] text-center">Room</TableHead>
-                <TableHead className="text-xl py-5 px-6 font-bold text-slate-700 w-[20%] text-center">Status</TableHead>
-                <TableHead className="text-xl py-5 px-8 font-bold text-slate-700 w-[15%] text-right">Now Serving</TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
           {/* Scrollable body — auto-scroll target */}
           <div ref={containerRef} className="flex-1 overflow-y-auto scrollbar-hide">
-          <Table>
-            <TableBody>
+            <Table>
+              <TableHeader className="bg-slate-50/80 sticky top-0 z-10 shadow-sm">
+                <TableRow className="border-b-2 border-slate-200 hover:bg-transparent">
+                  <TableHead className="text-xl py-5 px-8 font-bold text-slate-700 w-[30%]">Doctor</TableHead>
+                  <TableHead className="text-xl py-5 px-6 font-bold text-slate-700 w-[22%] text-center">Designation</TableHead>
+                  <TableHead className="text-xl py-5 px-6 font-bold text-slate-700 w-[13%] text-center">Room</TableHead>
+                  <TableHead className="text-xl py-5 px-6 font-bold text-slate-700 w-[20%] text-center">Status</TableHead>
+                  <TableHead className="text-xl py-5 px-8 font-bold text-slate-700 w-[15%] text-center">Now Serving</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
               {doctors.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-20 text-slate-400 text-xl font-medium">
@@ -229,14 +226,14 @@ export default function CustomerDisplayPage() {
                           </div>
                         </TableCell>
                         
-                        <TableCell className="py-5 px-8 text-right align-middle">
-                          <div className="flex justify-end items-center">
+                        <TableCell className="py-5 px-8 text-center align-middle">
+                          <div className="flex justify-center items-center">
                             {isArrived && doctor.currentlyServing ? (
-                              <div className="text-primary font-black text-5xl tracking-tighter text-right">
+                              <div className="text-primary font-black text-5xl tracking-tighter text-center">
                                 {String(doctor.currentlyServing).padStart(2, '0')}
                               </div>
                             ) : (
-                              <div className="text-2xl font-bold text-slate-300 mr-2 text-right">
+                              <div className="text-2xl font-bold text-slate-300 text-center">
                                 --
                               </div>
                             )}
