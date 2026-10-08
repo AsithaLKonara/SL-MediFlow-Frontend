@@ -47,7 +47,7 @@ export default function DoctorOverview() {
              queueNo: t.tokenNumber,
              patientId: p.id || t.patientId,
              patientName: p.fullName || "Unknown",
-             age: p.age || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
+             age: p.ageFallback || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
              reason: t.department || "General Consultation",
              status: t.status
             };
@@ -86,7 +86,7 @@ export default function DoctorOverview() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Welcome, {metrics.doctorName}</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Welcome, {metrics.doctorName}</h2>
           <p className="text-muted-foreground mt-1">Here is your {metrics.specialty} launchpad for today.</p>
         </div>
         <div className="flex items-center gap-4 bg-muted/30 px-4 py-2 rounded-xl border border-border">
@@ -111,7 +111,7 @@ export default function DoctorOverview() {
                 <Users className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#3A3435]">Patient Queue</h3>
+                <h3 className="text-xl font-bold text-foreground">Patient Queue</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   {metrics.pendingQueue} patients waiting
                 </p>
@@ -127,7 +127,7 @@ export default function DoctorOverview() {
                 <FileText className="w-8 h-8 text-secondary-foreground/70" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#3A3435]">Prescriptions</h3>
+                <h3 className="text-xl font-bold text-foreground">Prescriptions</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   {metrics.pendingPrescriptions} awaiting sign-off
                 </p>
@@ -143,7 +143,7 @@ export default function DoctorOverview() {
                 <FlaskConical className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#3A3435]">Lab Results</h3>
+                <h3 className="text-xl font-bold text-foreground">Lab Results</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   {metrics.pendingLabRequests} pending results
                 </p>
@@ -173,7 +173,7 @@ export default function DoctorOverview() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-[#3A3435] truncate">{p.patientName}</p>
+                    <p className="font-semibold text-foreground truncate">{p.patientName}</p>
                     <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded-full">Age {p.age}</span>
                     <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs ml-auto border-none">
                       <Clock className="w-3 h-3 mr-1" /> Waiting

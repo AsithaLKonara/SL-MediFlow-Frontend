@@ -65,11 +65,12 @@ export default function CustomerDisplayPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${formattedDate}`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        cache: 'no-store'
       });
       if (res.ok) {
         const data = await res.json();
-        const scheduledDoctors = data.filter((d: any) => d.sessions && d.sessions.length > 0);
+        const scheduledDoctors = data.filter((d: any) => (d.sessions && d.sessions.length > 0) || d.attendance);
         setDoctors(scheduledDoctors);
       }
     } catch (err) {
@@ -195,7 +196,7 @@ export default function CustomerDisplayPage() {
                         {/* Designation / Title column */}
                         <TableCell className="py-5 px-6 text-center align-middle">
                           {doctor.specialty ? (
-                            <span className="inline-block px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-base font-bold tracking-wide">
+                            <span className="text-xl font-bold text-slate-700 tracking-tight">
                               {doctor.specialty}
                             </span>
                           ) : (
@@ -206,10 +207,9 @@ export default function CustomerDisplayPage() {
                         {/* Room column */}
                         <TableCell className="py-5 px-6 text-center align-middle">
                           {doctor.roomNumber ? (
-                            <div className="inline-flex flex-col items-center">
-                              <span className="text-2xl font-black text-slate-800 tracking-tight">{doctor.roomNumber}</span>
-                              <span className="text-xs text-slate-400 uppercase tracking-widest font-medium">Room</span>
-                            </div>
+                            <span className="text-2xl font-black text-slate-800 tracking-tight">
+                              {doctor.roomNumber.replace(/room\s*/i, '')}
+                            </span>
                           ) : (
                             <span className="text-slate-300 text-xl font-bold">—</span>
                           )}
@@ -217,7 +217,7 @@ export default function CustomerDisplayPage() {
                         
                         <TableCell className="py-5 px-6 text-center align-middle">
                           <div className="inline-flex items-center justify-center">
-                            <div className={`px-5 py-2 rounded-full border flex items-center gap-3 shadow-sm ${badgeColor}`}>
+                            <div className={`px-5 py-2 rounded-md flex items-center gap-3 ${badgeColor}`}>
                               {ping && (
                                 <span className="relative flex h-3 w-3">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -232,11 +232,11 @@ export default function CustomerDisplayPage() {
                         <TableCell className="py-5 px-8 text-right align-middle">
                           <div className="flex justify-end items-center">
                             {isArrived && doctor.currentlyServing ? (
-                              <div className="bg-primary text-white font-black text-5xl tracking-tighter px-6 py-3 rounded-xl shadow-md min-w-[120px] text-center transform transition-transform duration-300">
+                              <div className="text-primary font-black text-5xl tracking-tighter text-right">
                                 {String(doctor.currentlyServing).padStart(2, '0')}
                               </div>
                             ) : (
-                              <div className="text-2xl font-bold text-slate-300 mr-4">
+                              <div className="text-2xl font-bold text-slate-300 mr-2 text-right">
                                 --
                               </div>
                             )}

@@ -55,9 +55,9 @@ export default function LabTechRequestsPage() {
           id: req.id,
           patientId: req.patientId,
           patientName: req.Patient?.fullName || `Patient ${req.patientId.slice(0, 4)}`,
-          patientAge: 30,
-          doctor: req.Visit?.User?.fullName || req.doctorId || "Unknown",
-          clinicalIndication: "Routine Checkup",
+          patientAge: req.Patient?.ageFallback || (req.Patient?.dateOfBirth ? (new Date().getFullYear() - new Date(req.Patient.dateOfBirth).getFullYear()) : 0),
+          doctor: req.Visit?.User?.fullName || "External Doctor",
+          clinicalIndication: req.Visit?.clinicalNotes || "Routine Checkup",
           tests: (req.items || []).map((item: any) => ({
             id: item.LabTest?.id,
             name: item.LabTest?.name,
@@ -95,7 +95,7 @@ export default function LabTechRequestsPage() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs text-muted-foreground">{req.id}</span>
+              <span className="font-mono font-bold uppercase tracking-wider text-xs text-muted-foreground">{req.id.split('-')[0]}</span>
               {req.priority === "URGENT" && (
                 <Badge variant="secondary" className="bg-red-500/10 text-red-600 dark:text-red-400 gap-1 animate-pulse text-xs">
                   <AlertTriangle className="w-3 h-3" /> URGENT
@@ -103,8 +103,8 @@ export default function LabTechRequestsPage() {
               )}
               <Badge variant="secondary" className={`${sc.className} text-xs`}>{sc.label}</Badge>
             </div>
-            <p className="font-semibold text-[#3A3435] mt-1">{req.patientName} <span className="text-muted-foreground font-normal text-sm">· Age {req.patientAge}</span></p>
-            <p className="text-sm text-muted-foreground">Requested by {req.doctor}</p>
+            <p className="font-semibold text-foreground mt-1">{req.patientName} <span className="text-muted-foreground font-normal text-sm">· Age {req.patientAge}</span></p>
+            <p className="text-sm text-muted-foreground mt-1">Requested by <span className="font-medium text-foreground">{req.doctor}</span></p>
             <p className="text-xs text-muted-foreground mt-0.5 italic">"{req.clinicalIndication}"</p>
           </div>
           <div className="text-right shrink-0">

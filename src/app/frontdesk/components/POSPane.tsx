@@ -991,7 +991,7 @@ export function POSPane() {
                               patientName: t.Patient?.fullName || apptRes.data.patientName || "Walk-in",
                               status: t.status,
                               appointmentDate: t.appointmentDate,
-                              roomNumber: t.User?.roomNumber || null
+                              roomNumber: t.roomNumber || t.User?.roomNumber || null
                             });
                           });
                         } else {
@@ -1002,7 +1002,8 @@ export function POSPane() {
                             doctorName: apptRes.data.doctorName,
                             patientName: apptRes.data.patientName,
                             status: apptRes.data.appointment.status,
-                            appointmentDate: apptRes.data.appointment.appointmentDate
+                            appointmentDate: apptRes.data.appointment.appointmentDate,
+                            roomNumber: apptRes.data.appointment.roomNumber || null
                           });
                         }
 

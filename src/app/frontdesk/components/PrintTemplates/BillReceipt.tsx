@@ -4,6 +4,7 @@ import Barcode from 'react-barcode';
 export interface BillReceiptProps {
   queueNumber: string;
   doctorName?: string;
+  roomNumber?: string;
   patientName: string;
   date: string;
   invoice: {
@@ -20,7 +21,7 @@ export interface BillReceiptProps {
 }
 
 export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
-  ({ queueNumber, doctorName, patientName, date, invoice }, ref) => {
+  ({ queueNumber, doctorName, roomNumber, patientName, date, invoice }, ref) => {
     return (
       <div ref={ref} className="w-[300px] bg-white text-black p-4 font-sans print:p-0">
         <div className="text-center mb-4">
@@ -35,6 +36,12 @@ export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
         <div className="text-center border-b-2 border-dashed border-black pb-4 mb-4">
           <p className="text-xs uppercase text-black font-bold">Token Number</p>
           <p className="text-4xl font-black">{queueNumber}</p>
+          {roomNumber && (
+            <div className="mt-2 border-2 border-black py-1 bg-black text-white">
+              <p className="text-[10px] uppercase font-bold tracking-widest">Proceed To</p>
+              <h3 className="text-xl font-black">ROOM {roomNumber}</h3>
+            </div>
+          )}
         </div>
 
         {/* Patient Info */}

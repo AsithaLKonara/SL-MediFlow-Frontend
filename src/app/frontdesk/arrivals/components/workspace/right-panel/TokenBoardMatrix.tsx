@@ -64,7 +64,8 @@ export function TokenBoardMatrix({
     setIsUpdating(true);
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/appointments/${tokenToUpdate.id}/status`, {
+      const targetId = tokenToUpdate.appointment?.id || tokenToUpdate.id;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/appointments/${targetId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ export function TokenBoardMatrix({
                 {String(currentlyServing.tokenNumber).padStart(2, '0')}
               </div>
               <div>
-                <div className="text-xl font-bold">{currentlyServing.patient?.firstName} {currentlyServing.patient?.lastName}</div>
+                <div className="text-xl font-bold">{currentlyServing.appointment?.Patient?.fullName || currentlyServing.patient?.fullName || "Patient"}</div>
                 <div className="text-blue-200 text-sm">{doctor.attendance?.roomNumber || "Room"}</div>
               </div>
             </div>
@@ -177,14 +178,37 @@ export function TokenBoardMatrix({
           </DialogHeader>
           {selectedToken && (
             <div className="flex flex-col gap-6 pt-4">
-              <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-lg">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-6 h-6 text-primary" />
+              <div className="flex flex-col gap-4 bg-muted/30 p-5 rounded-xl border border-border/50">
+                <div className="flex items-center gap-4 border-b border-border/50 pb-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <User className="w-7 h-7 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Token Number</div>
+                    <div className="font-black text-3xl">#{String(selectedToken.tokenNumber).padStart(2, '0')}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-bold text-lg">Token #{String(selectedToken.tokenNumber).padStart(2, '0')}</div>
-                  <div className="text-muted-foreground text-sm font-medium">{selectedToken.patient?.firstName || "Patient"} {selectedToken.patient?.lastName || ""}</div>
-                  {selectedToken.patient?.phone && <div className="text-muted-foreground text-xs">{selectedToken.patient.phone}</div>}
+                
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Patient Name</div>
+                    <div className="font-semibold text-foreground">
+                      {selectedToken.appointment?.Patient?.fullName || selectedToken.patient?.fullName || "Unknown Patient"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Age</div>
+                    <div className="font-semibold text-foreground">
+                      {selectedToken.appointment?.Patient?.ageFallback || selectedToken.patient?.ageFallback ? 
+                        `${selectedToken.appointment?.Patient?.ageFallback || selectedToken.patient?.ageFallback} Years` : "Not specified"}
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-xs text-muted-foreground mb-1">Phone Number</div>
+                    <div className="font-semibold text-foreground">
+                      {selectedToken.appointment?.Patient?.phone || selectedToken.patient?.phone || "No phone number"}
+                    </div>
+                  </div>
                 </div>
               </div>
               

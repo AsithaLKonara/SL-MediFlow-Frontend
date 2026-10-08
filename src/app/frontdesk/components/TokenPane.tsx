@@ -83,7 +83,8 @@ export function TokenPane() {
       headers: {
         ...options.headers,
         Authorization: `Bearer ${token}`
-      }
+      },
+      cache: options.cache || 'no-store'
     });
   }, [token]);
 
@@ -404,6 +405,19 @@ export function TokenPane() {
       return;
     }
 
+    if (selectedDocId && docTokens.length > 0 && docTokens.every(t => t.status !== "AVAILABLE")) {
+      toast.error("Doctor token limit reached. No available tokens.");
+      return;
+    }
+    if (selectedTestIds.size > 0 && labTokens.length > 0 && labTokens.every(t => t.status !== "AVAILABLE")) {
+      toast.error("Lab test token limit reached. No available tokens.");
+      return;
+    }
+    if (selectedServiceIds.size > 0 && serviceTokens.length > 0 && serviceTokens.every(t => t.status !== "AVAILABLE")) {
+      toast.error("Extra Services token limit reached. No available tokens.");
+      return;
+    }
+
     const selectedDoc = doctors.find(d => d.id === selectedDocId);
     let expectedTotal = 0;
     let isUpfront = false;
@@ -501,6 +515,7 @@ export function TokenPane() {
             ref={billPrintRef}
             queueNumber={generatedToken.queueNumber}
             doctorName={generatedToken.doctorName}
+            roomNumber={generatedToken.roomNumber}
             patientName={generatedToken.patientName}
             date={new Date().toISOString()}
             invoice={generatedToken.invoice}

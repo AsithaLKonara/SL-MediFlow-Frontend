@@ -69,7 +69,8 @@ export default function EnhancedDoctorArrivalsPage() {
 
       if (!silent) setIsLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${formattedDate}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
       });
       if (!res.ok) {
         const errText = await res.text();

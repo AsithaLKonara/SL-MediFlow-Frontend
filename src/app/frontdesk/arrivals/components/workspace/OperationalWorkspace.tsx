@@ -61,17 +61,17 @@ export function OperationalWorkspace({
   const fetchContext = async () => {
     try {
       setIsLoading(true);
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const fetchOptions = { headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' as RequestCache };
 
       // 1. Fetch Calendar Aggregation
       const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
-      const calRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/calendar?month=${monthStr}`, { headers });
+      const calRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/calendar?month=${monthStr}`, fetchOptions);
       if (calRes.ok) setCalendarData(await calRes.json());
 
       // 2. Fetch Session Tokens
       if (activeSession) {
         const dateStr = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
-        const tokRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/sessions/${activeSession.id}/tokens?date=${dateStr}`, { headers });
+        const tokRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/sessions/${activeSession.id}/tokens?date=${dateStr}`, fetchOptions);
         if (tokRes.ok) setTokens(await tokRes.json());
       } else {
         setTokens([]);
@@ -79,7 +79,7 @@ export function OperationalWorkspace({
 
       // 3. Fetch Activity Log
       const logDateStr = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
-      const logRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/activity?date=${logDateStr}`, { headers });
+      const logRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/activity?date=${logDateStr}`, fetchOptions);
       if (logRes.ok) setActivityLog(await logRes.json());
 
     } catch (error) {

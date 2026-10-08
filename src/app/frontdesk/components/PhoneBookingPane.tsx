@@ -30,7 +30,8 @@ export function PhoneBookingPane() {
       headers: {
         ...options.headers,
         Authorization: `Bearer ${token}`
-      }
+      },
+      cache: options.cache || 'no-store'
     });
   }, [token]);
 
@@ -249,6 +250,19 @@ export function PhoneBookingPane() {
   const handleBook = async () => {
     if (!patientPhone || !patientName || (!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0) || !selectedDate) {
       toast.error("Please fill all fields and select a service");
+      return;
+    }
+
+    if (selectedDocId && docTokens.length > 0 && docTokens.every(t => t.status !== "AVAILABLE")) {
+      toast.error("Doctor token limit reached. No available tokens.");
+      return;
+    }
+    if (selectedTestIds.size > 0 && labTokens.length > 0 && labTokens.every(t => t.status !== "AVAILABLE")) {
+      toast.error("Lab test token limit reached. No available tokens.");
+      return;
+    }
+    if (selectedServiceIds.size > 0 && serviceTokens.length > 0 && serviceTokens.every(t => t.status !== "AVAILABLE")) {
+      toast.error("Extra Services token limit reached. No available tokens.");
       return;
     }
 
