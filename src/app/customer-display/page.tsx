@@ -31,14 +31,14 @@ export default function CustomerDisplayPage() {
     const socket: Socket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000');
     
     socket.on("TOKEN_STATUS_UPDATED", (data) => {
-      if (data.appointment?.status === "CONSULTATION") {
+      if (data?.status === "IN_PROGRESS") {
         setCalledTokens(prev => {
           const newToken = {
-            id: data.appointment.id,
-            number: String(data.appointment.tokenNumber).padStart(2, '0'),
-            doctor: data.appointment.User?.fullName || "Doctor",
-            room: data.appointment.User?.roomNumber || "No Room",
-            specialty: data.appointment.User?.specialty || "OPD"
+            id: data.id,
+            number: String(data.tokenNumber).padStart(2, '0'),
+            doctor: data.User?.fullName || "Doctor",
+            room: data.User?.roomNumber || "No Room",
+            specialty: data.User?.specialty || "OPD"
           };
           
           // Play an announcement sound

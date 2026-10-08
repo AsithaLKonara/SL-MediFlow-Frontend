@@ -40,8 +40,6 @@ export default function CustomerDisplayPage() {
   }, [doctors]); // Re-bind if doctors change (so rows might change)
 
   const toggleFullScreen = () => {
-  const { token } = useAuth();
-
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch((err) => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
@@ -59,12 +57,12 @@ export default function CustomerDisplayPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchDoctorsStatus = async () => {
+  const fetchDoctorsStatus = async (currentToken: string | null) => {
     try {
       const formattedDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${formattedDate}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${currentToken}`
         },
         cache: 'no-store'
       });
@@ -79,20 +77,22 @@ export default function CustomerDisplayPage() {
   };
 
   useEffect(() => {
-    fetchDoctorsStatus();
+    if (!token) return; // Wait until auth token is available
+
+    fetchDoctorsStatus(token);
 
     const socket: Socket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000');
     
     socket.on("connect", () => console.log("Customer Display connected to websocket"));
     
     // Listen for events that should refresh the board
-    socket.on("DOCTOR_ATTENDANCE_UPDATED", () => fetchDoctorsStatus());
-    socket.on("TOKEN_STATUS_UPDATED", () => fetchDoctorsStatus());
+    socket.on("DOCTOR_ATTENDANCE_UPDATED", () => fetchDoctorsStatus(token));
+    socket.on("TOKEN_STATUS_UPDATED", () => fetchDoctorsStatus(token));
     
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [token]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#f8fafc] text-slate-900 overflow-hidden font-sans">
