@@ -63,7 +63,7 @@ export default function StaffManagementPage() {
     name: "",
     email: "",
     password: "",
-    roleName: "RECEPTIONIST",
+    roleName: "",
     specialty: "",
     roomNumber: "",
     title: "Dr.",
@@ -120,7 +120,7 @@ export default function StaffManagementPage() {
   const openAddModal = () => {
     setEditingId(null);
     setFormData({ 
-      name: "", email: "", password: "", roleName: "RECEPTIONIST", 
+      name: "", email: "", password: "", roleName: "", 
       specialty: "", roomNumber: "", title: "Dr.", departmentId: "", 
       consultationFee: 2500, feeType: "POST" 
     });
@@ -262,7 +262,7 @@ export default function StaffManagementPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {member.role === 'DOCTOR' && (
+                          {member.role.toUpperCase() === 'DOCTOR' && (
                             <div className="space-y-1">
                               <div>{member.title} {member.name}</div>
                               <div>Dept: {member.departmentName || 'N/A'}</div>
@@ -345,7 +345,9 @@ export default function StaffManagementPage() {
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={formData.roleName} 
                   onChange={e => setFormData({...formData, roleName: e.target.value})}
+                  required
                 >
+                  <option value="" disabled>Select a Role</option>
                   {roles.map(r => (
                     <option key={r.id} value={r.name}>{r.name}</option>
                   ))}
@@ -353,14 +355,14 @@ export default function StaffManagementPage() {
                   {roles.length === 0 && (
                     <>
                       <option value="Doctor">Doctor</option>
-                      <option value="RECEPTIONIST">RECEPTIONIST</option>
-                      <option value="ADMIN">ADMIN</option>
+                      <option value="Receptionist">Receptionist</option>
+                      <option value="Admin">Admin</option>
                     </>
                   )}
                 </select>
               </div>
 
-              {formData.roleName === "Doctor" && (
+              {formData.roleName.toUpperCase() === "DOCTOR" && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -382,7 +384,6 @@ export default function StaffManagementPage() {
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={formData.departmentId} 
                         onChange={e => setFormData({...formData, departmentId: e.target.value})}
-                        required
                       >
                         <option value="">Select Department</option>
                         {departments.map(d => (
