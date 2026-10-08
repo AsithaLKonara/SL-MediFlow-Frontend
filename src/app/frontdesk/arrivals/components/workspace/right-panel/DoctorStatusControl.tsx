@@ -10,9 +10,11 @@ import { useState } from "react";
 
 export function DoctorStatusControl({ 
   doctor,
+  selectedDate,
   onRefresh
 }: { 
   doctor: DoctorStatus;
+  selectedDate: Date;
   onRefresh: () => void;
 }) {
   const isArrived = doctor.attendance?.status === "ARRIVED";
@@ -31,7 +33,13 @@ export function DoctorStatusControl({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: "ARRIVED", roomNumber, startTime, endTime })
+        body: JSON.stringify({ 
+          status: "ARRIVED", 
+          roomNumber, 
+          startTime, 
+          endTime, 
+          date: new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0]
+        })
       });
       if (!res.ok) throw new Error(await res.text());
       toast.success(`${doctor.fullName} assigned to ${roomNumber}`);
@@ -53,7 +61,11 @@ export function DoctorStatusControl({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: "LEFT", forceExit })
+        body: JSON.stringify({ 
+          status: "LEFT", 
+          forceExit,
+          date: new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0]
+        })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -107,7 +119,7 @@ export function DoctorStatusControl({
         onOpenChange={setMatrixOpen}
         doctorName={doctor.fullName}
         onAssign={handleAssignRoom}
-        selectedDate={new Date()}
+        selectedDate={selectedDate}
         isAssigning={isAssigning}
       />
     </div>
