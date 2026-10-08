@@ -107,7 +107,7 @@ export default function StaffManagementPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.error || "Failed to load departments");
-      setDepartments(data.data || []);
+      setDepartments(Array.isArray(data) ? data : (data.data || []));
     } catch (err: any) {
       toast.error(err.message);
     }
