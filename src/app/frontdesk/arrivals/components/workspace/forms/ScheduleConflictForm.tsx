@@ -18,7 +18,7 @@ export function ScheduleConflictForm({ doctor, onComplete }: { doctor: DoctorSta
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
     startTime: "09:00",
     endTime: "12:00",
     room: "Room 02",
