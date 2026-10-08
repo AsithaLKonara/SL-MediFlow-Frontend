@@ -205,7 +205,8 @@ export default function StaffManagementPage() {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <>
+      <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Staff Management</h2>
@@ -314,9 +315,10 @@ export default function StaffManagementPage() {
           )}
         </CardContent>
       </Card>
+      </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto overflow-x-hidden">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>{editingId ? "Edit Staff Member" : "Add New Staff"}</DialogTitle>
@@ -426,6 +428,6 @@ export default function StaffManagementPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
