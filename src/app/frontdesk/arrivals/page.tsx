@@ -63,8 +63,13 @@ export default function EnhancedDoctorArrivalsPage() {
 
   const fetchDoctors = async (silent = false) => {
     try {
+      // Format date to local YYYY-MM-DD to avoid UTC timezone off-by-one errors
+      const formattedDate = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000))
+        .toISOString()
+        .split('T')[0];
+
       if (!silent) setIsLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${selectedDate.toISOString()}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${formattedDate}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
