@@ -486,8 +486,7 @@ export function TokenPane() {
       }));
 
     if (cartItems.length === 0) {
-      toast.warning("No medicines with stock info found in this prescription. Prices may not be available yet.");
-      return;
+      toast.info("No medicines found in this prescription. Sending to POS for post-pay fee checkout if applicable.");
     }
 
     // Optimistically lock UI immediately (POSPane will also broadcast IN_PROGRESS back)
