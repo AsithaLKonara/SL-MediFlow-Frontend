@@ -47,6 +47,8 @@ interface Patient {
   medicalHistory: MedicalHistory[];
   labResults: LabResult[];
   activeVisitId: string | null;
+  activeTokenNumber?: string | null;
+  activeVisitStartTime?: string | null;
 }
 
 
@@ -145,6 +147,22 @@ export default function ConsultationPage() {
           bloodGroup: d.bloodGroup || ""
         });
         setLoading(false); 
+
+        // Auto-update the appointment status to IN_PROGRESS so Customer Display knows the doctor is busy
+        if (d.activeVisitId && user?.id) {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/status`, {
+            method: 'PATCH',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({
+              patientId: patientId,
+              doctorId: user.id,
+              status: 'IN_PROGRESS'
+            })
+          }).catch(console.error);
+        }
       });
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
@@ -475,8 +493,8 @@ export default function ConsultationPage() {
           
           <div className="hidden md:flex flex-col items-end text-right text-sm shrink-0 border-l border-border pl-6 pt-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Token Number</p>
-            <p className="text-2xl font-black text-foreground tracking-tight">Visit #04</p>
-            <p className="font-medium text-muted-foreground text-xs mt-3">Started 10:42 AM</p>
+            <p className="text-2xl font-black text-foreground tracking-tight">{patient.activeTokenNumber ? `Token #${patient.activeTokenNumber}` : "--"}</p>
+            <p className="font-medium text-muted-foreground text-xs mt-3">{patient.activeVisitStartTime ? `Started ${new Date(patient.activeVisitStartTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Colombo'})}` : "Started --:--"}</p>
             <p className="font-mono text-[10px] text-muted-foreground mt-1 opacity-50" title={patient.id}>ID: {patient.id ? patient.id.substring(0,8) : "N/A"}</p>
           </div>
         </div>
