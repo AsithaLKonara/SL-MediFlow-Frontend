@@ -484,7 +484,7 @@ export function POSPane() {
   };
 
   const handleOpenCheckout = () => {
-    if (cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload) {
+    if (cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload && !postPayConsultation) {
       toast.error("Cart is empty.");
       return;
     }
@@ -794,7 +794,7 @@ export function POSPane() {
           <span>Total</span>
           <span>LKR {total.toFixed(2)}</span>
         </div>
-        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload}>
+        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload && !postPayConsultation}>
           <CreditCard className="w-5 h-5 mr-2" />
           Checkout
         </Button>
