@@ -318,7 +318,7 @@ export default function StaffManagementPage() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto overflow-x-hidden">
+        <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>{editingId ? "Edit Staff Member" : "Add New Staff"}</DialogTitle>
