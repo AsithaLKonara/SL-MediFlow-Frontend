@@ -26,7 +26,7 @@ export function TodaysScheduleList({
   const targetDate = selectedDate || new Date();
   const dayOfWeek = targetDate.getDay();
   // Get local YYYY-MM-DD
-  const isoDateStr = new Date(targetDate.getTime() - (targetDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  const isoDateStr = new Date(targetDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
 
   let activeSessions: any[] = [];
 

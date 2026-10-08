@@ -64,8 +64,7 @@ export default function EnhancedDoctorArrivalsPage() {
   const fetchDoctors = async (silent = false) => {
     try {
       // Format date to local YYYY-MM-DD to avoid UTC timezone off-by-one errors
-      const formattedDate = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000))
-        .toISOString()
+      const formattedDate = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
         .split('T')[0];
 
       if (!silent) setIsLoading(true);

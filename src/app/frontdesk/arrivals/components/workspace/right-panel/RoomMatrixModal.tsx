@@ -46,7 +46,7 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const formattedDate = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      const formattedDate = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/rooms/matrix?date=${formattedDate}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

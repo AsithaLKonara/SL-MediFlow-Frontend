@@ -112,7 +112,9 @@ export function TokenPane() {
   const [selectedLabToken, setSelectedLabToken] = useState<number | null>(null);
   const [labTokens, setLabTokens] = useState<any[]>([]);
   const [selectedServiceToken, setSelectedServiceToken] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
+  );
   const [serviceTokens, setServiceTokens] = useState<any[]>([]);
 
   const [pendingPrescriptions, setPendingPrescriptions] = useState<Prescription[]>([]);
@@ -187,36 +189,33 @@ export function TokenPane() {
 
   const fetchDocTokens = useCallback(() => {
     if (!selectedDocId) return;
-    const dateStr = new Date().toISOString().split('T')[0];
-    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${dateStr}`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${selectedDate}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setDocTokens(res.data.tokens || []);
       })
       .catch(console.error);
-  }, [selectedDocId]);
+  }, [selectedDocId, selectedDate, apiFetch]);
 
   const fetchLabTokens = useCallback(() => {
     if (selectedTestIds.size === 0) return;
-    const dateStr = new Date().toISOString().split('T')[0];
-    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=LAB&date=${dateStr}`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=LAB&date=${selectedDate}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setLabTokens(res.data.tokens || []);
       })
       .catch(console.error);
-  }, [selectedTestIds.size]);
+  }, [selectedTestIds.size, selectedDate, apiFetch]);
 
   const fetchServiceTokens = useCallback(() => {
     if (selectedServiceIds.size === 0) return;
-    const dateStr = new Date().toISOString().split('T')[0];
-    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=EXTRA_SERVICE&date=${dateStr}`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/department-availability?department=EXTRA_SERVICE&date=${selectedDate}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setServiceTokens(res.data.tokens || []);
       })
       .catch(console.error);
-  }, [selectedServiceIds.size]);
+  }, [selectedServiceIds.size, selectedDate, apiFetch]);
 
   const fetchPendingPrescriptions = useCallback(async () => {
     if (!token) return;
@@ -693,7 +692,7 @@ export function TokenPane() {
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
-                            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            const localDate = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
                             setSelectedDate(localDate);
                           }}
                           calendarData={selectedDocId ? calendarData : null} 
@@ -819,7 +818,7 @@ export function TokenPane() {
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
-                            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            const localDate = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
                             setSelectedDate(localDate);
                           }}
                           calendarData={selectedDocId ? calendarData : null} 
@@ -944,7 +943,7 @@ export function TokenPane() {
                             <EnhancedCalendar 
                               selectedDate={new Date(selectedDate)} 
                               onDateSelect={(d) => {
-                                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                                const localDate = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
                                 setSelectedDate(localDate);
                               }}
                               calendarData={selectedDocId ? calendarData : null} 

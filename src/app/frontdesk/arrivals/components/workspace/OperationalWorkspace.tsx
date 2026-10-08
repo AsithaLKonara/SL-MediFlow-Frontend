@@ -70,7 +70,7 @@ export function OperationalWorkspace({
 
       // 2. Fetch Session Tokens
       if (activeSession) {
-        const dateStr = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        const dateStr = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
         const tokRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/sessions/${activeSession.id}/tokens?date=${dateStr}`, { headers });
         if (tokRes.ok) setTokens(await tokRes.json());
       } else {
@@ -78,7 +78,7 @@ export function OperationalWorkspace({
       }
 
       // 3. Fetch Activity Log
-      const logDateStr = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      const logDateStr = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
       const logRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/activity?date=${logDateStr}`, { headers });
       if (logRes.ok) setActivityLog(await logRes.json());
 

@@ -46,7 +46,7 @@ export function EnhancedCalendar({
     if (isOnLeave) hasClinic = false;
 
     // Check schedules and aggregate capacity, factoring in exceptions
-    const isoDateStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const isoDateStr = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
     let activeSessionsCount = 0;
     let cancelledSessionsCount = 0;
 

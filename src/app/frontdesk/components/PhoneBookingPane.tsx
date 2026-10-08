@@ -51,7 +51,9 @@ export function PhoneBookingPane() {
   const [selectedServiceToken, setSelectedServiceToken] = useState<number | null>(null);
   const [serviceTokens, setServiceTokens] = useState<any[]>([]);
 
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
+  );
   
   const [searchQuery, setSearchQuery] = useState("");
   const [patientName, setPatientName] = useState("");
@@ -299,7 +301,7 @@ export function PhoneBookingPane() {
         setPatientPhone("");
         setPatientAge("");
         setPatientLookupResult(null);
-        setSelectedDate(new Date().toISOString().split("T")[0]);
+        setSelectedDate(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' }));
         setSelectedDocId(null);
         setSelectedTestIds(new Set());
         setSelectedServiceIds(new Set());
@@ -452,7 +454,7 @@ export function PhoneBookingPane() {
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
-                            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            const localDate = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
                             setSelectedDate(localDate);
                           }}
                           calendarData={selectedDocId ? calendarData : null} 
@@ -577,7 +579,7 @@ export function PhoneBookingPane() {
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
-                            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            const localDate = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
                             setSelectedDate(localDate);
                           }}
                           calendarData={selectedDocId ? calendarData : null} 
@@ -701,7 +703,7 @@ export function PhoneBookingPane() {
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
-                            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            const localDate = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
                             setSelectedDate(localDate);
                           }}
                           calendarData={selectedDocId ? calendarData : null} 

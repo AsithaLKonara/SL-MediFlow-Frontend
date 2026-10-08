@@ -61,7 +61,8 @@ export default function CustomerDisplayPage() {
 
   const fetchDoctorsStatus = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status`, {
+      const formattedDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${formattedDate}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -152,7 +153,7 @@ export default function CustomerDisplayPage() {
                 <AnimatePresence>
                   {doctors.map((doctor) => {
                     const status = doctor.attendance?.status;
-                    const isArrived = status === 'ARRIVED';
+                    const isArrived = status === 'ARRIVED' || status === 'IN_CONSULTATION';
                     const hasSessions = doctor.sessions && doctor.sessions.length > 0;
                     
                     // Status Badge Logic
@@ -167,6 +168,9 @@ export default function CustomerDisplayPage() {
                     } else if (status === 'LEFT') {
                       badgeColor = "bg-rose-50 text-rose-700 border-rose-200";
                       statusText = "Left Clinic";
+                    } else if (status === 'SCHEDULED') {
+                      badgeColor = "bg-blue-50 text-blue-700 border-blue-200";
+                      statusText = "Scheduled";
                     } else if (!hasSessions) {
                       badgeColor = "bg-slate-50 text-slate-400 border-slate-100";
                       statusText = "No Schedule";

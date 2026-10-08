@@ -39,7 +39,7 @@ export function CancelSessionForm({
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          date: new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0],
+          date: new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' }),
           reason
         })
       });
