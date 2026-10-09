@@ -6,64 +6,126 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn } from "lucide-react";
+import { NodePrintClient } from "@asithakonara/node-print-client";
+import { EscPosBuilder } from "@asithakonara/escpos";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function FrontDeskDashboard() {
   const { shift, isLoaded, openShift, closeShift } = useShift();
-  const { user } = useAuth();
-  const [cashierName, setCashierName] = useState("");
+  const { user, logout } = useAuth();
   const [startingFloat, setStartingFloat] = useState("0");
+  const [declaredCash, setDeclaredCash] = useState("");
+  const [isStartShiftOpen, setIsStartShiftOpen] = useState(false);
+  const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false);
   const router = useRouter();
 
   if (!isLoaded || !user) return null;
 
   const isNurse = user.role.toLowerCase() === "nurse";
 
-  if (!shift.isOpen) {
-    return (
-      <div className="flex-1 flex items-center justify-center h-[calc(100vh-56px)] bg-muted/20">
-        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in-95">
-          <h1 className="text-2xl font-bold mb-6 text-center text-primary">Open Shift</h1>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Cashier Name</label>
-              <Input value={cashierName} onChange={e => setCashierName(e.target.value)} placeholder="e.g. Jane Doe" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Starting Float (LKR)</label>
-              <Input type="number" value={startingFloat} onChange={e => setStartingFloat(e.target.value)} />
-            </div>
-            <Button 
-              className="w-full h-12 text-lg mt-4" 
-              onClick={() => openShift(cashierName, parseFloat(startingFloat))}
-              disabled={!cashierName}
-            >
-              Start Shift
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleStartShift = async () => {
+    await openShift(user.fullName, parseFloat(startingFloat));
+    setIsStartShiftOpen(false);
+  };
+
+  const handleCloseShift = async () => {
+    const data = await closeShift(parseFloat(declaredCash));
+    if (data?.summary) {
+      try {
+        const client = new NodePrintClient({ url: "http://127.0.0.1:18181" });
+        const builder = new EscPosBuilder();
+        builder
+            .align("center")
+            .bold(true)
+            .text("AMAZ HOSPITAL")
+            .text("SHIFT SUMMARY")
+            .bold(false)
+            .text("------------------------")
+            .align("left")
+            .text(`Date: ${new Date().toLocaleDateString()}`)
+            .text(`Cashier: ${user.fullName}`)
+            .text("------------------------")
+            .text(`System Cash: LKR ${data.summary.systemCashTotal.toFixed(2)}`)
+            .text(`System Card: LKR ${data.summary.systemCardTotal.toFixed(2)}`)
+            .text(`Declared Cash: LKR ${data.summary.declaredCash.toFixed(2)}`)
+            .text(`Variance: LKR ${data.summary.variance.toFixed(2)}`)
+            .text("------------------------")
+            .feed(3)
+            .cut();
+            
+        await client.print({ type: "escpos", data: builder.build().toString('base64') });
+      } catch (e) {
+        console.error("Failed to print receipt", e);
+        toast.error("Failed to print receipt, but shift was closed.");
+      }
+      setIsCloseShiftOpen(false);
+      // Log out directly after closing shift
+      logout();
+    }
+  };
+
+  const handlePOSClick = () => {
+    if (!shift.isOpen) {
+      toast.error("You must open a shift to access POS.");
+      return;
+    }
+    router.push('/frontdesk/workspace');
+  };
+
+  const handleArrivalsClick = () => {
+    if (!shift.isOpen) {
+      toast.error("You must open a shift to access Doctor Arrivals / Clinic Operations.");
+      return;
+    }
+    router.push('/frontdesk/arrivals');
+  };
 
   return (
-    <div className="flex-1 p-8 h-[calc(100vh-56px)] overflow-y-auto animate-in fade-in">
+    <div className="flex-1 p-8 h-[calc(100vh-56px)] overflow-y-auto animate-in fade-in relative">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Front Desk Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Shift started by {shift.cashierName}</p>
+            <p className="text-muted-foreground mt-1">
+              {shift.isOpen ? `Shift started by ${shift.cashierName}` : "No active shift"}
+            </p>
           </div>
-          <Button variant="destructive" onClick={closeShift}>
-            <LogOut className="w-4 h-4 mr-2" /> Close Shift
-          </Button>
+          <div className="flex gap-4">
+            {shift.isOpen ? (
+              <Button variant="destructive" onClick={() => setIsCloseShiftOpen(true)}>
+                <LogOut className="w-4 h-4 mr-2" /> Close Shift
+              </Button>
+            ) : (
+              <>
+                <Button variant="default" onClick={() => setIsStartShiftOpen(true)}>
+                  <LogIn className="w-4 h-4 mr-2" /> Start Shift
+                </Button>
+                <Button variant="outline" onClick={logout}>
+                  <LogOut className="w-4 h-4 mr-2" /> Log Out
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {!isNurse && (
             <button 
-              onClick={() => router.push('/frontdesk/workspace')}
-              className="flex flex-col items-center justify-center gap-4 bg-primary/10 border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground text-primary rounded-2xl p-6 transition-colors group text-center h-48"
+              onClick={handlePOSClick}
+              disabled={!shift.isOpen}
+              className={`flex flex-col items-center justify-center gap-4 border-2 rounded-2xl p-6 transition-colors group text-center h-48 ${
+                shift.isOpen 
+                ? "bg-primary/10 border-primary/20 hover:bg-primary hover:text-primary-foreground text-primary" 
+                : "bg-muted text-muted-foreground border-transparent opacity-50 cursor-not-allowed"
+              }`}
             >
               <MonitorPlay className="w-10 h-10" />
               <div>
@@ -87,14 +149,17 @@ export default function FrontDeskDashboard() {
           )}
 
           <button 
-            onClick={() => router.push('/frontdesk/arrivals')}
+            onClick={handleArrivalsClick}
+            disabled={!shift.isOpen}
             className={`flex flex-col items-center justify-center gap-4 border rounded-2xl p-6 transition-colors group text-center h-48 ${
-              isNurse 
+              !shift.isOpen 
+              ? "bg-muted text-muted-foreground border-transparent opacity-50 cursor-not-allowed"
+              : isNurse 
                 ? "bg-primary/10 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground" 
                 : "bg-card border-border hover:border-green-500 hover:text-green-600 text-foreground"
             }`}
           >
-            <UserCheck className={`w-10 h-10 ${isNurse ? "" : "opacity-50 group-hover:opacity-100 group-hover:text-green-600"}`} />
+            <UserCheck className={`w-10 h-10 ${(!isNurse && shift.isOpen) ? "opacity-50 group-hover:opacity-100 group-hover:text-green-600" : ""}`} />
             <div>
               <h2 className="text-lg font-bold">{isNurse ? "Clinic Operations" : "Doctor Arrivals"}</h2>
               <p className="opacity-80 text-xs mt-1">{isNurse ? "Access arrivals and sessions" : "Mark daily attendance"}</p>
@@ -150,6 +215,56 @@ export default function FrontDeskDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Modals with global backdrop blur styling */}
+      <Dialog open={isStartShiftOpen} onOpenChange={setIsStartShiftOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Open Shift</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Starting Float (LKR)</label>
+              <Input
+                type="number"
+                value={startingFloat}
+                onChange={(e) => setStartingFloat(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleStartShift}>Start Shift</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCloseShiftOpen} onOpenChange={setIsCloseShiftOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Close Shift & Logout</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Declared Cash Balance (LKR)</label>
+              <Input
+                type="number"
+                value={declaredCash}
+                onChange={(e) => setDeclaredCash(e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Count the physical cash in the drawer and enter the total.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="destructive" onClick={handleCloseShift} disabled={!declaredCash}>
+              Close Shift & Log Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
