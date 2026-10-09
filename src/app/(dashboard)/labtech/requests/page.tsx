@@ -112,11 +112,22 @@ export default function LabTechRequestsPage() {
               <Clock className="w-3 h-3" />{new Date(req.requestedAt).toLocaleTimeString()}
             </p>
             {req.status !== "COMPLETED" && (
-              <Link href={`/labtech/results/${req.id}`}>
-                <Button size="sm" className="bg-primary hover:bg-primary/90 text-white mt-2">
-                  {req.status === "PENDING" ? "Start Processing" : "Edit Results"}
-                </Button>
-              </Link>
+              <div className="flex flex-col gap-2 mt-2 items-end">
+                <div className="flex gap-2">
+                  <Link href={`/labtech/results/${req.id}`}>
+                    <Button size="sm" className="bg-primary hover:bg-primary/90 text-white">
+                      {req.status === "PENDING" ? "Create Report" : "Edit Results"}
+                    </Button>
+                  </Link>
+                  {req.status === "PENDING" && (
+                    <Link href={`/labtech/results/${req.id}`}>
+                      <Button size="sm" variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200">
+                        Upload PDF
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -138,7 +149,7 @@ export default function LabTechRequestsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Lab Test Requests</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Lab Test Requests</h2>
         <p className="text-muted-foreground mt-1">
           {active.length} active · {published.length} published today
         </p>

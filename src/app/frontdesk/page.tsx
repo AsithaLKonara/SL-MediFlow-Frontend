@@ -90,6 +90,17 @@ export default function FrontDeskDashboard() {
           </button>
 
           <button 
+            onClick={() => router.push('/frontdesk/rooms')}
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-purple-500 hover:text-purple-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+          >
+            <MonitorPlay className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-purple-600" />
+            <div>
+              <h2 className="text-lg font-bold">Live Room Matrix</h2>
+              <p className="text-muted-foreground text-xs mt-1">Monitor all hospital rooms</p>
+            </div>
+          </button>
+
+          <button 
             onClick={() => window.open('/frontdesk/customer-display', '_blank')}
             className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-amber-500 hover:text-amber-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
           >

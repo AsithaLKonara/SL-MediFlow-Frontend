@@ -35,7 +35,7 @@ export default function LabTechReportsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Published Reports</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Published Reports</h2>
         <p className="text-muted-foreground mt-1">
           A log of all finalized lab reports sent to doctors.
         </p>
@@ -72,7 +72,7 @@ export default function LabTechReportsPage() {
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(req.requestedAt).toLocaleString()}
                       </TableCell>
-                      <TableCell className="font-medium text-[#3A3435]">
+                      <TableCell className="font-medium text-[#3A3435] dark:text-gray-100">
                         {req.Patient?.fullName || `Patient ${req.patientId.slice(0, 4)}`}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">

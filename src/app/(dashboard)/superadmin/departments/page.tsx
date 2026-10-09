@@ -237,7 +237,7 @@ export default function DepartmentsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-white">Departments</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100 dark:text-white">Departments</h2>
           <p className="text-muted-foreground mt-1">Manage hospital departments, doctor assignments, and fees.</p>
         </div>
         <Button onClick={openNewDept} className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">

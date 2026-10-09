@@ -54,7 +54,7 @@ export default function DoctorQueuePage() {
              queueNo: t.tokenNumber,
              patientId: p.id || t.patientId,
              patientName: p.fullName || "Unknown",
-             age: p.age || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
+             age: p.ageFallback || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
              gender: p.gender || "UNKNOWN",
              reason: t.department || "Consultation",
              priority: "NORMAL",
@@ -72,7 +72,7 @@ export default function DoctorQueuePage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">My Patient Queue</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">My Patient Queue</h2>
         <p className="text-muted-foreground mt-1">
           {waitingCount} patient{waitingCount !== 1 ? "s" : ""} waiting for your consultation today.
         </p>
@@ -111,7 +111,7 @@ export default function DoctorQueuePage() {
                         <TableCell className="font-mono font-bold text-primary">{entry.queueNo}</TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-[#3A3435]">{entry.patientName}</p>
+                            <p className="font-medium text-[#3A3435] dark:text-gray-100">{entry.patientName}</p>
                             <p className="text-xs text-muted-foreground font-mono">{entry.patientId}</p>
                           </div>
                         </TableCell>

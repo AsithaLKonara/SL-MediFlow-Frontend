@@ -66,7 +66,7 @@ export default function CashierPaymentsPage() {
               <TableRow key={p.id} className={!isPending ? "opacity-60" : ""}>
                 <TableCell className="font-mono text-xs font-medium text-muted-foreground">{p.id}</TableCell>
                 <TableCell>
-                  <p className="font-medium text-[#3A3435]">{p.patientName}</p>
+                  <p className="font-medium text-[#3A3435] dark:text-gray-100">{p.patientName}</p>
                   <p className="text-xs text-muted-foreground">{p.patientId}</p>
                 </TableCell>
                 <TableCell>
@@ -100,7 +100,7 @@ export default function CashierPaymentsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Payments</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Payments</h2>
           <p className="text-muted-foreground mt-1">Settle outstanding bills for consultations, pharmacy, and lab.</p>
         </div>
         <div className="relative w-full sm:w-72">

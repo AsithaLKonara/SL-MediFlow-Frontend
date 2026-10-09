@@ -32,7 +32,7 @@ export default function PharmacistOverview() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Pharmacy Overview</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Pharmacy Overview</h2>
         <p className="text-muted-foreground mt-2">Today's dispensing summary and pharmacy status.</p>
       </div>
 
@@ -100,7 +100,7 @@ export default function PharmacistOverview() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold text-[#3A3435]">{rx.patientName}</p>
+                  <p className="font-semibold text-[#3A3435] dark:text-gray-100">{rx.patientName}</p>
                   <span className="text-xs text-muted-foreground">by {rx.doctor}</span>
                   <Badge variant="secondary" className={rx.status === "PENDING" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ml-auto" : "bg-green-500/10 text-green-600 dark:text-green-400 ml-auto"}>
                     {rx.status === "PENDING" ? <><Clock className="w-3 h-3 mr-1 inline" />Pending</> : "Fulfilled"}

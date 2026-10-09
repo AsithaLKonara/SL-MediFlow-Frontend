@@ -19,23 +19,38 @@ interface ExtraService {
   description: string | null;
   price: number;
   barcode: string;
+  roomId?: string;
   roomNumber?: string;
   isActive: boolean;
 }
 
 export default function ExtraServicesPage() {
   const [services, setServices] = useState<ExtraService[]>([]);
+  const [rooms, setRooms] = useState<{id: string, name: string, department: string}[]>([]);
   const [loading, setLoading] = useState(true);
   
   // New service state
   const [isNewOpen, setIsNewOpen] = useState(false);
-  const [newService, setNewService] = useState({ title: "", description: "", price: 0, barcode: "", roomNumber: "" });
+  const [newService, setNewService] = useState({ title: "", description: "", price: 0, barcode: "", roomId: "" });
   const [saving, setSaving] = useState(false);
   const { token } = useAuth();
 
   useEffect(() => {
     fetchServices();
+    fetchRooms();
   }, []);
+
+  const fetchRooms = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/rooms`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setRooms(data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchServices = () => {
     setLoading(true);
@@ -63,7 +78,7 @@ export default function ExtraServicesPage() {
   const openNewServiceModal = () => {
     // Generate 10-digit barcode
     const barcode = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-    setNewService({ title: "", description: "", price: 0, barcode, roomNumber: "" });
+    setNewService({ title: "", description: "", price: 0, barcode, roomId: "" });
     setIsNewOpen(true);
   };
 
@@ -123,7 +138,7 @@ export default function ExtraServicesPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Extra Services</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Extra Services</h2>
           <p className="text-muted-foreground mt-1">Manage addons, medical certificates, admission fees, etc.</p>
         </div>
         
@@ -156,8 +171,17 @@ export default function ExtraServicesPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Room Number</Label>
-                <Input value={newService.roomNumber} onChange={e => setNewService({...newService, roomNumber: e.target.value})} placeholder="e.g. Room 12" />
+                <Label>Room</Label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={newService.roomId} 
+                  onChange={e => setNewService({...newService, roomId: e.target.value})}
+                >
+                  <option value="">No Room</option>
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+                  ))}
+                </select>
               </div>
             </div>
             <DialogFooter>
@@ -193,7 +217,7 @@ export default function ExtraServicesPage() {
                       {svc.description && <div className="text-xs text-muted-foreground mt-0.5">{svc.description}</div>}
                     </TableCell>
                     <TableCell className="text-muted-foreground font-mono text-sm">{svc.barcode}</TableCell>
-                    <TableCell>{svc.roomNumber || "-"}</TableCell>
+                    <TableCell>{svc.roomNumber || svc.roomId || "-"}</TableCell>
                     <TableCell className="text-right font-medium">Rs. {svc.price.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2 justify-end">

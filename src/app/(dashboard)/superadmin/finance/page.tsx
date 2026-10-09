@@ -93,7 +93,7 @@ export default function FinancePage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Financial Overview</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Financial Overview</h2>
         <p className="text-muted-foreground mt-1">Monitor revenue streams, expenses, and overall hospital financial health.</p>
       </div>
 
@@ -209,7 +209,7 @@ export default function FinancePage() {
                       {trx.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-bold text-[#3A3435]">LKR {trx.amount.toLocaleString()}
+                  <TableCell className="text-right font-bold text-[#3A3435] dark:text-gray-100">LKR {trx.amount.toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Badge 

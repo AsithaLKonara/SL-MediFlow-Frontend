@@ -206,7 +206,7 @@ export default function RBACMatrixPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Access Control Matrix</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Access Control Matrix</h2>
           <p className="text-muted-foreground mt-1">Dynamically assign system features (CRUD) to different hospital roles.</p>
         </div>
         
@@ -255,11 +255,11 @@ export default function RBACMatrixPage() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[300px] font-semibold text-[#3A3435]">System Feature</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Create</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Read / View</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Update</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Delete</TableHead>
+                <TableHead className="w-[300px] font-semibold text-[#3A3435] dark:text-gray-100">System Feature</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Create</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Read / View</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Update</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Delete</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

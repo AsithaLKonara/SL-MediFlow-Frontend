@@ -96,7 +96,7 @@ export default function PatientsPage() {
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Search Patient</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Search Patient</h2>
           <p className="text-muted-foreground mt-1">Find an existing patient or register a new one to start a visit.</p>
         </div>
         <Button onClick={() => setShowForm(true)} className="bg-primary text-white hidden sm:flex">
@@ -124,7 +124,7 @@ export default function PatientsPage() {
                 filtered.map((p) => (
                   <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg hover:border-primary/50 transition-colors bg-muted/30">
                     <div>
-                      <h3 className="font-bold text-lg text-[#3A3435]">{p.name}</h3>
+                      <h3 className="font-bold text-lg text-[#3A3435] dark:text-gray-100">{p.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         {p.age} years • {p.contact} • <span className="font-mono">{p.id}</span>
                       </p>

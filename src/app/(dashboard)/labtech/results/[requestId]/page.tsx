@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Printer, FlaskConical, Plus, Trash2, Save, Globe } from "lucide-react";
+import { ArrowLeft, Printer, FlaskConical, Plus, Trash2, Save, Globe, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useReactToPrint } from 'react-to-print';
 import { LabReportTemplate, LabReportData } from "@/components/print/LabReportTemplate";
@@ -97,7 +97,9 @@ export default function LabResultsPage({
   const [loading, setLoading] = useState(true);
   const { token } = useAuth();
   const [results, setResults] = useState<ResultEntry[]>([]);
-
+  const [outsourcedPdfUrl, setOutsourcedPdfUrl] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [reportMeta, setReportMeta] = useState({
     referenceNo: "",
     sampleDateTime: "",
@@ -274,11 +276,48 @@ export default function LabResultsPage({
     pageStyle: `@page { size: A4; margin: 0; } @media print { body { -webkit-print-color-adjust: exact; } }`
   });
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF files are allowed.");
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      // 1. Get pre-signed URL
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Failed to get upload URL");
+      const { uploadUrl, fileUrl } = await res.json();
+      
+      // 2. Upload to S3
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file
+      });
+      if (!uploadRes.ok) throw new Error("Failed to upload file");
+      
+      setOutsourcedPdfUrl(fileUrl);
+      toast.success("PDF uploaded successfully! Click Publish to save.");
+    } catch (err) {
+      toast.error("Error uploading PDF");
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
   const handlePublish = async () => {
     if (!token) return;
     setPublishing(true);
-    const url = `${process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin}/reports/${reportMeta.referenceNo}`;
-    setReportUrl(url);
+    const url = outsourcedPdfUrl || `${process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin}/reports/${reportMeta.referenceNo}`;
+    
+    if (!outsourcedPdfUrl) {
+      setReportUrl(url);
+    }
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/${requestId}/publish`, {
         method: "POST",
@@ -287,7 +326,7 @@ export default function LabResultsPage({
           Authorization: `Bearer ${token}` 
         },
         body: JSON.stringify({
-          results: buildApiPayload(),
+          results: outsourcedPdfUrl ? [] : buildApiPayload(),
           reportUrl: url,
           referenceNo: reportMeta.referenceNo,
           testProfile: reportMeta.testProfile
@@ -296,8 +335,10 @@ export default function LabResultsPage({
       if (!res.ok) throw new Error("Publish failed");
       setPublished(true);
       toast.success("Report published! SMS notification sent to patient.", { duration: 5000 });
-      // Auto-print after publish
-      setTimeout(() => handlePrint(undefined), 500);
+      
+      if (!outsourcedPdfUrl) {
+        setTimeout(() => handlePrint(undefined), 500);
+      }
     } catch {
       toast.error("Failed to publish report.");
     } finally {
@@ -358,10 +399,23 @@ export default function LabResultsPage({
           <Printer className="w-4 h-4" /> Print
         </Button>
 
+        {/* Upload Outsourced PDF */}
+        <input 
+          type="file" 
+          accept="application/pdf" 
+          className="hidden" 
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+        />
+        <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} isLoading={uploadingPdf} disabled={published} className="gap-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+          <UploadCloud className="w-4 h-4" /> 
+          {outsourcedPdfUrl ? "PDF Ready" : "Upload PDF"}
+        </Button>
+
         {/* Publish */}
         <Button
           onClick={handlePublish}
-          disabled={published}
+          disabled={published || (results.length === 0 && !outsourcedPdfUrl)}
           isLoading={publishing}
           size="sm"
           className="gap-1.5 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
