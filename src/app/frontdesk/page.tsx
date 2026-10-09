@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, Building2 } from "lucide-react";
 
 export default function FrontDeskDashboard() {
   const { shift, isLoaded, openShift, closeShift } = useShift();
@@ -97,6 +97,17 @@ export default function FrontDeskDashboard() {
             <div>
               <h2 className="text-lg font-bold">Patient Display</h2>
               <p className="text-muted-foreground text-xs mt-1">Launch 2nd screen status</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => router.push('/frontdesk/rooms')}
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-purple-500 hover:text-purple-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+          >
+            <Building2 className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-purple-600" />
+            <div>
+              <h2 className="text-lg font-bold">Room Mgmt</h2>
+              <p className="text-muted-foreground text-xs mt-1">Manage physical rooms</p>
             </div>
           </button>
 

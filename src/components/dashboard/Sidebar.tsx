@@ -52,6 +52,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users },
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
     { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch },
+    { href: "/frontdesk/rooms", label: "Room Management", icon: Building2 },
     { href: "/hr", label: "My HR Portal", icon: Users },
   ],
   doctor: [
