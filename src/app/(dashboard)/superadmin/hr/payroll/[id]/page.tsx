@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useReactToPrint } from "react-to-print";
+import { PayslipPrintTemplate } from "../components/PayslipPrintTemplate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ArrowLeft, Banknote, Download } from "lucide-react";
+import { ArrowLeft, Banknote, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -19,6 +21,22 @@ export default function PayrollRunDetailsPage() {
   const [run, setRun] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [printRecords, setPrintRecords] = useState<any[]>([]);
+
+  const componentRef = useRef(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: componentRef,
+    documentTitle: "Payslips",
+    onAfterPrint: () => setPrintRecords([]),
+  });
+
+  const triggerPrint = (records: any[]) => {
+    setPrintRecords(records);
+    setTimeout(() => {
+      handlePrint();
+    }, 100);
+  };
 
   const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -59,7 +77,10 @@ export default function PayrollRunDetailsPage() {
             {new Date(run.periodStart).toLocaleDateString()} to {new Date(run.periodEnd).toLocaleDateString()}
           </p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          <Button variant="outline" className="gap-2" onClick={() => triggerPrint(run.records || [])}>
+            <Printer className="w-4 h-4" /> Print All Payslips
+          </Button>
           <Badge className={run.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
             {run.status}
           </Badge>
@@ -97,9 +118,14 @@ export default function PayrollRunDetailsPage() {
                       <Badge variant="outline">{record.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedRecord(record)}>
-                        View Line Items
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => triggerPrint([record])}>
+                          <Printer className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedRecord(record)}>
+                          View Line Items
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -115,7 +141,7 @@ export default function PayrollRunDetailsPage() {
       </Card>
 
       <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-5xl w-[95vw]">
           <DialogHeader>
             <DialogTitle>Payslip Line Items</DialogTitle>
             <DialogDescription>
@@ -160,6 +186,14 @@ export default function PayrollRunDetailsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <div className="hidden">
+        <PayslipPrintTemplate 
+          ref={componentRef} 
+          records={printRecords} 
+          runPeriod={`${new Date(run.periodStart).toLocaleDateString()} to ${new Date(run.periodEnd).toLocaleDateString()}`} 
+        />
+      </div>
     </div>
   );
 }
