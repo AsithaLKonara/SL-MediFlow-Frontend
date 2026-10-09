@@ -93,30 +93,7 @@ export default function MyHRPortal() {
         <p className="text-muted-foreground mt-1">Manage your attendance and leave requests.</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {user?.role?.toLowerCase() !== 'doctor' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> Today's Attendance</CardTitle>
-              <CardDescription>Record your daily work hours.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="bg-muted/50 p-6 rounded-lg text-center">
-                <p className="text-4xl font-mono tracking-wider font-semibold text-primary">{new Date().toLocaleTimeString()}</p>
-                <p className="text-sm text-muted-foreground mt-2">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              </div>
-              <div className="flex gap-4 justify-center">
-                <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 text-white" onClick={clockIn}>
-                  <Play className="w-4 h-4 mr-2" fill="currentColor" /> Clock In
-                </Button>
-                <Button size="lg" variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" onClick={clockOut}>
-                  <Square className="w-4 h-4 mr-2" fill="currentColor" /> Clock Out
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
+      <div className="max-w-2xl">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><CalendarCheck className="w-5 h-5 text-primary" /> Apply for Leave</CardTitle>
