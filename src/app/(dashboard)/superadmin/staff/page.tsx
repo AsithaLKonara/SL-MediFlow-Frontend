@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, MoreHorizontal, Edit, Lock, Trash2 } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Edit, Lock, Trash2, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -49,6 +51,7 @@ interface Staff {
 }
 
 export default function StaffManagementPage() {
+  const router = useRouter();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [departments, setDepartments] = useState<{id: string, name: string}[]>([]);
@@ -306,6 +309,9 @@ export default function StaffManagementPage() {
                               <div className="px-2 py-1.5 text-sm font-semibold">Actions</div>
                               <DropdownMenuItem onClick={() => openEditModal(member)}>
                                 <Edit className="w-4 h-4 mr-2" /> Edit Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => router.push(`/superadmin/staff/${member.id}/payroll`)}>
+                                <WalletCards className="w-4 h-4 mr-2" /> Payroll Profile
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member.id, member.name)}>

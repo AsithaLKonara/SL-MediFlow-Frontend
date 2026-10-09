@@ -10,7 +10,10 @@ import { Calculator, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 
+import { useRouter } from "next/navigation";
+
 export default function PayrollPage() {
+  const router = useRouter();
   const [payrolls, setPayrolls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -41,22 +44,26 @@ export default function PayrollPage() {
   const generatePayroll = async () => {
     setGenerating(true);
     try {
+      const start = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toISOString();
+      const end = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0, 23, 59, 59, 999).toISOString();
+
       const res = await fetch(`${API}/hr/payroll/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ month: parseInt(selectedMonth), year: parseInt(selectedYear) })
+        body: JSON.stringify({ periodStart: start, periodEnd: end })
       });
       if (res.ok) {
         toast.success(`Payroll generated for ${selectedMonth}/${selectedYear}`);
         fetchPayroll();
       } else {
-        throw new Error("Failed to generate");
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate");
       }
-    } catch (e) {
-      toast.error("Error generating payroll");
+    } catch (e: any) {
+      toast.error(e.message || "Error generating payroll");
     } finally {
       setGenerating(false);
     }
@@ -95,8 +102,8 @@ export default function PayrollPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Banknote className="w-5 h-5 text-primary" /> Generated Payslips</CardTitle>
-          <CardDescription>All historical payslips are recorded here.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Banknote className="w-5 h-5 text-primary" /> Generated Payroll Runs</CardTitle>
+          <CardDescription>Historical monthly payroll processing runs.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -106,36 +113,38 @@ export default function PayrollPage() {
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Staff Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="text-right">Basic Salary</TableHead>
-                    <TableHead className="text-right">Deductions</TableHead>
-                    <TableHead className="text-right text-primary font-bold">Net Salary</TableHead>
+                    <TableHead>Run Period</TableHead>
+                    <TableHead>Run Type</TableHead>
+                    <TableHead>Total Employees</TableHead>
+                    <TableHead>Generated At</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payrolls.map((pr) => (
                     <TableRow key={pr.id}>
                       <TableCell className="font-medium whitespace-nowrap">
-                        {new Date(0, pr.month - 1).toLocaleString('default', { month: 'short' })} {pr.year}
+                        {new Date(pr.periodStart).toLocaleDateString()} - {new Date(pr.periodEnd).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>{pr.user?.fullName}</TableCell>
-                      <TableCell>{pr.user?.Role?.name}</TableCell>
-                      <TableCell className="text-right">LKR {pr.basicSalary?.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-red-500">- LKR {pr.deductions?.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-bold text-primary">LKR {pr.netSalary?.toFixed(2)}</TableCell>
+                      <TableCell><Badge variant="outline">{pr.type}</Badge></TableCell>
+                      <TableCell>{pr._count?.records || 0} Records</TableCell>
+                      <TableCell>{new Date(pr.createdAt).toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={pr.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+                        <Badge className={pr.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
                           {pr.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/superadmin/hr/payroll/${pr.id}`)}>
+                          View Details
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                   {payrolls.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">No payslips generated yet.</TableCell>
+                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">No payroll runs generated yet.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

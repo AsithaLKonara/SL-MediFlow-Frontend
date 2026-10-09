@@ -395,7 +395,7 @@ export default function FinancePage() {
               <Label htmlFor="category">Category *</Label>
               <Select 
                 value={expenseForm.category} 
-                onValueChange={(val) => setExpenseForm(prev => ({ ...prev, category: val }))}
+                onValueChange={(val) => setExpenseForm(prev => ({ ...prev, category: val || "" }))}
               >
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Select category" />

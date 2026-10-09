@@ -285,23 +285,24 @@ export default function LabResultsPage({
     }
     setUploadingPdf(true);
     try {
-      // 1. Get pre-signed URL
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const formData = new FormData();
+      formData.append("pdf", file);
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/${requestId}/upload-pdf`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
       });
-      if (!res.ok) throw new Error("Failed to get upload URL");
-      const { uploadUrl, fileUrl } = await res.json();
       
-      // 2. Upload to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
-      });
-      if (!uploadRes.ok) throw new Error("Failed to upload file");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to upload file");
+      }
       
-      setOutsourcedPdfUrl(fileUrl);
-      toast.success("PDF uploaded successfully! Click Publish to save.");
+      const data = await res.json();
+      setOutsourcedPdfUrl(data.reportUrl || "Uploaded");
+      setPublished(true);
+      toast.success("PDF uploaded and published successfully!");
     } catch (err) {
       toast.error("Error uploading PDF");
     } finally {
