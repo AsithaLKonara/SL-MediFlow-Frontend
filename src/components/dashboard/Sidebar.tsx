@@ -42,7 +42,8 @@ const roleNavConfig: Record<string, NavItem[]> = {
 
     { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management" },
     { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management" },
-    { href: "/superadmin/hr/payroll", label: "Payroll", icon: Banknote, category: "Management" },
+    { href: "/superadmin/hr/components", label: "Salary Components", icon: ClipboardList, category: "Management" },
+    { href: "/superadmin/hr/payroll", label: "Payroll Engine", icon: Banknote, category: "Management" },
     { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management" },
     { href: "/superadmin/rooms", label: "Room Management", icon: Building2, category: "Management" },
     

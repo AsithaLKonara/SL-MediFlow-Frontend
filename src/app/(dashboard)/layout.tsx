@@ -26,7 +26,7 @@ export default function DashboardLayout({
         // Admins can access everything in this simple setup
         if (userRole !== "admin" && userRole !== "superadmin") {
            // Allow global shared routes for everyone
-           if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
+           if (pathname.startsWith("/profile") || pathname.startsWith("/settings") || pathname.startsWith("/hr")) {
              return; // allow
            }
            
