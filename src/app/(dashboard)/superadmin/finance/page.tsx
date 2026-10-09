@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Banknote, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp } from "lucide-react";
+import { Banknote, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, Plus, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import {
   Table,
@@ -14,6 +14,13 @@ import {
   TableBody
 } from "@/components/ui/table";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface Transaction {
   id: string;
@@ -35,43 +42,132 @@ interface FinanceData {
   chartData: { month: string; income: number; expense: number }[];
 }
 
+interface Expense {
+  id: string;
+  category: string;
+  amount: number;
+  description: string;
+  status: string;
+  date: string;
+}
+
 export default function FinancePage() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expensesLoading, setExpensesLoading] = useState(true);
+  
+  const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    category: "",
+    amount: "",
+    description: "",
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { token } = useAuth();
 
-  useEffect(() => {
+  const fetchDashboardData = async () => {
     if (!token) return;
-
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/finance/dashboard`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || res.statusText);
+    try {
+      setLoading(true);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/finance/dashboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-        return res.json();
-      })
-      .then(data => {
-        if (data.success && data.data) {
-          setData(data.data);
-        } else if (data.metrics) {
-          setData(data);
-        } else {
-          throw new Error("Invalid response format");
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load finance stats", err);
-        setError(err.message);
-        setLoading(false);
       });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      const json = await res.json();
+      if (json.success && json.data) {
+        setData(json.data);
+      } else if (json.metrics) {
+        setData(json);
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (err: any) {
+      console.error("Failed to load finance stats", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchExpenses = async () => {
+    if (!token) return;
+    try {
+      setExpensesLoading(true);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/finance/expenses?limit=10`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setExpenses(json.data);
+      }
+    } catch (err) {
+      console.error("Failed to load expenses", err);
+    } finally {
+      setExpensesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    fetchExpenses();
   }, [token]);
+
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    
+    if (!expenseForm.category || !expenseForm.amount || !expenseForm.description) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/finance/expenses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          category: expenseForm.category,
+          amount: Number(expenseForm.amount),
+          description: expenseForm.description,
+          date: expenseForm.date ? new Date(expenseForm.date).toISOString() : new Date().toISOString()
+        })
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+
+      toast.success("Expense added successfully");
+      setIsAddExpenseOpen(false);
+      setExpenseForm({
+        category: "",
+        amount: "",
+        description: "",
+        date: new Date().toISOString().split('T')[0]
+      });
+      fetchDashboardData();
+      fetchExpenses();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add expense");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -92,9 +188,14 @@ export default function FinancePage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Financial Overview</h2>
-        <p className="text-muted-foreground mt-1">Monitor revenue streams, expenses, and overall hospital financial health.</p>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Financial Overview</h2>
+          <p className="text-muted-foreground mt-1">Monitor revenue streams, expenses, and overall hospital financial health.</p>
+        </div>
+        <Button onClick={() => setIsAddExpenseOpen(true)} className="bg-primary hover:bg-primary/90 text-white">
+          <Plus className="mr-2 h-4 w-4" /> Add Expense
+        </Button>
       </div>
 
       {/* KPI Cards */}
@@ -225,6 +326,133 @@ export default function FinancePage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Expenses Table */}
+      <Card className="shadow-sm mt-6">
+        <CardHeader>
+          <CardTitle>Expense Register</CardTitle>
+          <CardDescription>Detailed log of all recorded hospital expenses.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {expensesLoading ? (
+             <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expenses.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                      No expenses recorded yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  expenses.map((exp) => (
+                    <TableRow key={exp.id}>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {new Date(exp.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="font-medium">{exp.category}</TableCell>
+                      <TableCell className="max-w-[250px] truncate" title={exp.description}>
+                        {exp.description}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-red-600 dark:text-red-400">
+                        LKR {exp.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="secondary" 
+                          className={exp.status === 'COMPLETED' ? "bg-muted/50 text-foreground/80" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}
+                        >
+                          {exp.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Expense Dialog */}
+      <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Expense</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddExpense} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select 
+                value={expenseForm.category} 
+                onValueChange={(val) => setExpenseForm(prev => ({ ...prev, category: val }))}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Payroll">Payroll</SelectItem>
+                  <SelectItem value="Equipment">Equipment</SelectItem>
+                  <SelectItem value="Supplies">Supplies</SelectItem>
+                  <SelectItem value="Utilities">Utilities</SelectItem>
+                  <SelectItem value="Rent">Rent</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount (LKR) *</Label>
+              <Input 
+                id="amount" 
+                type="number" 
+                step="0.01" 
+                placeholder="0.00" 
+                value={expenseForm.amount}
+                onChange={(e) => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input 
+                id="date" 
+                type="date" 
+                value={expenseForm.date}
+                onChange={(e) => setExpenseForm(prev => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea 
+                id="description" 
+                placeholder="Expense details..." 
+                value={expenseForm.description}
+                onChange={(e) => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsAddExpenseOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Expense
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
