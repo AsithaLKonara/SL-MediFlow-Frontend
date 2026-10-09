@@ -24,7 +24,6 @@
 .DS_Store
 *.pem
 .idea/
-.vscode/
 
 # debug
 npm-debug.log*
@@ -33,8 +32,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env
-.env.*
 !.env.example
 .env*.local
 
