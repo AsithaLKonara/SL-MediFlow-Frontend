@@ -40,9 +40,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations" },
     { href: "/superadmin/extra-services", label: "Extra Services", icon: FilePlus2, category: "Operations" },
 
-    { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management" },
-    { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management" },
-    { href: "/superadmin/hr/payroll", label: "Payroll", icon: Banknote, category: "Management" },
+
     { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management" },
     { href: "/superadmin/rooms", label: "Room Management", icon: Building2, category: "Management" },
     
