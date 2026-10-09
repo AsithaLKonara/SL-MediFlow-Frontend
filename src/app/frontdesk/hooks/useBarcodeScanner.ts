@@ -28,7 +28,7 @@ export function useBarcodeScanner(onScan: (barcode: string) => void, isActive: b
              e.stopPropagation();
           }
         }
-      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if (e.key?.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         buffer.current += e.key;
       }
     };

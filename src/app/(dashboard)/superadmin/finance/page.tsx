@@ -274,7 +274,7 @@ export default function FinancePage() {
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
               <Bar dataKey="income" name="Income" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={32} />
-              <Bar dataKey="expense" name="Expense" fill="#C7C1BC" radius={[4, 4, 0, 0]} barSize={32} />
+              <Bar dataKey="expense" name="Expense" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} barSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

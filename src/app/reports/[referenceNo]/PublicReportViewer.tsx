@@ -92,22 +92,22 @@ export default function PublicReportViewer({ referenceNo }: Props) {
   }, [referenceNo]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-700 mx-auto" />
-        <p className="text-gray-600 font-medium">Loading your lab report…</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+        <p className="text-muted-foreground font-medium">Loading your lab report…</p>
       </div>
     </div>
   );
 
   if (error || !reportData) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center space-y-4 max-w-md p-8 bg-white rounded-xl shadow">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center space-y-4 max-w-md p-8 bg-card text-card-foreground rounded-xl shadow border">
         <div className="text-5xl">🔬</div>
-        <h1 className="text-xl font-bold text-red-700">Report Not Found</h1>
-        <p className="text-gray-600 text-sm">{error || "This report does not exist or has not been published yet."}</p>
-        <p className="text-xs text-gray-400">Reference: {referenceNo?.toUpperCase?.() ?? "—"}</p>
-        <p className="text-xs text-gray-400 mt-4">
+        <h1 className="text-xl font-bold text-destructive">Report Not Found</h1>
+        <p className="text-muted-foreground text-sm">{error || "This report does not exist or has not been published yet."}</p>
+        <p className="text-xs text-muted-foreground/70">Reference: {referenceNo?.toUpperCase?.() ?? "—"}</p>
+        <p className="text-xs text-muted-foreground/70 mt-4">
           AMAZ Hospital · Tissamaharama · 0472239090
         </p>
       </div>
@@ -115,24 +115,24 @@ export default function PublicReportViewer({ referenceNo }: Props) {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
+    <div className="min-h-screen bg-background py-8">
       {/* Verification Banner */}
       <div className="max-w-[210mm] mx-auto mb-4 px-2">
-        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-3 shadow-sm">
+        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg px-4 py-3 flex items-center gap-3 shadow-sm">
           <span className="text-2xl">✅</span>
           <div>
-            <p className="text-green-800 font-bold text-sm">Verified Lab Report</p>
-            <p className="text-green-600 text-xs">This report was issued by AMAZ Hospital Laboratories. Ref: <strong>{referenceNo.toUpperCase()}</strong></p>
+            <p className="text-green-800 dark:text-green-400 font-bold text-sm">Verified Lab Report</p>
+            <p className="text-green-600 dark:text-green-500 text-xs">This report was issued by AMAZ Hospital Laboratories. Ref: <strong>{referenceNo.toUpperCase()}</strong></p>
           </div>
         </div>
       </div>
 
       {/* Report */}
-      <div className="max-w-[210mm] mx-auto shadow-2xl">
+      <div className="max-w-[210mm] mx-auto shadow-2xl ring-1 ring-border">
         <LabReportTemplate data={reportData} />
       </div>
 
-      <div className="text-center mt-6 text-xs text-gray-400">
+      <div className="text-center mt-6 text-xs text-muted-foreground/70">
         www.amazhospital.com · info@amazhospital.com · 0472239090
       </div>
     </div>

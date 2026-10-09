@@ -51,8 +51,8 @@ export function TokenBoardMatrix({
       case "BOOKED": return "border-purple-500/50 bg-purple-500/10 text-purple-400 hover:border-purple-500";
       case "CANCELLED": 
       case "NO_SHOW": return "border-red-500/30 bg-red-500/10 text-red-500/70 hover:border-red-500/50";
-      case "AVAILABLE": return "border-white/10 bg-white/5 text-muted-foreground hover:border-primary/50";
-      default: return "border-white/10 bg-white/5";
+      case "AVAILABLE": return "border-border/40 bg-muted/30 text-muted-foreground hover:border-primary/50";
+      default: return "border-border/40 bg-muted/30";
     }
   };
 
