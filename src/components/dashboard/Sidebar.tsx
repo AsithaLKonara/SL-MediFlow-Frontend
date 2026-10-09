@@ -53,14 +53,12 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
     { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch },
     { href: "/frontdesk/rooms", label: "Room Management", icon: Building2 },
-    { href: "/hr", label: "My HR Portal", icon: Users },
   ],
   doctor: [
     { href: "/doctor", label: "My Dashboard", icon: LayoutDashboard },
     { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList },
     { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
     { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
-    { href: "/hr", label: "My HR Portal", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   labtech: [
@@ -69,12 +67,10 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
     { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
     { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical },
-    { href: "/hr", label: "My HR Portal", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   nurse: [
     { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users },
-    { href: "/hr", label: "My HR Portal", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
 };
