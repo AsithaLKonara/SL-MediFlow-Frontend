@@ -159,7 +159,7 @@ export default function RolePayrollTemplatesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={form.role} onValueChange={(v) => setForm({...form, role: v})}>
+                <Select value={form.role as string | undefined} onValueChange={(v) => setForm({...form, role: v as string})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Doctor">Doctor</SelectItem>

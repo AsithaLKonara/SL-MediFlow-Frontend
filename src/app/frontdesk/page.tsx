@@ -5,15 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock } from "lucide-react";
 
 export default function FrontDeskDashboard() {
   const { shift, isLoaded, openShift, closeShift } = useShift();
+  const { user } = useAuth();
   const [cashierName, setCashierName] = useState("");
   const [startingFloat, setStartingFloat] = useState("0");
   const router = useRouter();
 
-  if (!isLoaded) return null;
+  if (!isLoaded || !user) return null;
+
+  const isNurse = user.role.toLowerCase() === "nurse";
 
   if (!shift.isOpen) {
     return (
@@ -56,58 +60,81 @@ export default function FrontDeskDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          <button 
-            onClick={() => router.push('/frontdesk/workspace')}
-            className="flex flex-col items-center justify-center gap-4 bg-primary/10 border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground text-primary rounded-2xl p-6 transition-colors group text-center h-48"
-          >
-            <MonitorPlay className="w-10 h-10" />
-            <div>
-              <h2 className="text-lg font-bold">POS & Tokens</h2>
-              <p className="opacity-80 text-xs mt-1">Access the main workspace</p>
-            </div>
-          </button>
+          {!isNurse && (
+            <button 
+              onClick={() => router.push('/frontdesk/workspace')}
+              className="flex flex-col items-center justify-center gap-4 bg-primary/10 border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground text-primary rounded-2xl p-6 transition-colors group text-center h-48"
+            >
+              <MonitorPlay className="w-10 h-10" />
+              <div>
+                <h2 className="text-lg font-bold">POS & Tokens</h2>
+                <p className="opacity-80 text-xs mt-1">Access the main workspace</p>
+              </div>
+            </button>
+          )}
 
-          <button 
-            onClick={() => router.push('/frontdesk/inventory')}
-            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-secondary hover:text-secondary text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
-          >
-            <Package className="w-10 h-10 opacity-50 group-hover:opacity-100" />
-            <div>
-              <h2 className="text-lg font-bold">Inventory</h2>
-              <p className="text-muted-foreground text-xs mt-1">Manage pharmacy stock</p>
-            </div>
-          </button>
+          {!isNurse && (
+            <button 
+              onClick={() => router.push('/frontdesk/inventory')}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-secondary hover:text-secondary text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            >
+              <Package className="w-10 h-10 opacity-50 group-hover:opacity-100" />
+              <div>
+                <h2 className="text-lg font-bold">Inventory</h2>
+                <p className="text-muted-foreground text-xs mt-1">Manage pharmacy stock</p>
+              </div>
+            </button>
+          )}
 
           <button 
             onClick={() => router.push('/frontdesk/arrivals')}
-            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-green-500 hover:text-green-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            className={`flex flex-col items-center justify-center gap-4 border rounded-2xl p-6 transition-colors group text-center h-48 ${
+              isNurse 
+                ? "bg-primary/10 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground" 
+                : "bg-card border-border hover:border-green-500 hover:text-green-600 text-foreground"
+            }`}
           >
-            <UserCheck className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-green-600" />
+            <UserCheck className={`w-10 h-10 ${isNurse ? "" : "opacity-50 group-hover:opacity-100 group-hover:text-green-600"}`} />
             <div>
-              <h2 className="text-lg font-bold">Doctor Arrivals</h2>
-              <p className="text-muted-foreground text-xs mt-1">Mark daily attendance</p>
+              <h2 className="text-lg font-bold">{isNurse ? "Clinic Operations" : "Doctor Arrivals"}</h2>
+              <p className="opacity-80 text-xs mt-1">{isNurse ? "Access arrivals and sessions" : "Mark daily attendance"}</p>
             </div>
           </button>
 
-          <button 
-            onClick={() => router.push('/frontdesk/rooms')}
-            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-purple-500 hover:text-purple-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
-          >
-            <MonitorPlay className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-purple-600" />
-            <div>
-              <h2 className="text-lg font-bold">Live Room Matrix</h2>
-              <p className="text-muted-foreground text-xs mt-1">Monitor all hospital rooms</p>
-            </div>
-          </button>
+          {!isNurse && (
+            <button 
+              onClick={() => router.push('/frontdesk/rooms')}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-purple-500 hover:text-purple-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            >
+              <MonitorPlay className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-purple-600" />
+              <div>
+                <h2 className="text-lg font-bold">Live Room Matrix</h2>
+                <p className="text-muted-foreground text-xs mt-1">Monitor all hospital rooms</p>
+              </div>
+            </button>
+          )}
+
+          {!isNurse && (
+            <button 
+              onClick={() => window.open('/frontdesk/customer-display', '_blank')}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-amber-500 hover:text-amber-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            >
+              <Tv className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-amber-600" />
+              <div>
+                <h2 className="text-lg font-bold">Patient Display</h2>
+                <p className="text-muted-foreground text-xs mt-1">Launch 2nd screen status</p>
+              </div>
+            </button>
+          )}
 
           <button 
-            onClick={() => window.open('/frontdesk/customer-display', '_blank')}
-            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-amber-500 hover:text-amber-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            onClick={() => router.push('/frontdesk/hr')}
+            className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-indigo-500 hover:text-indigo-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
           >
-            <Tv className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-amber-600" />
+            <CalendarClock className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-indigo-600" />
             <div>
-              <h2 className="text-lg font-bold">Patient Display</h2>
-              <p className="text-muted-foreground text-xs mt-1">Launch 2nd screen status</p>
+              <h2 className="text-lg font-bold">HR Portal</h2>
+              <p className="text-muted-foreground text-xs mt-1">Leaves & Attendance</p>
             </div>
           </button>
 
