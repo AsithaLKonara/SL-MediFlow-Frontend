@@ -31,16 +31,21 @@ export default function DashboardLayout({
            }
            
            // Mapping for roles that use the consolidated Front Desk
-           const frontdeskRoles = ["receptionist", "pharmacist", "cashier", "nurse"];
+           const frontdeskRoles = ["receptionist", "pharmacist", "cashier", "nurse", "frontdesk"];
            
            if (frontdeskRoles.includes(userRole)) {
              if (!pathname.startsWith(`/frontdesk`)) {
                router.push(`/frontdesk`);
              }
-           } else {
-             // For other roles like Doctor, LabTech
+           } else if (["doctor", "labtech"].includes(userRole)) {
+             // For other base roles like Doctor, LabTech
              if (!pathname.startsWith(`/${userRole}`)) {
                router.push(`/${userRole}`);
+             }
+           } else {
+             // Custom roles (HR, Finance, etc) MUST be routed to superadmin
+             if (!pathname.startsWith(`/superadmin`)) {
+               router.push(`/superadmin`);
              }
            }
         }
