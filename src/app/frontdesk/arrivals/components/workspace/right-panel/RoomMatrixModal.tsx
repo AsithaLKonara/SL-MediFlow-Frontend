@@ -11,7 +11,7 @@ interface RoomMatrixModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   doctorName: string;
-  onAssign: (roomNumber: string, startTime: string, endTime: string) => void;
+  onAssign: (roomId: string, startTime: string, endTime: string) => void;
   selectedDate: Date;
   isAssigning?: boolean;
 }
@@ -26,6 +26,7 @@ interface Room {
     endTime: string;
     status: string;
   }[];
+  isActive?: boolean;
 }
 
 export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, selectedDate, isAssigning }: RoomMatrixModalProps) {
@@ -68,7 +69,7 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
 
     // Optional: client side validation if room is already booked for this time
     // But since this is a quick clinic tool, we can allow overrides or simple checks
-    const room = rooms.find(r => r.name === selectedRoom);
+    const room = rooms.find(r => r.id === selectedRoom);
     if (room) {
       const conflict = room.bookings.find(b => {
         // Simple string time comparison works for HH:mm
@@ -103,12 +104,12 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-5 gap-3 max-h-[400px] overflow-y-auto pr-2">
-              {rooms.map(room => (
+              {rooms.filter(r => r.isActive !== false).map(room => (
                 <div 
                   key={room.id}
-                  onClick={() => setSelectedRoom(room.name)}
+                  onClick={() => setSelectedRoom(room.id)}
                   className={`p-3 rounded-xl border cursor-pointer transition-colors ${
-                    selectedRoom === room.name 
+                    selectedRoom === room.id 
                       ? 'border-orange-500 bg-orange-500/10' 
                       : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
                   }`}

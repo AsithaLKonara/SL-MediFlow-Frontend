@@ -72,8 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
         }
-      } catch (error) {
-        console.error("Session validation failed:", error);
+      } catch (error: any) {
+        if (error.message !== "No session" && error.message !== "Invalid session") {
+          console.error("Session validation failed:", error);
+        }
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         setToken(null);

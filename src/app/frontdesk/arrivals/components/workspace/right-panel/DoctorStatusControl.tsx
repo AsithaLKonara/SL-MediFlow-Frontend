@@ -27,7 +27,7 @@ export function DoctorStatusControl({
 
   const hasRoom = !!doctor.roomNumber;
 
-  const handleAssignRoom = async (roomNumber: string, startTime: string, endTime: string) => {
+  const handleAssignRoom = async (roomId: string, startTime: string, endTime: string) => {
     try {
       setIsAssigning(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/attendance`, {
@@ -38,14 +38,14 @@ export function DoctorStatusControl({
         },
         body: JSON.stringify({ 
           status: "SCHEDULED", 
-          roomNumber, 
+          roomId, 
           startTime, 
           endTime, 
           date: new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
         })
       });
       if (!res.ok) throw new Error(await res.text());
-      toast.success(`${doctor.fullName} assigned to ${roomNumber}`);
+      toast.success(`${doctor.fullName} assigned to room`);
       setMatrixOpen(false);
       onRefresh();
     } catch (err: any) {

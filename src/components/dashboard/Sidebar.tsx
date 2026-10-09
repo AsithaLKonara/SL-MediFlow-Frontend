@@ -40,8 +40,11 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations" },
     { href: "/superadmin/extra-services", label: "Extra Services", icon: FilePlus2, category: "Operations" },
 
-    { href: "/superadmin/staff", label: "Staff Directory", icon: Users, category: "Management" },
+    { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management" },
+    { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management" },
+    { href: "/superadmin/hr/payroll", label: "Payroll", icon: Banknote, category: "Management" },
     { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management" },
+    { href: "/superadmin/rooms", label: "Room Management", icon: Building2, category: "Management" },
     
     { href: "/superadmin/rbac", label: "Access Control", icon: Shield, category: "System" },
     { href: "/settings", label: "Settings", icon: Settings, category: "System" },
@@ -51,12 +54,14 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users },
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
     { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch },
+    { href: "/hr", label: "My HR Portal", icon: Users },
   ],
   doctor: [
     { href: "/doctor", label: "My Dashboard", icon: LayoutDashboard },
     { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList },
     { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
     { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
+    { href: "/hr", label: "My HR Portal", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   labtech: [
@@ -65,10 +70,12 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
     { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
     { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical },
+    { href: "/hr", label: "My HR Portal", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   nurse: [
     { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users },
+    { href: "/hr", label: "My HR Portal", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
 };
