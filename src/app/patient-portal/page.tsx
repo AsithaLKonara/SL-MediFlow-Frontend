@@ -77,7 +77,7 @@ export default function PatientPortalLogin() {
                 placeholder="e.g. 0712345678" 
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-white focus-visible:ring-orange-500"
+                className="bg-zinc-950 hover:bg-zinc-900 focus:bg-zinc-950 border-zinc-800 text-white focus-visible:ring-orange-500"
               />
             </div>
             <Button onClick={requestOTP} disabled={loading} className="w-full bg-orange-600 hover:bg-orange-700 text-white">
@@ -93,7 +93,7 @@ export default function PatientPortalLogin() {
                 placeholder="6-digit code" 
                 value={otp}
                 onChange={e => setOtp(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-white focus-visible:ring-orange-500 text-center tracking-widest text-lg font-mono"
+                className="bg-zinc-950 hover:bg-zinc-900 focus:bg-zinc-950 border-zinc-800 text-white focus-visible:ring-orange-500 text-center tracking-widest text-lg font-mono"
                 maxLength={6}
               />
             </div>

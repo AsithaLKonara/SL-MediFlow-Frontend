@@ -53,7 +53,26 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
                 </div>
               </div>
             ))}
+            
+            {prescription.items?.length === 0 && (
+              <div className="text-center italic text-xs mb-3">No medications prescribed.</div>
+            )}
           </div>
+
+          {prescription.labRequests && prescription.labRequests.length > 0 && (
+            <div className="border-t-2 border-black pt-2 mb-4">
+              <h2 className="font-bold uppercase text-center mb-2">Lab Orders</h2>
+              {prescription.labRequests.map((req: any, reqIdx: number) => (
+                <div key={reqIdx} className="mb-2">
+                  <div className="text-xs pl-4 flex flex-col list-disc">
+                    {req.tests?.map((testName: string, testIdx: number) => (
+                      <span key={testIdx}>• {testName}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
             {prescription.id && (

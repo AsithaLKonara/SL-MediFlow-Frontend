@@ -1094,7 +1094,7 @@ export function TokenPane() {
 
             <div className="p-4 border-t border-border bg-background mt-auto">
               <Button
-                className="w-full h-12 text-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 shadow-sm"
                 onClick={handleGenerateToken}
                 disabled={!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0}
               >

@@ -12,8 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 
 export default function PrescriptionHistoryPage() {
+  const router = useRouter();
   const { user, token } = useAuth();
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,47 +89,7 @@ export default function PrescriptionHistoryPage() {
       toast.error("Cannot edit a prescription that has already been dispensed.");
       return;
     }
-    setEditingRx(rx);
-    setEditDiagnosis(rx.diagnosis || "");
-    setEditNotes(rx.clinicalNotes || "");
-    
-    // Parse existing items back into editDrugs state
-    const parsedDrugs = (rx.items || []).map((item: any) => {
-      // Very basic reverse-parsing for frequency. In a real app, storing structured data is better.
-      const freq = item.frequency || "";
-      let tabletsPerTime = "";
-      let timesPerDay = "";
-      
-      if (freq.includes("x day")) {
-         const match = freq.match(/^(\d+)x day(?: \((.*?)\s*tab\))?/);
-         if (match) {
-           timesPerDay = match[1] || "";
-           tabletsPerTime = match[2] || "";
-         } else {
-           timesPerDay = freq;
-         }
-      } else if (freq.includes("tablets") && freq.includes("times a day")) {
-         // Fallback for my previously created format
-         const parts = freq.split("tablets,");
-         tabletsPerTime = parts[0]?.trim() || "";
-         timesPerDay = parts[1]?.split("times a day")[0]?.trim() || "";
-      } else {
-         timesPerDay = freq; // Fallback
-      }
-      
-      return {
-        drugName: item.drugName || "",
-        dosage: item.dosage || "",
-        timesPerDay,
-        tabletsPerTime,
-        duration: item.duration || "",
-        instructions: item.instructions || ""
-      };
-    });
-    setEditDrugs(parsedDrugs);
-    setCurrentEditDrug(initialDrugState);
-    
-    setIsEditModalOpen(true);
+    router.push(`/doctor/consultation/${rx.patientId}?editPrescriptionId=${rx.id}`);
   };
   
   const handleAddEditDrug = () => {

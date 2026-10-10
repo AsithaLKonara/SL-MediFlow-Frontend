@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ interface RoomMatrixModalProps {
   doctorName: string;
   onAssign: (roomId: string, startTime: string, endTime: string) => void;
   selectedDate: Date;
+  sessions?: any[];
   isAssigning?: boolean;
 }
 
@@ -29,7 +31,7 @@ interface Room {
   isActive?: boolean;
 }
 
-export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, selectedDate, isAssigning }: RoomMatrixModalProps) {
+export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, selectedDate, sessions = [], isAssigning }: RoomMatrixModalProps) {
   const { token } = useAuth();
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -39,6 +41,19 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
   // Default to sensible times
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("13:00");
+  const [selectedSession, setSelectedSession] = useState<string>("manual");
+
+  const handleSessionChange = (val: string | null) => {
+    if (!val) return;
+    setSelectedSession(val);
+    if (val !== "manual") {
+      const session = sessions.find(s => s.id === val);
+      if (session) {
+        setStartTime(session.startTime);
+        setEndTime(session.endTime);
+      }
+    }
+  };
 
   useEffect(() => {
     if (open) fetchRooms();
@@ -134,24 +149,43 @@ export function RoomMatrixModal({ open, onOpenChange, doctorName, onAssign, sele
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-zinc-900 rounded-xl border border-zinc-800">
+            <div className="mt-6 p-4 bg-zinc-900 rounded-xl border border-zinc-800 space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">Expected Start Time</label>
-                <Input 
-                  type="time" 
-                  value={startTime} 
-                  onChange={e => setStartTime(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-orange-500"
-                />
+                <label className="text-sm font-medium text-zinc-300">Doctor Schedule Session</label>
+                <Select value={selectedSession} onValueChange={handleSessionChange}>
+                  <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                    <SelectValue placeholder="Select a session..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual Entry</SelectItem>
+                    {sessions.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.startTime} - {s.endTime} {s.maxPatients ? `(Max: ${s.maxPatients})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">Expected End Time</label>
-                <Input 
-                  type="time" 
-                  value={endTime} 
-                  onChange={e => setEndTime(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-orange-500"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-300">Expected Start Time</label>
+                  <Input 
+                    type="time" 
+                    value={startTime} 
+                    onChange={e => setStartTime(e.target.value)}
+                    className="bg-zinc-950 border-zinc-800 focus-visible:ring-orange-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-300">Expected End Time</label>
+                  <Input 
+                    type="time" 
+                    value={endTime} 
+                    onChange={e => setEndTime(e.target.value)}
+                    className="bg-zinc-950 border-zinc-800 focus-visible:ring-orange-500"
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -855,7 +855,7 @@ export function PhoneBookingPane() {
 
       <div className="mt-4 pt-4 border-t border-border">
         <Button 
-          className="w-full h-12 text-lg bg-secondary hover:bg-secondary/90" 
+          className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700" 
           onClick={handleBook}
           disabled={(!selectedDocId && selectedTestIds.size === 0 && selectedServiceIds.size === 0) || !selectedDate}
           isLoading={isBooking}

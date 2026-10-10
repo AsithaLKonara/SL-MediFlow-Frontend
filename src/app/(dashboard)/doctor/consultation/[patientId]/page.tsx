@@ -53,12 +53,14 @@ interface Patient {
 
 
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 // Medicines are now fetched from the backend API
 
 export default function ConsultationPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const editPrescriptionId = searchParams.get("editPrescriptionId");
   const patientId = params.patientId as string;
   const { isCollapsed } = useSidebar();
   const { user, token } = useAuth();
@@ -207,6 +209,54 @@ export default function ConsultationPage() {
     };
   }, [patientId]);
 
+  useEffect(() => {
+    if (editPrescriptionId && token) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${editPrescriptionId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(rx => {
+          if (rx) {
+            setDiagnosis(rx.diagnosis || "");
+            setNotes(rx.clinicalNotes || "");
+            const parsedDrugs = (rx.items || []).map((item: any) => {
+              const freq = item.frequency || "";
+              let tabletsPerTime = "";
+              let timesPerDay = "";
+              
+              if (freq.includes("x day")) {
+                 const match = freq.match(/^(\d+)x day(?: \((.*?)\s*tab\))?/);
+                 if (match) {
+                   timesPerDay = match[1] || "";
+                   tabletsPerTime = match[2] || "";
+                 } else {
+                   timesPerDay = freq;
+                 }
+              } else if (freq.includes("tablets") && freq.includes("times a day")) {
+                 const parts = freq.split("tablets,");
+                 tabletsPerTime = parts[0]?.trim() || "";
+                 timesPerDay = parts[1]?.split("times a day")[0]?.trim() || "";
+              } else {
+                 timesPerDay = freq;
+              }
+              
+              return {
+                drug: item.drugName || "",
+                dosage: item.dosage || "",
+                timesPerDay,
+                tabletsPerTime,
+                duration: item.duration || "",
+                instructions: item.instructions || "",
+                timing: ""
+              };
+            });
+            setAddedDrugs(parsedDrugs);
+          }
+        })
+        .catch(err => console.error("Failed to load prescription for edit:", err));
+    }
+  }, [editPrescriptionId, token]);
+
   const handleAddOrUpdateDrug = () => {
     if (!currentDrug.drug.trim()) return toast.error("Medication name is required.");
     
@@ -311,8 +361,13 @@ export default function ConsultationPage() {
         })
       };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions`, {
-        method: "POST",
+      const method = editPrescriptionId ? "PUT" : "POST";
+      const url = editPrescriptionId 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${editPrescriptionId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/prescriptions`;
+
+      const res = await fetch(url, {
+        method,
         headers: { 
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`

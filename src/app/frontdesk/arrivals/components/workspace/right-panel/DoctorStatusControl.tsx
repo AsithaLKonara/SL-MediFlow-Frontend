@@ -158,6 +158,7 @@ export function DoctorStatusControl({
         open={matrixOpen} 
         onOpenChange={setMatrixOpen}
         doctorName={doctor.fullName}
+        sessions={doctor.sessions || []}
         onAssign={handleAssignRoom}
         selectedDate={selectedDate}
         isAssigning={isAssigning}

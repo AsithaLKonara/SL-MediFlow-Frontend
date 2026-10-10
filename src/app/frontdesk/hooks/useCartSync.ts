@@ -32,7 +32,8 @@ export function useCartSync(isSender = false) {
     if (typeof window === "undefined") return;
 
     const token = localStorage.getItem("amaz_token");
-    const s = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001", {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || "http://localhost:3001";
+    const s = io(baseUrl, {
       auth: { token }
     });
     setSocket(s);
