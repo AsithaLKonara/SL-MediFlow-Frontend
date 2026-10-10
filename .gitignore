@@ -24,6 +24,8 @@
 .DS_Store
 *.pem
 .idea/
+api.js
+api.cjs
 
 # debug
 npm-debug.log*
