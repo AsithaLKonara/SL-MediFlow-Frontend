@@ -34,8 +34,7 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                 {tokenData.department === "LAB" ? "Lab Queue Token" : tokenData.department === "EXTRA_SERVICE" ? "Service Token" : "Queue Token"}
               </p>
               <h1 className="text-5xl font-bold mb-2">
-                {tokenData.department === "LAB" ? "LAB-" : tokenData.department === "EXTRA_SERVICE" ? "EXT-" : ""}
-                {tokenData.tokenNumber}
+                {String(tokenData.tokenNumber).padStart(2, '0')}
               </h1>
               <p className="text-sm font-semibold">{tokenData.patientName || "Walk-in Patient"}</p>
               {tokenData.doctorName && (
@@ -44,7 +43,9 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
               {tokenData.roomNumber && (
                 <div className="mt-3">
                   <p className="text-xl font-black border-2 border-black inline-block px-4 py-1 uppercase tracking-widest bg-black text-white">
-                    ROOM {tokenData.roomNumber}
+                    {String(tokenData.roomNumber).toUpperCase().startsWith('ROOM') 
+                      ? tokenData.roomNumber 
+                      : `ROOM ${tokenData.roomNumber}`}
                   </p>
                 </div>
               )}

@@ -106,7 +106,7 @@ export default function LabCatalogManager() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Lab Catalog & Templates</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Lab Catalog & Templates</h2>
         <p className="text-muted-foreground mt-2">Design result entry forms and biomarkers for each lab test.</p>
       </div>
 

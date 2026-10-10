@@ -82,7 +82,7 @@ export default function PharmacistInventoryPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Inventory Management</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Inventory Management</h2>
           <p className="text-muted-foreground mt-1">Monitor drug stock levels and manage reorders.</p>
         </div>
         <Button onClick={() => toast.info("Add New Stock modal coming soon.")} className="bg-primary hover:bg-primary/90 text-white">
@@ -132,7 +132,7 @@ export default function PharmacistInventoryPage() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id} className={item.status === "LOW_STOCK" ? "bg-red-500/10/40" : ""}>
-                      <TableCell className="font-medium text-[#3A3435]">{item.name}</TableCell>
+                      <TableCell className="font-medium text-[#3A3435] dark:text-gray-100">{item.name}</TableCell>
                       <TableCell className="text-muted-foreground">{item.category}</TableCell>
                       <TableCell className={`text-right font-bold ${item.status === "LOW_STOCK" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
                         {item.stock} {item.unit}s

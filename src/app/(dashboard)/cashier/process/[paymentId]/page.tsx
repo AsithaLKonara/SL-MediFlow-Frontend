@@ -96,7 +96,7 @@ export default function ProcessPaymentPage({
         </Link>
         <div className="h-6 w-px bg-border" />
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[#3A3435]">Process Payment</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Process Payment</h2>
           <p className="text-muted-foreground text-sm">Patient: {record.patientName} ({record.patientId})</p>
         </div>
       </div>
@@ -214,7 +214,7 @@ export default function ProcessPaymentPage({
               <CardContent className="pt-6 space-y-6 text-center">
                 <div className="space-y-2">
                   <p className="text-muted-foreground text-sm">Amount Paid</p>
-                  <p className="text-4xl font-bold text-[#3A3435]">Rs. {record.amount.toFixed(2)}</p>
+                  <p className="text-4xl font-bold text-[#3A3435] dark:text-gray-100">Rs. {record.amount.toFixed(2)}</p>
                   <Badge variant="outline" className="mt-2 text-xs">{method} PAYMENT</Badge>
                 </div>
                 <div className="pt-4 border-t flex flex-col gap-3">

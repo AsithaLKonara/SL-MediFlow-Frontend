@@ -77,7 +77,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">System Settings</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">System Settings</h2>
         <p className="text-muted-foreground mt-1">Configure global hospital system parameters and policies.</p>
       </div>
 

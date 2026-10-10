@@ -29,23 +29,26 @@ import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 
-type NavItem = { label: string; href: string; icon: React.ElementType; category?: string };
+type NavItem = { label: string; href: string; icon: React.ElementType; category?: string; permission?: string };
 
 const roleNavConfig: Record<string, NavItem[]> = {
   superadmin: [
     { href: "/superadmin", label: "Overview", icon: LayoutDashboard, category: "Dashboard" },
     
-    { href: "/superadmin/finance", label: "Finance", icon: Banknote, category: "Operations" },
-    { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations" },
-    { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations" },
-    { href: "/superadmin/extra-services", label: "Extra Services", icon: FilePlus2, category: "Operations" },
+    { href: "/superadmin/finance", label: "Finance", icon: Banknote, category: "Operations", permission: "Finance" },
+    { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations", permission: "Inventory" },
+    { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
+    { href: "/superadmin/extra-services", label: "Extra Services", icon: FilePlus2, category: "Operations", permission: "Extra Services" },
 
-
-    { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management" },
-    { href: "/superadmin/rooms", label: "Room Management", icon: Building2, category: "Management" },
+    { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management", permission: "Staff" },
+    { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management", permission: "HR" },
+    { href: "/superadmin/hr/components", label: "Role Templates", icon: ClipboardList, category: "Management", permission: "HR" },
+    { href: "/superadmin/hr/payroll", label: "Payroll Engine", icon: Banknote, category: "Management", permission: "HR" },
+    { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management", permission: "Departments" },
+    { href: "/superadmin/rooms", label: "Room Management", icon: Building2, category: "Management", permission: "Rooms" },
     
-    { href: "/superadmin/rbac", label: "Access Control", icon: Shield, category: "System" },
-    { href: "/settings", label: "Settings", icon: Settings, category: "System" },
+    { href: "/superadmin/rbac", label: "Access Control", icon: Shield, category: "System", permission: "RBAC" },
+    { href: "/settings", label: "Settings", icon: Settings, category: "System", permission: "Settings" },
   ],
   frontdesk: [
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
@@ -93,8 +96,17 @@ export function Sidebar() {
     pathname.startsWith(`/${key}`)
   ) || "superadmin";
 
-  const navItems = roleNavConfig[roleKey] || roleNavConfig["superadmin"];
-  const roleLabel = roleLabelMap[roleKey] || "Staff";
+  let navItems = roleNavConfig[roleKey] || roleNavConfig["superadmin"];
+  
+  // Filter for Custom Roles
+  if (user && roleKey === "superadmin" && user.role?.toLowerCase() !== "superadmin" && user.role?.toLowerCase() !== "admin") {
+    navItems = navItems.filter(item => {
+      if (!item.permission) return true;
+      return user.permissions?.includes(item.permission) || user.permissions?.includes("ALL");
+    });
+  }
+
+  const roleLabel = user?.role ? user.role : (roleLabelMap[roleKey] || "Staff");
   const width = isCollapsed ? "w-[80px]" : "w-64";
 
   return (

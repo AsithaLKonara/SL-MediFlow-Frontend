@@ -69,7 +69,7 @@ export default function CentralizedBillingPage() {
       <div className="flex items-center gap-3">
         <Receipt className="w-8 h-8 text-primary" />
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Centralized Cashier</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Centralized Cashier</h2>
           <p className="text-muted-foreground mt-1">Settle aggregated Visit invoices (Consultations, Pharmacy, Labs).</p>
         </div>
       </div>

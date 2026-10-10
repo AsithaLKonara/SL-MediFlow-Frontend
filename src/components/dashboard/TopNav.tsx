@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, Menu, Sun, Moon, Maximize, Minimize, Pointer } from "lucide-react";
+import { Search, Menu, Sun, Moon, Maximize, Minimize, Pointer } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -101,10 +101,6 @@ export function TopNav() {
           </>
         )}
 
-        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-primary rounded-full"></span>
-        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger className="relative h-9 w-9 rounded-full ml-2 outline-none">

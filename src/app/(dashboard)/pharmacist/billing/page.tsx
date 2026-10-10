@@ -284,7 +284,7 @@ export default function PharmacistPOSPage() {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Pharmacy POS</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Pharmacy POS</h2>
           <p className="text-muted-foreground mt-1">Transaction Complete</p>
         </div>
         <Card className="shadow-sm max-w-2xl border-2 border-primary/20">
@@ -341,7 +341,7 @@ export default function PharmacistPOSPage() {
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col space-y-4 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Pharmacy POS</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Pharmacy POS</h2>
         <p className="text-muted-foreground mt-1">Rapid entry point-of-sale terminal for medication dispensing.</p>
       </div>
 

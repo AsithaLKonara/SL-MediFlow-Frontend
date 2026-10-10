@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface QueueItem {
   queueNo: string;
@@ -39,21 +40,24 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 export default function ReceptionistOverview() {
+  const { token } = useAuth();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<{id: string, name: string, department: string}[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Arrival Modal State
   const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
-  const [roomNumber, setRoomNumber] = useState("");
+  const [roomId, setRoomId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
-      const [metricsRes, docsRes] = await Promise.all([
+      const [metricsRes, docsRes, roomsRes] = await Promise.all([
         fetch("/api/receptionist/metrics"),
-        fetch("/api/receptionist/doctors/today")
+        fetch("/api/receptionist/doctors/today"),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/rooms`, { headers: { "Authorization": `Bearer ${token}` } })
       ]);
 
       if (metricsRes.ok) {
@@ -67,6 +71,10 @@ export default function ReceptionistOverview() {
           setDoctors(docData.data);
         }
       }
+      if (roomsRes && roomsRes.ok) {
+        const roomsData = await roomsRes.json();
+        if (roomsData.data) setRooms(roomsData.data);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -79,8 +87,8 @@ export default function ReceptionistOverview() {
   }, []);
 
   const handleMarkArrived = async () => {
-    if (!selectedDoctorId || !roomNumber) {
-      toast.error("Room number is required");
+    if (!selectedDoctorId || !roomId) {
+      toast.error("Room is required");
       return;
     }
 
@@ -89,13 +97,13 @@ export default function ReceptionistOverview() {
       const res = await fetch(`/api/receptionist/doctors/${selectedDoctorId}/arrive`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomNumber })
+        body: JSON.stringify({ roomId })
       });
 
       if (res.ok) {
         toast.success("Doctor marked as arrived");
         setIsArrivalModalOpen(false);
-        setRoomNumber("");
+        setRoomId("");
         fetchDashboardData();
       } else {
         const error = await res.json();
@@ -119,7 +127,7 @@ export default function ReceptionistOverview() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Receptionist Overview</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Receptionist Overview</h2>
         <p className="text-muted-foreground mt-2">
           Today's patient intake and OPD status at a glance.
         </p>
@@ -195,7 +203,7 @@ export default function ReceptionistOverview() {
                   return (
                     <TableRow key={item.queueNo}>
                       <TableCell className="font-mono font-semibold text-primary">{item.queueNo}</TableCell>
-                      <TableCell className="font-medium text-[#3A3435]">{item.patientName}</TableCell>
+                      <TableCell className="font-medium text-[#3A3435] dark:text-gray-100">{item.patientName}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {item.doctor === "Unassigned" ? (
                           <span className="italic text-red-500">Unassigned</span>
@@ -245,7 +253,7 @@ export default function ReceptionistOverview() {
                 ) : (
                   doctors.map((doc: any) => (
                     <TableRow key={doc.id}>
-                      <TableCell className="font-medium text-[#3A3435]">{doc.fullName}</TableCell>
+                      <TableCell className="font-medium text-[#3A3435] dark:text-gray-100">{doc.fullName}</TableCell>
                       <TableCell className="text-muted-foreground">{doc.specialty || "General"}</TableCell>
                       <TableCell>
                         <Badge variant={doc.status === "ARRIVED" ? "default" : "secondary"}>
@@ -260,7 +268,7 @@ export default function ReceptionistOverview() {
                             size="sm" 
                             onClick={() => {
                               setSelectedDoctorId(doc.id);
-                              setRoomNumber(doc.roomNumber || "");
+                              setRoomId(doc.roomId || "");
                               setIsArrivalModalOpen(true);
                             }}
                           >
@@ -290,18 +298,22 @@ export default function ReceptionistOverview() {
               <label htmlFor="room" className="text-right text-sm font-medium">
                 Room No
               </label>
-              <Input
+              <select
                 id="room"
-                placeholder="e.g. 101 or Room A"
-                value={roomNumber}
-                onChange={(e) => setRoomNumber(e.target.value)}
-                className="col-span-3"
-              />
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Select Room</option>
+                {rooms.map(r => (
+                  <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+                ))}
+              </select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsArrivalModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleMarkArrived} disabled={submitting || !roomNumber}>
+            <Button onClick={handleMarkArrived} disabled={submitting || !roomId}>
               {submitting ? "Saving..." : "Confirm Arrival"}
             </Button>
           </DialogFooter>

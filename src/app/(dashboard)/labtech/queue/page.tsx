@@ -63,7 +63,7 @@ export default function LabQueuePage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Lab Reception Queue</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Lab Reception Queue</h2>
         <p className="text-muted-foreground mt-1">
           Patients sent from the Front Desk for external lab requests.
         </p>

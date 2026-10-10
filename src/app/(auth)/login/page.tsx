@@ -27,6 +27,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -76,7 +77,7 @@ export default function LoginPage() {
       if (roleStr === "admin" || roleStr === "superadmin") {
         router.push("/superadmin");
       } else if (roleStr === "nurse") {
-        router.push("/frontdesk/arrivals");
+        router.push("/frontdesk");
       } else if (["receptionist", "pharmacist", "cashier"].includes(roleStr)) {
         router.push("/frontdesk");
       } else {
@@ -180,7 +181,8 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-3.5 text-white/40 hover:text-white transition-colors"
+              className="absolute right-3 top-0 bottom-0 flex items-center justify-center text-white/40 hover:text-white transition-colors px-2"
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>

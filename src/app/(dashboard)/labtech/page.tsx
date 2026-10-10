@@ -100,7 +100,7 @@ export default function LabTechOverview() {
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Laboratory Dashboard</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Laboratory Dashboard</h2>
           <p className="text-muted-foreground mt-2">Real-time diagnostic metrics and queue management.</p>
         </div>
         
@@ -127,7 +127,7 @@ export default function LabTechOverview() {
               <Clock className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[#3A3435]">{metrics.summary.pendingRequests}</div>
+              <div className="text-3xl font-bold text-[#3A3435] dark:text-gray-100">{metrics.summary.pendingRequests}</div>
               <div className="flex items-center text-xs text-muted-foreground mt-2">
                 <span className="text-amber-600 mr-1 font-medium">{metrics.summary.requestsToday} total today</span>
               </div>
@@ -142,7 +142,7 @@ export default function LabTechOverview() {
               <FlaskConical className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[#3A3435]">{metrics.summary.inProgressTests}</div>
+              <div className="text-3xl font-bold text-[#3A3435] dark:text-gray-100">{metrics.summary.inProgressTests}</div>
               <div className="flex items-center text-xs text-muted-foreground mt-2">
                 <span>Actively being processed</span>
               </div>
@@ -157,7 +157,7 @@ export default function LabTechOverview() {
               <FileCheck className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[#3A3435]">{metrics.summary.publishedToday}</div>
+              <div className="text-3xl font-bold text-[#3A3435] dark:text-gray-100">{metrics.summary.publishedToday}</div>
               <div className="flex items-center text-xs mt-2">
                 {pubGrowth >= 0 ? (
                   <span className="text-emerald-600 flex items-center font-medium">
@@ -181,7 +181,7 @@ export default function LabTechOverview() {
               <AlertTriangle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[#3A3435]">{metrics.summary.criticalToday}</div>
+              <div className="text-3xl font-bold text-[#3A3435] dark:text-gray-100">{metrics.summary.criticalToday}</div>
               <div className="flex items-center text-xs mt-2">
                 {critGrowth > 0 ? (
                   <span className="text-red-600 flex items-center font-medium">

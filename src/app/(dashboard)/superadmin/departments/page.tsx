@@ -237,7 +237,7 @@ export default function DepartmentsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-white">Departments</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100 dark:text-white">Departments</h2>
           <p className="text-muted-foreground mt-1">Manage hospital departments, doctor assignments, and fees.</p>
         </div>
         <Button onClick={openNewDept} className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
@@ -247,7 +247,7 @@ export default function DepartmentsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border-none shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+        <Card className="bg-card/60 backdrop-blur-sm border-none shadow-sm ring-1 ring-border">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-primary/10 rounded-xl">
@@ -260,7 +260,7 @@ export default function DepartmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border-none shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+        <Card className="bg-card/60 backdrop-blur-sm border-none shadow-sm ring-1 ring-border">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-green-500/10 rounded-xl">
@@ -275,7 +275,7 @@ export default function DepartmentsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border-none shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+        <Card className="bg-card/60 backdrop-blur-sm border-none shadow-sm ring-1 ring-border">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-blue-500/10 rounded-xl">
@@ -294,13 +294,13 @@ export default function DepartmentsPage() {
 
       <div className="grid gap-6">
         {departments.length === 0 ? (
-          <div className="text-center p-12 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-dashed">
+          <div className="text-center p-12 bg-card/50 rounded-xl border border-dashed">
             <Building2 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-muted-foreground">No departments configured yet.</p>
           </div>
         ) : (
           departments.map((dept) => (
-            <Card key={dept.id} className="overflow-hidden border-none shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
+            <Card key={dept.id} className="overflow-hidden border-none shadow-sm ring-1 ring-border bg-card/60 backdrop-blur-sm">
               <CardHeader className="pb-3 border-b border-black/5 dark:border-white/10 bg-muted/20 flex flex-row justify-between items-center">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-xl">
@@ -325,7 +325,7 @@ export default function DepartmentsPage() {
               </CardHeader>
               
               <CardContent className="p-0">
-                <div className="bg-white dark:bg-slate-900/50 p-4">
+                <div className="bg-background/50 p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="font-semibold text-sm flex items-center text-slate-900 dark:text-white">
                       <Users className="w-4 h-4 mr-2 text-primary" /> Assigned Doctors ({dept._count.Users})

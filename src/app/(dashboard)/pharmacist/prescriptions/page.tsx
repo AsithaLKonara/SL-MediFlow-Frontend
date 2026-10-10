@@ -185,7 +185,7 @@ export default function PharmacyDashboardPage() {
       <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={() => setActiveRx(null)}>Back to Dashboard</Button>
-          <h2 className="text-2xl font-bold tracking-tight text-[#3A3435]">Prescription {activeRx.id}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Prescription {activeRx.id}</h2>
         </div>
 
         <Card className="shadow-sm border-t-4 border-t-primary">
@@ -269,7 +269,7 @@ export default function PharmacyDashboardPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Pharmacy Dashboard</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Pharmacy Dashboard</h2>
         <p className="text-muted-foreground mt-1">Scan prescriptions and dispense medications.</p>
       </div>
 
@@ -295,7 +295,7 @@ export default function PharmacyDashboardPage() {
       </Card>
 
       <div>
-        <h3 className="font-bold text-lg mb-4 text-[#3A3435]">Pending Prescriptions</h3>
+        <h3 className="font-bold text-lg mb-4 text-[#3A3435] dark:text-gray-100">Pending Prescriptions</h3>
         {loading ? (
           <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
         ) : (
@@ -307,7 +307,7 @@ export default function PharmacyDashboardPage() {
                     <span className="font-mono font-bold text-primary">{rx.id}</span>
                     <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400">{rx.status}</Badge>
                   </div>
-                  <p className="font-semibold text-[#3A3435]">{rx.patientName}</p>
+                  <p className="font-semibold text-[#3A3435] dark:text-gray-100">{rx.patientName}</p>
                   <p className="text-sm text-muted-foreground">By {rx.doctor} · Visit {rx.visitId}</p>
                 </div>
                 <Button onClick={() => setActiveRx(rx)} className="bg-primary text-white w-full sm:w-auto">

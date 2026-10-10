@@ -26,25 +26,26 @@ export default function DashboardLayout({
         // Admins can access everything in this simple setup
         if (userRole !== "admin" && userRole !== "superadmin") {
            // Allow global shared routes for everyone
-           if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
+           if (pathname.startsWith("/profile") || pathname.startsWith("/settings") || pathname.startsWith("/hr")) {
              return; // allow
            }
            
            // Mapping for roles that use the consolidated Front Desk
-           const frontdeskRoles = ["receptionist", "pharmacist", "cashier"];
+           const frontdeskRoles = ["receptionist", "pharmacist", "cashier", "nurse", "frontdesk"];
            
-           if (userRole === "nurse") {
-             if (!pathname.startsWith("/frontdesk/arrivals")) {
-               router.push("/frontdesk/arrivals");
-             }
-           } else if (frontdeskRoles.includes(userRole)) {
+           if (frontdeskRoles.includes(userRole)) {
              if (!pathname.startsWith(`/frontdesk`)) {
                router.push(`/frontdesk`);
              }
-           } else {
-             // For other roles like Doctor, LabTech
+           } else if (["doctor", "labtech"].includes(userRole)) {
+             // For other base roles like Doctor, LabTech
              if (!pathname.startsWith(`/${userRole}`)) {
                router.push(`/${userRole}`);
+             }
+           } else {
+             // Custom roles (HR, Finance, etc) MUST be routed to superadmin
+             if (!pathname.startsWith(`/superadmin`)) {
+               router.push(`/superadmin`);
              }
            }
         }

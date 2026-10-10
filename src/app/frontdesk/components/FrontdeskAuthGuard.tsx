@@ -21,9 +21,12 @@ export function FrontdeskAuthGuard({ children }: { children: React.ReactNode }) 
         if (!allowed.includes(role)) {
           // If not allowed, send to their own dashboard
           router.push(`/${role}`);
-        } else if (role === "nurse" && !pathname.startsWith("/frontdesk/arrivals")) {
-          // Strictly lock nurses to the arrivals page
-          router.push("/frontdesk/arrivals");
+        } else if (role === "nurse") {
+          // Only allow nurse to hit root, arrivals, hr, and settings
+          const allowedPaths = ["/frontdesk", "/frontdesk/arrivals", "/frontdesk/hr", "/frontdesk/settings"];
+          if (!allowedPaths.some(p => pathname === p || pathname.startsWith(p + "/"))) {
+            router.push("/frontdesk");
+          }
         }
       }
     }

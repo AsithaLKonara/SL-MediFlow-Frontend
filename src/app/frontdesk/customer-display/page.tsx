@@ -60,7 +60,7 @@ export default function CustomerDisplayPage() {
   const fetchDoctorsStatus = async (currentToken: string | null) => {
     try {
       const formattedDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${formattedDate}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/status?date=${formattedDate}&t=${Date.now()}`, {
         headers: {
           'Authorization': `Bearer ${currentToken}`
         },
@@ -80,6 +80,11 @@ export default function CustomerDisplayPage() {
     if (!token) return; // Wait until auth token is available
 
     fetchDoctorsStatus(token);
+    
+    // Fallback polling every 10 seconds to ensure it stays in sync even if sockets fail
+    const pollInterval = setInterval(() => {
+      fetchDoctorsStatus(token);
+    }, 10000);
 
     const socket: Socket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000');
     
@@ -90,6 +95,7 @@ export default function CustomerDisplayPage() {
     socket.on("TOKEN_STATUS_UPDATED", () => fetchDoctorsStatus(token));
     
     return () => {
+      clearInterval(pollInterval);
       socket.disconnect();
     };
   }, [token]);
@@ -205,7 +211,7 @@ export default function CustomerDisplayPage() {
                         <TableCell className="py-5 px-6 text-center align-middle">
                           {doctor.roomNumber ? (
                             <span className="text-2xl font-black text-slate-800 tracking-tight">
-                              {doctor.roomNumber.replace(/room\s*/i, '')}
+                              {/^room\s+/i.test(doctor.roomNumber) ? doctor.roomNumber : `Room ${doctor.roomNumber}`}
                             </span>
                           ) : (
                             <span className="text-slate-300 text-xl font-bold">—</span>
@@ -214,14 +220,18 @@ export default function CustomerDisplayPage() {
                         
                         <TableCell className="py-5 px-6 text-center align-middle">
                           <div className="inline-flex items-center justify-center">
-                            <div className={`px-5 py-2 rounded-md flex items-center gap-3 ${badgeColor}`}>
+                            <div className={`flex items-center gap-3 font-bold text-xl ${
+                              isArrived ? "text-emerald-600" :
+                              status === 'LEFT' ? "text-rose-600" :
+                              status === 'SCHEDULED' ? "text-blue-600" : "text-slate-400"
+                            }`}>
                               {ping && (
                                 <span className="relative flex h-3 w-3">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                   <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                                 </span>
                               )}
-                              <span className="text-lg font-bold tracking-wide uppercase">{statusText}</span>
+                              <span className="tracking-wide uppercase">{statusText}</span>
                             </div>
                           </div>
                         </TableCell>

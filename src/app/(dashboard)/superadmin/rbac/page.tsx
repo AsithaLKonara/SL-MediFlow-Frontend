@@ -27,11 +27,14 @@ interface RoleRbac {
 }
 
 const DEFAULT_FEATURES = [
-  "Patient Registration", "Queue Management", "Consultation", 
-  "Prescribe Medicine", "Request Lab", "Manage Inventory",
-  "Fulfill Prescription", "Generate Bill", "View Requests",
-  "Enter Results", "Publish Report", "Process Payments",
-  "View Finance", "Manage Staff", "System Settings"
+  "Finance", "HR", "Inventory", "Staff", 
+  "Departments", "Rooms", "Lab Tests", 
+  "Extra Services", "Settings", "RBAC"
+];
+
+const BASE_ROLES = [
+  "superadmin", "admin", "doctor", "nurse", 
+  "labtech", "receptionist", "pharmacist", "cashier", "frontdesk"
 ];
 
 export default function RBACMatrixPage() {
@@ -206,7 +209,7 @@ export default function RBACMatrixPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Access Control Matrix</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Access Control Matrix</h2>
           <p className="text-muted-foreground mt-1">Dynamically assign system features (CRUD) to different hospital roles.</p>
         </div>
         
@@ -217,7 +220,11 @@ export default function RBACMatrixPage() {
           <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs px-3 py-1 gap-1">
             <ShieldCheck className="w-3 h-3" /> RBAC Enforced
           </Badge>
-          <Button onClick={handleSave} disabled={saving} className="gap-2 bg-primary hover:bg-primary/90">
+          <Button 
+            onClick={handleSave} 
+            disabled={saving || (data.find(r => r.id === selectedRoleId) && BASE_ROLES.includes(data.find(r => r.id === selectedRoleId)!.name.toLowerCase()))} 
+            className="gap-2 bg-primary hover:bg-primary/90"
+          >
             <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Configuration"}
           </Button>
         </div>
@@ -252,14 +259,26 @@ export default function RBACMatrixPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          {(() => {
+            const currentRoleData = data.find(r => r.id === selectedRoleId);
+            const isBaseRole = currentRoleData && BASE_ROLES.includes(currentRoleData.name.toLowerCase());
+            
+            return (
+              <>
+                {isBaseRole && (
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 p-4 text-sm text-amber-800 dark:text-amber-200">
+                    <p className="font-semibold mb-1">Predefined Dashboard Role</p>
+                    <p>The <strong>{currentRoleData.name}</strong> role is a base system role and is strictly bound to its own standalone dashboard. You cannot grant it access to individual Superadmin modules. Please create a new custom role to configure specific access.</p>
+                  </div>
+                )}
+                <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[300px] font-semibold text-[#3A3435]">System Feature</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Create</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Read / View</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Update</TableHead>
-                <TableHead className="text-center font-semibold text-[#3A3435]">Delete</TableHead>
+                <TableHead className="w-[300px] font-semibold text-[#3A3435] dark:text-gray-100">System Feature</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Create</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Read / View</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Update</TableHead>
+                <TableHead className="text-center font-semibold text-[#3A3435] dark:text-gray-100">Delete</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -271,6 +290,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.create || false} 
                       onCheckedChange={() => handleToggle(feature, 'create')}
+                      disabled={isBaseRole}
                       className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-border"
                     />
                   </TableCell>
@@ -279,6 +299,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.read || false} 
                       onCheckedChange={() => handleToggle(feature, 'read')}
+                      disabled={isBaseRole}
                       className="data-[state=checked]:bg-primary border-border"
                     />
                   </TableCell>
@@ -287,6 +308,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.update || false} 
                       onCheckedChange={() => handleToggle(feature, 'update')}
+                      disabled={isBaseRole}
                       className="data-[state=checked]:bg-amber-600 border-border"
                     />
                   </TableCell>
@@ -295,6 +317,7 @@ export default function RBACMatrixPage() {
                     <Checkbox 
                       checked={currentPermissions[feature]?.delete || false} 
                       onCheckedChange={() => handleToggle(feature, 'delete')}
+                      disabled={isBaseRole}
                       className="data-[state=checked]:bg-red-600 border-border"
                     />
                   </TableCell>
@@ -302,6 +325,9 @@ export default function RBACMatrixPage() {
               ))}
             </TableBody>
           </Table>
+          </>
+          );
+        })()}
         </CardContent>
       </Card>
 
@@ -320,7 +346,7 @@ export default function RBACMatrixPage() {
                 <Input 
                   value={newRoleName} 
                   onChange={e => setNewRoleName(e.target.value)} 
-                  placeholder="e.g. NURSE" 
+                  placeholder="e.g. Finance Manager" 
                   required 
                 />
               </div>

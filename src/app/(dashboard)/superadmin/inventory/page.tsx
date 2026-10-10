@@ -410,7 +410,7 @@ export default function SuperAdminInventoryPage() {
       </datalist>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] flex items-center gap-2">
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100 flex items-center gap-2">
             <PackageSearch className="w-8 h-8 text-primary" />
             Central Inventory Engine
           </h2>

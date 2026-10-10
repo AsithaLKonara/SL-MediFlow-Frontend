@@ -193,7 +193,7 @@ export default function LabTestBiomarkersPage({
           <Button variant="outline" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
         </Link>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Template Manager</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Template Manager</h2>
           <p className="text-muted-foreground mt-1 text-sm flex items-center gap-2">
             Managing rows for <Badge variant="secondary" className="font-mono">{testDetails?.code}</Badge> {testDetails?.name}
           </p>

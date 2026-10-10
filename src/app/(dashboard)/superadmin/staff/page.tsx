@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, MoreHorizontal, Edit, Lock, Trash2 } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Edit, Lock, Trash2, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -38,6 +40,7 @@ interface Staff {
   email: string;
   role: string;
   status: string;
+  roomId?: string;
   roomNumber?: string;
   specialty?: string;
   title?: string;
@@ -48,9 +51,11 @@ interface Staff {
 }
 
 export default function StaffManagementPage() {
+  const router = useRouter();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [departments, setDepartments] = useState<{id: string, name: string}[]>([]);
+  const [rooms, setRooms] = useState<{id: string, name: string, department: string, status: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,7 +70,7 @@ export default function StaffManagementPage() {
     password: "",
     roleName: "",
     specialty: "",
-    roomNumber: "",
+    roomId: "",
     title: "Dr.",
     departmentId: "",
     consultationFee: 2500,
@@ -113,15 +118,27 @@ export default function StaffManagementPage() {
     }
   };
 
+  const fetchRooms = async () => {
+    try {
+      const res = await fetch(`${API}/admin/rooms`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setRooms(data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
-    Promise.all([fetchStaff(), fetchRoles(), fetchDepartments()]).finally(() => setLoading(false));
+    Promise.all([fetchStaff(), fetchRoles(), fetchDepartments(), fetchRooms()]).finally(() => setLoading(false));
   }, []);
 
   const openAddModal = () => {
     setEditingId(null);
     setFormData({ 
       name: "", email: "", password: "", roleName: "", 
-      specialty: "", roomNumber: "", title: "Dr.", departmentId: "", 
+      specialty: "", roomId: "", title: "Dr.", departmentId: "", 
       consultationFee: 2500, feeType: "POST" 
     });
     setIsModalOpen(true);
@@ -135,7 +152,7 @@ export default function StaffManagementPage() {
       password: "", 
       roleName: member.role, 
       specialty: member.specialty || "", 
-      roomNumber: member.roomNumber || "",
+      roomId: member.roomId || "",
       title: member.title || "Dr.",
       departmentId: member.departmentId || "",
       consultationFee: member.consultationFee || 2500,
@@ -209,7 +226,7 @@ export default function StaffManagementPage() {
       <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Staff Management</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Staff Management</h2>
           <p className="text-muted-foreground mt-1">Manage hospital employees, roles, and access control.</p>
         </div>
         <Button onClick={openAddModal} className="bg-primary hover:bg-primary/90 text-white">
@@ -254,7 +271,7 @@ export default function StaffManagementPage() {
                   {filteredStaff.length > 0 ? (
                     filteredStaff.map((member) => (
                       <TableRow key={member.id}>
-                        <TableCell className="font-medium text-[#3A3435]">{member.name}</TableCell>
+                        <TableCell className="font-medium text-[#3A3435] dark:text-gray-100">{member.name}</TableCell>
                         <TableCell className="text-muted-foreground">{member.email}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="bg-muted/30 text-foreground/80 font-semibold border-border">
@@ -292,6 +309,9 @@ export default function StaffManagementPage() {
                               <div className="px-2 py-1.5 text-sm font-semibold">Actions</div>
                               <DropdownMenuItem onClick={() => openEditModal(member)}>
                                 <Edit className="w-4 h-4 mr-2" /> Edit Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => router.push(`/superadmin/staff/${member.id}/payroll`)}>
+                                <WalletCards className="w-4 h-4 mr-2" /> Payroll Profile
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(member.id, member.name)}>
@@ -398,8 +418,17 @@ export default function StaffManagementPage() {
                       <Input value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} placeholder="General" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Default Room #</label>
-                      <Input value={formData.roomNumber} onChange={e => setFormData({...formData, roomNumber: e.target.value})} placeholder="101" />
+                      <label className="text-sm font-medium">Default Room</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={formData.roomId} 
+                        onChange={e => setFormData({...formData, roomId: e.target.value})}
+                      >
+                        <option value="">No Room Assigned</option>
+                        {rooms.map(r => (
+                          <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

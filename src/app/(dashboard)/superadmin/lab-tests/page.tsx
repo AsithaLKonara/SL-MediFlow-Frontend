@@ -20,6 +20,7 @@ interface LabTest {
   price: number;
   category: string;
   sampleType: string;
+  roomId?: string;
   roomNumber?: string;
   isActive: boolean;
 }
@@ -31,11 +32,12 @@ export default function LabTestTemplatesPage() {
   const pathname = usePathname();
   const { token } = useAuth();
   const [tests, setTests] = useState<LabTest[]>([]);
+  const [rooms, setRooms] = useState<{id: string, name: string, department: string}[]>([]);
   const [loading, setLoading] = useState(true);
   
   // New test state
   const [isNewOpen, setIsNewOpen] = useState(false);
-  const [newTest, setNewTest] = useState({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomNumber: "" });
+  const [newTest, setNewTest] = useState({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomId: "" });
   const [saving, setSaving] = useState(false);
 
   // Edit test state
@@ -48,7 +50,20 @@ export default function LabTestTemplatesPage() {
 
   useEffect(() => {
     fetchTests();
+    fetchRooms();
   }, []);
+
+  const fetchRooms = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/rooms`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setRooms(data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchTests = () => {
     setLoading(true);
@@ -97,7 +112,7 @@ export default function LabTestTemplatesPage() {
       
       toast.success("Lab test template created successfully!");
       setIsNewOpen(false);
-      setNewTest({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomNumber: "" });
+      setNewTest({ name: "", code: "", price: 0, category: "Biochemistry", sampleType: "Blood", roomId: "" });
       fetchTests();
     } catch (error: any) {
       toast.error(error.message);
@@ -125,7 +140,7 @@ export default function LabTestTemplatesPage() {
           price: editingTest.price,
           category: editingTest.category,
           sampleType: editingTest.sampleType,
-          roomNumber: editingTest.roomNumber
+          roomId: editingTest.roomId
         })
       });
       const data = await res.json();
@@ -170,7 +185,7 @@ export default function LabTestTemplatesPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435]">Lab Test Templates</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Lab Test Templates</h2>
           <p className="text-muted-foreground mt-1">Manage lab test profiles, categories, and reference ranges.</p>
         </div>
         
@@ -219,7 +234,16 @@ export default function LabTestTemplatesPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Room Number</Label>
-                <Input value={newTest.roomNumber} onChange={e => setNewTest({...newTest, roomNumber: e.target.value})} placeholder="e.g. LAB-01" />
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={newTest.roomId} 
+                  onChange={e => setNewTest({...newTest, roomId: e.target.value})}
+                >
+                  <option value="">No Room</option>
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+                  ))}
+                </select>
               </div>
             </div>
             <DialogFooter>
@@ -258,7 +282,7 @@ export default function LabTestTemplatesPage() {
                   </TableCell>
                   <TableCell>{test.category}</TableCell>
                   <TableCell>{test.sampleType}</TableCell>
-                  <TableCell>{test.roomNumber || "-"}</TableCell>
+                  <TableCell>{test.roomNumber || test.roomId || "-"}</TableCell>
                   <TableCell className="text-right font-medium">Rs. {test.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -346,7 +370,16 @@ export default function LabTestTemplatesPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Room Number</Label>
-                <Input value={editingTest.roomNumber || ""} onChange={e => setEditingTest({...editingTest, roomNumber: e.target.value})} placeholder="e.g. LAB-01" />
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={editingTest.roomId || ""} 
+                  onChange={e => setEditingTest({...editingTest, roomId: e.target.value})}
+                >
+                  <option value="">No Room</option>
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+                  ))}
+                </select>
               </div>
             </div>
           )}

@@ -52,7 +52,7 @@ export default function AuthLayout({
       </div>
       
       {/* Right side - Form (Liquid Glass + Circular Gradients) */}
-      <div className="flex w-full lg:w-1/2 flex-col justify-center items-center relative overflow-hidden bg-[#0a0a0a]">
+      <div className="flex w-full lg:w-1/2 flex-col justify-center items-center relative overflow-hidden bg-background">
         
         {/* Ambient Circular Gradients */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
