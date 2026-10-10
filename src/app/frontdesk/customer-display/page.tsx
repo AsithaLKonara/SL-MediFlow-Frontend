@@ -160,6 +160,11 @@ export default function CustomerDisplayPage() {
                     const isArrived = status === 'ARRIVED' || status === 'IN_CONSULTATION';
                     const hasSessions = doctor.sessions && doctor.sessions.length > 0;
                     
+                    const activeSession = doctor.currentSessionId 
+                      ? doctor.sessions?.find((s: any) => s.id === doctor.currentSessionId) 
+                      : doctor.sessions?.[0];
+                    const displayRoomNumber = activeSession?.room?.roomNumber || activeSession?.roomNumber || doctor.roomNumber;
+                    
                     // Status Badge Logic
                     let badgeColor = "bg-slate-100 text-slate-500 border-slate-200";
                     let statusText = "Not Arrived";
@@ -209,9 +214,9 @@ export default function CustomerDisplayPage() {
 
                         {/* Room column */}
                         <TableCell className="py-5 px-6 text-center align-middle">
-                          {doctor.roomNumber ? (
+                          {displayRoomNumber ? (
                             <span className="text-2xl font-black text-slate-800 tracking-tight">
-                              {/^room\s+/i.test(doctor.roomNumber) ? doctor.roomNumber : `Room ${doctor.roomNumber}`}
+                              {/^room\s+/i.test(displayRoomNumber) ? displayRoomNumber : `Room ${displayRoomNumber}`}
                             </span>
                           ) : (
                             <span className="text-slate-300 text-xl font-bold">—</span>

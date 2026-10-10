@@ -49,7 +49,6 @@ export function POSPane() {
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
   const [activeVisitId, setActiveVisitId] = useState<string | null>(null);
-  const [postPayConsultation, setPostPayConsultation] = useState<{ id: string, doctorName: string, price: number } | null>(null);
   const [pendingTokenPayload, setPendingTokenPayload] = useState<any | null>(null);
   const [pendingAppointmentPayload, setPendingAppointmentPayload] = useState<any | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -98,7 +97,7 @@ export function POSPane() {
   // Listen for prescription items or tokens pushed from the Rx/Token tab
   useEffect(() => {
     onPrescriptionReceived(
-      (rxItems, rxId, doctor, consultationPaid) => {
+      async (rxItems, rxId, doctor, consultationPaid, visitId, patientId) => {
         setCart((prev) => {
           const updated = [...prev];
           for (const rxItem of rxItems) {
@@ -112,25 +111,27 @@ export function POSPane() {
           return updated;
         });
         setActivePrescriptionId(rxId);
+        if (visitId) setActiveVisitId(visitId);
+        if (patientId) setActivePatientId(patientId);
 
-        // Check for Post Pay Consultation Fee from TokenPane
-        if (doctor?.feeType === "POST" && !consultationPaid) {
-          setPostPayConsultation({
-            id: doctor.id,
-            doctorName: doctor.fullName || doctor.name || "Doctor",
-            price: doctor.consultationFee || 2500
-          });
+        // Fetch the DRAFT invoice for this visit to display Lab Tests
+        if (visitId) {
+          try {
+            const invRes = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices?visitId=${visitId}`);
+            if (invRes.ok) {
+              const invoiceData = await invRes.json();
+              if (invoiceData && invoiceData.status === 'DRAFT') {
+                setPendingAppointmentPayload({ invoice: invoiceData, isAppointmentCheckout: false });
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch invoice for visit", e);
+          }
         }
 
-        // Mark prescription as IN_PROGRESS on backend
-        apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxId}/status`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "IN_PROGRESS" }),
-        }).catch((e) => console.error("Failed to update Rx status:", e));
         // Broadcast status to TokenPane so it can lock the UI
         notifyRxStatus(rxId, "IN_PROGRESS");
-        toast.success(`${rxItems.length} medicine(s) loaded into POS from prescription.`);
+        toast.success(`${rxItems.length} medicine(s) and any lab tests loaded into POS from prescription.`);
       },
       (tokenPayload: any) => {
         if (tokenPayload.isAppointmentCheckout) {
@@ -161,7 +162,7 @@ export function POSPane() {
         : (pendingAppointmentPayload.isUpfront ? pendingAppointmentPayload.fee : 0))
     : 0;
     
-  const subtotal = cartSubtotal + tokenTotal + appointmentTotal + (postPayConsultation?.price || 0);
+  const subtotal = cartSubtotal + tokenTotal + appointmentTotal;
   const total = subtotal;
 
   // Sync to display whenever cart changes, but preserve checkout state
@@ -223,18 +224,10 @@ export function POSPane() {
       });
     }
 
-    // Convert postPayConsultation into displayCart items
-    if (postPayConsultation) {
-       displayCart.push({
-         id: `postpay-consult`,
-         name: `Consultation (Post-Pay) - Dr. ${postPayConsultation.doctorName}`,
-         qty: 1,
-         price: postPayConsultation.price
-       });
-    }
+
 
     updateState({ ...state, cart: displayCart, subtotal, total });
-  }, [cart, subtotal, total, pendingTokenPayload, pendingAppointmentPayload, postPayConsultation]); // Removed updateState from dependency to prevent loop
+  }, [cart, subtotal, total, pendingTokenPayload, pendingAppointmentPayload]); // Removed updateState from dependency to prevent loop
 
   const handleQtyChange = (id: string, qty: number) => {
     setCart(prev => prev.map(item => item.id === id ? { ...item, qty: Math.max(1, qty) } : item));
@@ -313,16 +306,6 @@ export function POSPane() {
             setActivePrescriptionId(code);
             if (rx.patientId) setActivePatientId(rx.patientId);
             if (rx.visitId) setActiveVisitId(rx.visitId);
-            
-            // Check for Post Pay Consultation Fee
-            if (rx.doctor?.feeType === "POST" && !data.consultationPaid) {
-              setPostPayConsultation({
-                id: rx.doctor.id,
-                doctorName: rx.doctor.fullName || rx.doctorName,
-                price: rx.doctor.consultationFee || 2500
-              });
-            }
-
             apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${code}/status`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
@@ -390,14 +373,7 @@ export function POSPane() {
               if (rx.patientId) setActivePatientId(rx.patientId);
               if (rx.visitId) setActiveVisitId(rx.visitId);
 
-              // Inject POST pay consultation if not paid
-              if (appointment.User?.feeType === "POST" && !data.consultationPaid) {
-                setPostPayConsultation({
-                  id: appointment.User.id,
-                  doctorName: appointment.User.fullName,
-                  price: appointment.User.consultationFee || 2500
-                });
-              }
+
 
               apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
                 method: "PATCH",
@@ -479,12 +455,11 @@ export function POSPane() {
       setActivePrescriptionId(null);
     }
     setCart([]);
-    setPostPayConsultation(null);
     toast.info("Prescription cancelled. Cart cleared.");
   };
 
   const handleOpenCheckout = () => {
-    if (cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload && !postPayConsultation) {
+    if (cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload) {
       toast.error("Cart is empty.");
       return;
     }
@@ -607,30 +582,6 @@ export function POSPane() {
               </TableRow>
             ))}
             
-            {/* Render Post Pay Consultation Fee */}
-            {postPayConsultation && (
-              <TableRow className="border-border bg-primary/5">
-                <TableCell className="font-medium text-primary">
-                  Consultation - Dr. {postPayConsultation.doctorName}
-                  <div className="text-xs text-muted-foreground font-normal">
-                    Post Pay
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">1</TableCell>
-                <TableCell className="text-right">LKR {postPayConsultation.price.toFixed(2)}</TableCell>
-                <TableCell className="text-right font-medium">LKR {postPayConsultation.price.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                    onClick={() => setPostPayConsultation(null)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            )}
 
             {/* Render Token Payload Itemized */}
             {pendingTokenPayload && (
@@ -794,7 +745,7 @@ export function POSPane() {
           <span>Total</span>
           <span>LKR {total.toFixed(2)}</span>
         </div>
-        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload && !postPayConsultation}>
+        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload}>
           <CreditCard className="w-5 h-5 mr-2" />
           Checkout
         </Button>
@@ -932,15 +883,6 @@ export function POSPane() {
                       total: item.qty * item.price
                     }));
 
-                    if (postPayConsultation) {
-                      combinedItems.push({
-                        name: `Doctor Fee (Post Pay) - Dr. ${postPayConsultation.doctorName}`,
-                        qty: 1,
-                        price: postPayConsultation.price,
-                        total: postPayConsultation.price
-                      });
-                    }
-                    
                     let tokenResultTokens: any[] = [];
 
                     // 1. Generate Token if payload exists
@@ -972,7 +914,7 @@ export function POSPane() {
                     }
 
                     // 1.5 Checkout Phone Appointment if payload exists
-                    if (pendingAppointmentPayload) {
+                    if (pendingAppointmentPayload && pendingAppointmentPayload.isAppointmentCheckout) {
                       const resAppt = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/checkout-appointment`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -1025,9 +967,21 @@ export function POSPane() {
                       }
                     }
 
+                    // 1.6 If there's a pending invoice (e.g. from lab tests during Rx checkout)
+                    if (pendingAppointmentPayload && !pendingAppointmentPayload.isAppointmentCheckout && pendingAppointmentPayload.invoice) {
+                       pendingAppointmentPayload.invoice.lineItems.forEach((li: any) => {
+                         combinedItems.push({
+                           name: li.description,
+                           qty: li.quantity,
+                           price: li.unitPrice,
+                           total: li.total
+                         });
+                       });
+                    }
+
                     // 2. Process Pharmacy Cart (and/or post pay consultation) if any
                     let receiptId = `TXN-${Date.now()}`;
-                    if (cart.length > 0 || postPayConsultation) {
+                    if (cart.length > 0) {
                       const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -1036,8 +990,7 @@ export function POSPane() {
                           paymentMethod: activePaymentMethod,
                           prescriptionId: activePrescriptionId,
                           patientId: activePatientId,
-                          visitId: activeVisitId,
-                          postPayConsultation
+                          visitId: activeVisitId
                         })
                       });
                       
@@ -1081,7 +1034,6 @@ export function POSPane() {
                     setActiveVisitId(null);
                     setPendingTokenPayload(null);
                     setPendingAppointmentPayload(null);
-                    setPostPayConsultation(null);
                     toast.success("Payment completed successfully!");
                     // Notice we do NOT call handleCloseCheckout() here because we want to show the success screen
 

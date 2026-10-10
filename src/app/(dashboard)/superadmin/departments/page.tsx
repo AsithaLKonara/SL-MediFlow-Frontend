@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { AdvancedFilter } from "@/components/ui/advanced-filter";
 
 interface User {
   id: string;
@@ -35,6 +36,9 @@ export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterActive, setFilterActive] = useState("ALL");
+
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [deptForm, setDeptForm] = useState({ name: "", description: "", isActive: true });
@@ -292,14 +296,48 @@ export default function DepartmentsPage() {
         </Card>
       </div>
 
+      <AdvancedFilter
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search departments by name..."
+        onClearFilters={() => {
+          setSearchQuery("");
+          setFilterActive("ALL");
+        }}
+        onFilterChange={(key, val) => {
+          if (key === "active") setFilterActive(val);
+        }}
+        filters={[
+          {
+            key: "active",
+            label: "Status",
+            value: filterActive,
+            options: [
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" }
+            ]
+          }
+        ]}
+      />
+
       <div className="grid gap-6">
-        {departments.length === 0 ? (
-          <div className="text-center p-12 bg-card/50 rounded-xl border border-dashed">
-            <Building2 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground">No departments configured yet.</p>
-          </div>
-        ) : (
-          departments.map((dept) => (
+        {(() => {
+          const filteredDepts = departments.filter(d => {
+            const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesActive = filterActive === "ALL" || d.isActive.toString() === filterActive;
+            return matchesSearch && matchesActive;
+          });
+
+          if (filteredDepts.length === 0) {
+            return (
+              <div className="text-center p-12 bg-card/50 rounded-xl border border-dashed">
+                <Building2 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-muted-foreground">No departments match your filters.</p>
+              </div>
+            );
+          }
+
+          return filteredDepts.map((dept) => (
             <Card key={dept.id} className="overflow-hidden border-none shadow-sm ring-1 ring-border bg-card/60 backdrop-blur-sm">
               <CardHeader className="pb-3 border-b border-black/5 dark:border-white/10 bg-muted/20 flex flex-row justify-between items-center">
                 <div className="flex items-center gap-4">
@@ -380,8 +418,8 @@ export default function DepartmentsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
+          ));
+        })()}
       </div>
 
       <Dialog open={isDeptModalOpen} onOpenChange={setIsDeptModalOpen}>

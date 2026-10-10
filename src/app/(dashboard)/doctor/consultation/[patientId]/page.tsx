@@ -83,6 +83,7 @@ export default function ConsultationPage() {
 
   // Prescription state
   const [diagnosis, setDiagnosis] = useState("");
+  const [rxVisitId, setRxVisitId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   
   const initialDrugState = { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "" };
@@ -218,6 +219,7 @@ export default function ConsultationPage() {
         .then(rx => {
           if (rx) {
             setDiagnosis(rx.diagnosis || "");
+            setRxVisitId(rx.visitId || null);
             setNotes(rx.clinicalNotes || "");
             const parsedDrugs = (rx.items || []).map((item: any) => {
               const freq = item.frequency || "";
@@ -324,7 +326,8 @@ export default function ConsultationPage() {
   };
 
   const handleCompleteConsultation = async () => {
-    if (!patient?.activeVisitId) {
+    const finalVisitId = patient?.activeVisitId || rxVisitId;
+    if (!finalVisitId) {
       toast.error("No active visit found for this patient.");
       return;
     }
@@ -338,7 +341,7 @@ export default function ConsultationPage() {
       const payload = {
         patientId: patient?.id,
         patientName: patient?.name,
-        visitId: patient.activeVisitId,
+        visitId: finalVisitId,
         doctorId: user.id,
         doctorName: user.fullName || "Doctor",
         diagnosis,
@@ -399,7 +402,7 @@ export default function ConsultationPage() {
           },
           body: JSON.stringify({
             patientId: patient?.id,
-            visitId: patient.activeVisitId,
+            visitId: finalVisitId,
             testIds: selectedTests.map(t => t.id),
             doctorId: user.id,
             priority: isUrgent ? "URGENT" : "ROUTINE"

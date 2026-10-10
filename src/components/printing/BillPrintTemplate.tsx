@@ -1,5 +1,6 @@
 import React from "react";
 import Barcode from "react-barcode";
+import { get10DigitBarcode } from "@/lib/barcode";
 
 interface BillItem {
   name: string;
@@ -117,7 +118,7 @@ export const BillPrintTemplate = React.forwardRef<HTMLDivElement, PrintProps>(
           <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
             {receiptData.receiptId && (
               <div className="mb-2 w-full flex justify-center overflow-hidden">
-                <Barcode value={receiptData.receiptId} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+                <Barcode value={get10DigitBarcode(receiptData.receiptId)} width={1} height={40} fontSize={10} margin={0} displayValue={true} />
               </div>
             )}
             <p className="text-xs font-bold">Thank you for your business!</p>

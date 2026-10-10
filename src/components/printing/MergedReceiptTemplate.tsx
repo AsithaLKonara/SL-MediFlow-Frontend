@@ -1,5 +1,6 @@
 import React from "react";
 import Barcode from "react-barcode";
+import { get10DigitBarcode } from "@/lib/barcode";
 
 interface MergedReceiptTemplateProps {
   receiptData: any;
@@ -38,7 +39,11 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
               </h1>
               <p className="text-sm font-semibold">{tokenData.patientName || "Walk-in Patient"}</p>
               {tokenData.doctorName && (
-                <p className="text-xs mt-1">Dr. {tokenData.doctorName}</p>
+                <p className="text-xs mt-1">
+                  {tokenData.department === "LAB" || tokenData.department === "EXTRA_SERVICE"
+                    ? tokenData.doctorName 
+                    : (tokenData.doctorName.startsWith("Dr.") ? tokenData.doctorName : `Dr. ${tokenData.doctorName}`)}
+                </p>
               )}
               {tokenData.roomNumber && (
                 <div className="mt-3">
@@ -129,7 +134,7 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
           <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
             {(receiptData?.receiptId || (tokens && tokens.length > 0 && (tokens[0].refNo || tokens[0].id))) && (
               <div className="mb-2 w-full flex justify-center overflow-hidden">
-                <Barcode value={receiptData?.receiptId || tokens?.[0]?.refNo || tokens?.[0]?.id} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+                <Barcode value={get10DigitBarcode(receiptData?.receiptId || tokens?.[0]?.refNo || tokens?.[0]?.id)} width={1} height={40} fontSize={10} margin={0} displayValue={true} />
               </div>
             )}
             <p className="text-xs font-bold">Thank you for your business!</p>

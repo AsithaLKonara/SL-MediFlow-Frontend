@@ -52,6 +52,12 @@ export function EnhancedCalendar({
 
     if (!isOnLeave) {
       for (const schedule of calendarData.schedules) {
+        const dTime = d.getTime();
+        const validFromTime = new Date(schedule.validFrom).getTime();
+        const validUntilTime = schedule.validUntil ? new Date(schedule.validUntil).getTime() : Infinity;
+        
+        if (dTime < validFromTime || dTime > validUntilTime) continue;
+
         const sessions = schedule.sessions?.filter((s: any) => s.dayOfWeek === dayOfWeek && s.isActive);
         if (sessions && sessions.length > 0) {
           hasClinic = true;

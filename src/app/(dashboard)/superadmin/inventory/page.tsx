@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { AdvancedFilter } from "@/components/ui/advanced-filter";
 
 interface InventoryItem {
   id: string;
@@ -34,6 +35,8 @@ export default function SuperAdminInventoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -95,9 +98,9 @@ export default function SuperAdminInventoryPage() {
   });
   const [addingNonMed, setAddingNonMed] = useState(false);
 
-  // Generate a random EAN-like barcode automatically when opening the modal
+  // Generate a random 10-digit barcode automatically when opening the modal
   const openAddDrugModal = () => {
-    const randomBarcode = "AMZ-" + Math.floor(10000000 + Math.random() * 90000000).toString();
+    const randomBarcode = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     setNewDrug(prev => ({ ...prev, barcode: randomBarcode, itemType: "MEDICINE" }));
     setIsAddDrugOpen(true);
   };
@@ -173,7 +176,9 @@ export default function SuperAdminInventoryPage() {
     if (!token) return;
     setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?page=${page}&search=${encodeURIComponent(debouncedSearch)}`, {
+      cache: "no-store",
       headers: {
+        "Cache-Control": "no-cache",
         Authorization: `Bearer ${token}`
       }
     })
@@ -401,6 +406,13 @@ export default function SuperAdminInventoryPage() {
   
   const uniqueCategories = Array.from(new Set(items.map(i => i.category))).filter(Boolean);
 
+  const filteredItems = items.filter(item => {
+    const matchesCategory = filterCategory === "ALL" || item.category === filterCategory;
+    const matchesStatus = filterStatus === "ALL" || item.status === filterStatus;
+    // Server-side handles text search, but we can double filter just in case
+    return matchesCategory && matchesStatus;
+  });
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <datalist id="category-list">
@@ -444,11 +456,43 @@ export default function SuperAdminInventoryPage() {
         <CardHeader className="pb-4 bg-muted/20 border-b">
           <CardTitle>Global Drug Inventory</CardTitle>
           <CardDescription>Live sync from Pharmacy and Front Desk operations.</CardDescription>
-          <div className="mt-4 relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name, category, or barcode..." className="pl-9 bg-background" value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
         </CardHeader>
+        
+        <div className="px-6 py-4 border-b">
+          <AdvancedFilter
+            searchQuery={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search by name, category, or barcode..."
+            onClearFilters={() => {
+              setSearch("");
+              setFilterCategory("ALL");
+              setFilterStatus("ALL");
+            }}
+            onFilterChange={(key, val) => {
+              if (key === "category") setFilterCategory(val);
+              if (key === "status") setFilterStatus(val);
+            }}
+            filters={[
+              {
+                key: "category",
+                label: "Category",
+                value: filterCategory,
+                options: uniqueCategories.map(c => ({ value: c, label: c }))
+              },
+              {
+                key: "status",
+                label: "Status",
+                value: filterStatus,
+                options: [
+                  { value: "IN_STOCK", label: "In Stock" },
+                  { value: "LOW_STOCK", label: "Low Stock" },
+                  { value: "OUT_OF_STOCK", label: "Out of Stock" }
+                ]
+              }
+            ]}
+          />
+        </div>
+
         <CardContent className="p-0">
           {loading ? (
             <div className="py-24 flex justify-center flex-col items-center gap-4">
@@ -471,7 +515,7 @@ export default function SuperAdminInventoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => (
+                  {filteredItems.map((item) => (
                     <TableRow key={item.id} className={item.status !== "IN_STOCK" ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-muted/30"}>
                       <TableCell className="pl-6 font-mono text-xs text-muted-foreground">{item.barcode}</TableCell>
                       <TableCell>

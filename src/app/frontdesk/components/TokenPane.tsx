@@ -57,6 +57,9 @@ interface Prescription {
   createdAt: string;
   status: string;
   items: PrescriptionItem[];
+  labRequests?: { id: string; tests: string[] }[];
+  visitId?: string;
+  patientId?: string;
 }
 
 interface GeneratedToken {
@@ -491,7 +494,7 @@ export function TokenPane() {
 
     // Optimistically lock UI immediately (POSPane will also broadcast IN_PROGRESS back)
     setInPosPrescriptionId(rx.id);
-    sendToPOS(cartItems, rx.id, (rx as any).doctor, (rx as any).consultationPaid);
+    sendToPOS(cartItems, rx.id, (rx as any).doctor, (rx as any).consultationPaid, rx.visitId, rx.patientId);
     toast.success(`${cartItems.length} medicine(s) sent to POS — complete checkout to dispense.`);
   };
 
@@ -1181,6 +1184,13 @@ export function TokenPane() {
                               {rx.items.length} medicine(s):{" "}
                               {rx.items.slice(0, 2).map((i) => i.drugName).join(", ")}
                               {rx.items.length > 2 ? "..." : ""}
+                            </p>
+                          )}
+                          {rx.labRequests && rx.labRequests.length > 0 && (
+                            <p className="text-xs text-blue-500/80 mt-1">
+                              {rx.labRequests.reduce((acc, lr) => acc + lr.tests.length, 0)} lab test(s):{" "}
+                              {rx.labRequests.flatMap(lr => lr.tests).slice(0, 2).join(", ")}
+                              {rx.labRequests.flatMap(lr => lr.tests).length > 2 ? "..." : ""}
                             </p>
                           )}
                         </div>

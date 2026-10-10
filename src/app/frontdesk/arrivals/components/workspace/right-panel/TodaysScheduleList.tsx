@@ -32,6 +32,14 @@ export function TodaysScheduleList({
 
   if (calendarData && calendarData.schedules) {
     calendarData.schedules.forEach((sch: any) => {
+      // Check if this schedule is actually valid for the selected date
+      const targetDateObj = selectedDate || new Date();
+      const targetTime = new Date(targetDateObj).getTime();
+      const validFromTime = new Date(sch.validFrom).getTime();
+      const validUntilTime = sch.validUntil ? new Date(sch.validUntil).getTime() : Infinity;
+      
+      if (targetTime < validFromTime || targetTime > validUntilTime) return;
+
       // Filter out exceptions for this date
       const exception = sch.exceptions?.find((e: any) => e.exceptionDate.startsWith(isoDateStr));
       
@@ -86,7 +94,7 @@ export function TodaysScheduleList({
     <div className="bg-card border border-border p-5 rounded-xl shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-lg">{title}</h3>
-        <ScheduleConflictForm doctor={doctor} onComplete={onScheduleUpdate} />
+        <ScheduleConflictForm doctor={doctor} onComplete={onScheduleUpdate} selectedDate={selectedDate} />
       </div>
       
       <div className="space-y-4">
@@ -106,7 +114,7 @@ export function TodaysScheduleList({
                 {session.isCancelled && <span className="text-[10px] uppercase font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded">Cancelled</span>}
               </div>
               <div className="text-sm font-medium text-foreground">{session.sessionName}</div>
-              <div className="text-sm text-muted-foreground">{session.roomNumber || doctor.roomNumber || "No Room Assigned"}</div>
+              <div className="text-sm text-muted-foreground">{session.room?.roomNumber || session.roomNumber || doctor.roomNumber || "No Room Assigned"}</div>
               {session.isCancelled && session.cancelReason && (
                 <div className="text-xs text-red-600 mt-2 font-medium">Reason: {session.cancelReason}</div>
               )}
@@ -127,7 +135,8 @@ export function TodaysScheduleList({
                       sessionName: session.sessionName,
                       startTime: session.startTime,
                       endTime: session.endTime,
-                      roomNumber: session.roomNumber
+                      roomNumber: session.roomNumber,
+                      roomId: session.roomId || session.room?.id
                     }}
                     onUpdateSuccess={onScheduleUpdate}
                   />

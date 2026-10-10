@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2 } from "lucide-react";
+import { Edit2, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
+import { RoomPickerDialog } from "./RoomPickerDialog";
 
 export function EditSessionForm({ 
   sessionId, 
@@ -14,13 +15,17 @@ export function EditSessionForm({
   onUpdateSuccess 
 }: { 
   sessionId: string; 
-  initialData: { sessionName: string, startTime: string, endTime: string, roomNumber?: string };
+  initialData: { sessionName: string, startTime: string, endTime: string, roomNumber?: string, roomId?: string };
   onUpdateSuccess?: () => void;
 }) {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roomPickerOpen, setRoomPickerOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<{ id: string; roomNumber: string } | null>(
+    initialData.roomId ? { id: initialData.roomId, roomNumber: initialData.roomNumber || "" } : null
+  );
 
 
   const handleUpdate = async () => {
@@ -36,7 +41,8 @@ export function EditSessionForm({
         body: JSON.stringify({
           sessionName: formData.sessionName,
           startTime: formData.startTime,
-          endTime: formData.endTime
+          endTime: formData.endTime,
+          roomId: selectedRoom?.id || undefined
         })
       });
 
@@ -96,6 +102,24 @@ export function EditSessionForm({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium block">Assigned Room</label>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 font-normal"
+              onClick={() => setRoomPickerOpen(true)}
+              disabled={isSubmitting}
+            >
+              <DoorOpen className="w-4 h-4 text-primary" />
+              {selectedRoom ? (
+                <span className="font-semibold text-foreground">{selectedRoom.roomNumber}</span>
+              ) : (
+                <span className="text-muted-foreground">Select a Room...</span>
+              )}
+            </Button>
+          </div>
+
         </div>
 
         <DialogFooter>
@@ -103,6 +127,15 @@ export function EditSessionForm({
           <Button onClick={handleUpdate} disabled={isSubmitting}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
+
+      <RoomPickerDialog 
+        open={roomPickerOpen} 
+        onClose={() => setRoomPickerOpen(false)} 
+        onSelectRoom={setSelectedRoom}
+        date={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })}
+        startTime={formData.startTime}
+        endTime={formData.endTime}
+      />
     </Dialog>
   );
 }

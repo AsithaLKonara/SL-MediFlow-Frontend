@@ -59,6 +59,13 @@ export function TokenBoardMatrix({
   const currentlyServing = tokens.find(t => ['CONSULTATION', 'IN_PROGRESS'].includes(t.status));
   const nextToken = tokens.find(t => ['WAITING', 'ARRIVED', 'CHECKED_IN'].includes(t.status)); // assuming ordered chronologically
 
+  const activeSession = sessionId 
+    ? doctor.sessions?.find((s: any) => s.id === sessionId)
+    : (currentlyServing 
+        ? doctor.sessions?.find((s: any) => s.id === currentlyServing.appointment?.sessionId) 
+        : doctor.sessions?.[0]);
+  const displayRoomNumber = activeSession?.room?.roomNumber || activeSession?.roomNumber || doctor.roomNumber || "No Room Assigned";
+
   const handleAction = async (action: string, tokenToUpdate: any) => {
     if (!tokenToUpdate) return;
     setIsUpdating(true);
@@ -101,7 +108,7 @@ export function TokenBoardMatrix({
               </div>
               <div>
                 <div className="text-xl font-bold">{currentlyServing.appointment?.Patient?.fullName || currentlyServing.patient?.fullName || "Patient"}</div>
-                <div className="text-blue-200 text-sm">{doctor.attendance?.roomNumber || "Room"}</div>
+                <div className="text-blue-200 text-sm">{displayRoomNumber}</div>
               </div>
             </div>
           ) : (

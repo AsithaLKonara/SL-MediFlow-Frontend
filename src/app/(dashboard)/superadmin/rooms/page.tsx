@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { DoorOpen, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Wrench } from "lucide-react";
+import { DoorOpen, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Wrench, Calendar } from "lucide-react";
 import { io, Socket } from "socket.io-client";
+import { RoomScheduleModal } from "./components/RoomScheduleModal";
+import { AdvancedFilter, FilterOption } from "@/components/ui/advanced-filter";
 
 export default function RoomsManagementPage() {
   const [rooms, setRooms] = useState<any[]>([]);
@@ -21,7 +23,15 @@ export default function RoomsManagementPage() {
   const { token } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [selectedRoomForSchedule, setSelectedRoomForSchedule] = useState<any | null>(null);
   
+  // Filtering state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterActive, setFilterActive] = useState("ALL");
+
   const [formData, setFormData] = useState<{ roomNumber: string; department: string; description: string; status: string; isActive: boolean }>({
     roomNumber: "",
     department: "GENERAL",
@@ -174,6 +184,68 @@ export default function RoomsManagementPage() {
         </Dialog>
       </div>
 
+      {(() => {
+        const filteredRooms = rooms.filter(r => {
+          const matchesSearch = r.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                               (r.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+          const matchesDept = filterDepartment === "ALL" || r.department === filterDepartment;
+          const matchesStatus = filterStatus === "ALL" || r.status === filterStatus;
+          const matchesActive = filterActive === "ALL" || r.isActive.toString() === filterActive;
+          return matchesSearch && matchesDept && matchesStatus && matchesActive;
+        });
+
+        return (
+          <>
+            <AdvancedFilter
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search by room number or description..."
+        onClearFilters={() => {
+          setSearchQuery("");
+          setFilterDepartment("ALL");
+          setFilterStatus("ALL");
+          setFilterActive("ALL");
+        }}
+        onFilterChange={(key, val) => {
+          if (key === "department") setFilterDepartment(val);
+          if (key === "status") setFilterStatus(val);
+          if (key === "active") setFilterActive(val);
+        }}
+        filters={[
+          {
+            key: "department",
+            label: "Department",
+            value: filterDepartment,
+            options: [
+              { value: "GENERAL", label: "General Ward" },
+              { value: "CONSULTATION", label: "Consultation" },
+              { value: "LAB", label: "Laboratory" },
+              { value: "EXTRA_SERVICE", label: "Extra Services" },
+              { value: "SURGERY", label: "Operation Theater" },
+            ]
+          },
+          {
+            key: "status",
+            label: "Status",
+            value: filterStatus,
+            options: [
+              { value: "AVAILABLE", label: "Available" },
+              { value: "OCCUPIED", label: "Occupied" },
+              { value: "MAINTENANCE", label: "Maintenance" }
+            ]
+          },
+          {
+            key: "active",
+            label: "Active State",
+            value: filterActive,
+            options: [
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" }
+            ]
+          }
+        ]}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><DoorOpen className="w-5 h-5 text-primary" /> Hospital Rooms Directory</CardTitle>
@@ -193,10 +265,10 @@ export default function RoomsManagementPage() {
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground animate-pulse">Loading rooms...</TableCell></TableRow>
-              ) : rooms.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No rooms found. Create one.</TableCell></TableRow>
+              ) : filteredRooms.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No rooms match your search.</TableCell></TableRow>
               ) : (
-                rooms.map(room => (
+                filteredRooms.map(room => (
                   <TableRow key={room.id}>
                     <TableCell className="font-medium text-lg tracking-tight">{room.roomNumber}</TableCell>
                     <TableCell><Badge variant="outline">{room.department}</Badge></TableCell>
@@ -206,6 +278,12 @@ export default function RoomsManagementPage() {
                       {room.isActive ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <AlertCircle className="w-4 h-4 text-red-500" />}
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-600 mr-1" onClick={() => {
+                        setSelectedRoomForSchedule(room);
+                        setScheduleModalOpen(true);
+                      }}>
+                        <Calendar className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => {
                         setFormData({
                           roomNumber: room.roomNumber,
@@ -230,6 +308,16 @@ export default function RoomsManagementPage() {
           </Table>
         </CardContent>
       </Card>
+      
+      <RoomScheduleModal 
+        isOpen={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        room={selectedRoomForSchedule}
+        token={token || ""}
+      />
+          </>
+        );
+      })()}
     </div>
   );
 }

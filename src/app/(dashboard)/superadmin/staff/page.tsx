@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, MoreHorizontal, Edit, Lock, Trash2, WalletCards } from "lucide-react";
 import { toast } from "sonner";
+import { AdvancedFilter } from "@/components/ui/advanced-filter";
 import {
   Table,
   TableCell,
@@ -48,6 +49,7 @@ interface Staff {
   departmentName?: string;
   consultationFee?: number;
   feeType?: string;
+  deviceUserId?: string;
 }
 
 export default function StaffManagementPage() {
@@ -58,6 +60,10 @@ export default function StaffManagementPage() {
   const [rooms, setRooms] = useState<{id: string, name: string, department: string, status: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterRole, setFilterRole] = useState("ALL");
+  const [filterDepartment, setFilterDepartment] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const { token } = useAuth();
@@ -74,7 +80,8 @@ export default function StaffManagementPage() {
     title: "Dr.",
     departmentId: "",
     consultationFee: 2500,
-    feeType: "POST"
+    feeType: "POST",
+    deviceUserId: ""
   });
 
   const API = process.env.NEXT_PUBLIC_API_URL;
@@ -139,7 +146,7 @@ export default function StaffManagementPage() {
     setFormData({ 
       name: "", email: "", password: "", roleName: "", 
       specialty: "", roomId: "", title: "Dr.", departmentId: "", 
-      consultationFee: 2500, feeType: "POST" 
+      consultationFee: 2500, feeType: "POST", deviceUserId: ""
     });
     setIsModalOpen(true);
   };
@@ -156,7 +163,8 @@ export default function StaffManagementPage() {
       title: member.title || "Dr.",
       departmentId: member.departmentId || "",
       consultationFee: member.consultationFee || 2500,
-      feeType: member.feeType || "POST"
+      feeType: member.feeType || "POST",
+      deviceUserId: member.deviceUserId || ""
     });
     setIsModalOpen(true);
   };
@@ -215,11 +223,16 @@ export default function StaffManagementPage() {
     }
   };
 
-  const filteredStaff = staff.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStaff = staff.filter(member => {
+    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          member.role.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = filterRole === "ALL" || member.role === filterRole;
+    const matchesDept = filterDepartment === "ALL" || member.departmentId === filterDepartment;
+    const matchesStatus = filterStatus === "ALL" || member.status === filterStatus;
+    
+    return matchesSearch && matchesRole && matchesDept && matchesStatus;
+  });
 
   return (
     <>
@@ -235,19 +248,52 @@ export default function StaffManagementPage() {
         </Button>
       </div>
 
+      <AdvancedFilter
+        searchQuery={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by name, email, or role..."
+        onClearFilters={() => {
+          setSearchTerm("");
+          setFilterRole("ALL");
+          setFilterDepartment("ALL");
+          setFilterStatus("ALL");
+        }}
+        onFilterChange={(key, val) => {
+          if (key === "role") setFilterRole(val);
+          if (key === "department") setFilterDepartment(val);
+          if (key === "status") setFilterStatus(val);
+        }}
+        filters={[
+          {
+            key: "role",
+            label: "Role",
+            value: filterRole,
+            options: roles.map(r => ({ value: r.name, label: r.name }))
+          },
+          {
+            key: "department",
+            label: "Department",
+            value: filterDepartment,
+            options: departments.map(d => ({ value: d.id, label: d.name }))
+          },
+          {
+            key: "status",
+            label: "Status",
+            value: filterStatus,
+            options: [
+              { value: "ACTIVE", label: "Active" },
+              { value: "INACTIVE", label: "Inactive" },
+              { value: "ON_LEAVE", label: "On Leave" },
+              { value: "SUSPENDED", label: "Suspended" }
+            ]
+          }
+        ]}
+      />
+
       <Card className="shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle>Staff Directory</CardTitle>
           <CardDescription>A comprehensive list of all registered staff members.</CardDescription>
-          <div className="mt-4 relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by name, email, or role..." 
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -255,9 +301,9 @@ export default function StaffManagementPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader className="bg-muted/50">
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="min-w-[800px]">
+                <TableHeader className="bg-muted/50 whitespace-nowrap">
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
@@ -380,6 +426,12 @@ export default function StaffManagementPage() {
                     </>
                   )}
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Fingerprint Device ID</label>
+                <Input value={formData.deviceUserId} onChange={e => setFormData({...formData, deviceUserId: e.target.value})} placeholder="e.g. 1005 (Leave blank if not registered)" />
+                <p className="text-xs text-muted-foreground">The short ID assigned by the Realand fingerprint machine</p>
               </div>
 
               {formData.roleName.toUpperCase() === "DOCTOR" && (

@@ -6,22 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, CalendarPlus, Check, Loader2 } from "lucide-react";
+import { AlertCircle, CalendarPlus, Check, Loader2, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
 import { DoctorStatus } from "../../../page";
+import { RoomPickerDialog } from "./RoomPickerDialog";
 
-export function ScheduleConflictForm({ doctor, onComplete }: { doctor: DoctorStatus; onComplete?: () => void }) {
+export function ScheduleConflictForm({ doctor, onComplete, selectedDate }: { doctor: DoctorStatus; onComplete?: () => void; selectedDate?: Date }) {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [roomPickerOpen, setRoomPickerOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<{ id: string; roomNumber: string } | null>(null);
 
   const [formData, setFormData] = useState({
-    date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' }),
+    date: (selectedDate || new Date()).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' }),
     startTime: "09:00",
     endTime: "12:00",
-    room: "Room 02",
     type: "General Consultation",
     tokenLimit: 20,
     interval: 10,
@@ -54,6 +56,8 @@ export function ScheduleConflictForm({ doctor, onComplete }: { doctor: DoctorSta
         body: JSON.stringify({
           doctorId: doctor.id,
           ...formData,
+          room: selectedRoom?.roomNumber || "",
+          roomId: selectedRoom?.id || undefined,
           isRecurring
         })
       });
@@ -146,11 +150,20 @@ export function ScheduleConflictForm({ doctor, onComplete }: { doctor: DoctorSta
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Room</Label>
-              <Select value={formData.room} onValueChange={v => setFormData(p => ({ ...p, room: v as string }))}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent><SelectItem value="Room 01">Room 01</SelectItem><SelectItem value="Room 02">Room 02</SelectItem></SelectContent>
-              </Select>
+              <Label>Assign Room</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2 font-normal"
+                onClick={() => setRoomPickerOpen(true)}
+              >
+                <DoorOpen className="w-4 h-4 text-primary" />
+                {selectedRoom ? (
+                  <span className="font-semibold text-foreground">{selectedRoom.roomNumber}</span>
+                ) : (
+                  <span className="text-muted-foreground">Select a Room...</span>
+                )}
+              </Button>
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
@@ -171,6 +184,15 @@ export function ScheduleConflictForm({ doctor, onComplete }: { doctor: DoctorSta
           </div>
         </form>
       </DialogContent>
+
+      <RoomPickerDialog
+        open={roomPickerOpen}
+        onClose={() => setRoomPickerOpen(false)}
+        date={formData.date}
+        startTime={formData.startTime}
+        endTime={formData.endTime}
+        onSelectRoom={(room) => setSelectedRoom(room)}
+      />
     </Dialog>
   );
 }

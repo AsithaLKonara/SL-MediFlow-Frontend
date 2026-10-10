@@ -77,7 +77,7 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
           <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
             {prescription.id && (
               <div className="mb-2 w-full flex justify-center overflow-hidden">
-                <Barcode value={prescription.id.substring(0, 8)} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+                <Barcode value={prescription.id.substring(0, 10)} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
               </div>
             )}
             <p className="text-xs italic">Wishing you a speedy recovery!</p>

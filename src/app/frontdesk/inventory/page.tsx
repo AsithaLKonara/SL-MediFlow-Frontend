@@ -18,8 +18,10 @@ export default function FrontDeskInventoryPage() {
   const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
     return fetch(url, {
       ...options,
+      cache: "no-store",
       headers: {
         ...options.headers,
+        "Cache-Control": "no-cache",
         Authorization: `Bearer ${token}`
       }
     });

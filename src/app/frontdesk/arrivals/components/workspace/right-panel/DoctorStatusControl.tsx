@@ -5,7 +5,6 @@ import { DoctorStatus } from "../../../page";
 import { Clock, LogOut, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { WalkInForm } from "../forms/WalkInForm";
-import { RoomMatrixModal } from "./RoomMatrixModal";
 import { useState } from "react";
 
 export function DoctorStatusControl({ 
@@ -20,40 +19,12 @@ export function DoctorStatusControl({
   const isArrived = doctor.attendance?.status === "ARRIVED" || doctor.attendance?.status === "IN_CONSULTATION";
 
   const { token } = useAuth();
-  const [matrixOpen, setMatrixOpen] = useState(false);
-  const [isAssigning, setIsAssigning] = useState(false);
   const [isMarkingArrived, setIsMarkingArrived] = useState(false);
   const [isMarkingOut, setIsMarkingOut] = useState(false);
 
   const hasRoom = !!doctor.roomNumber;
 
-  const handleAssignRoom = async (roomId: string, startTime: string, endTime: string) => {
-    try {
-      setIsAssigning(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/attendance`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          status: "SCHEDULED", 
-          roomId, 
-          startTime, 
-          endTime, 
-          date: new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
-        })
-      });
-      if (!res.ok) throw new Error(await res.text());
-      toast.success(`${doctor.fullName} assigned to room`);
-      setMatrixOpen(false);
-      onRefresh();
-    } catch (err: any) {
-      toast.error(`Failed to assign room: ${err.message}`);
-    } finally {
-      setIsAssigning(false);
-    }
-  };
+
 
   const handleMarkArrived = async () => {
     try {
@@ -128,23 +99,11 @@ export function DoctorStatusControl({
       </div>
 
       <div className="flex items-center gap-3 w-full sm:w-auto">
-        {!isArrived && !hasRoom && (
-          <Button onClick={() => setMatrixOpen(true)} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2">
+        {!isArrived && (
+          <Button onClick={handleMarkArrived} isLoading={isMarkingArrived} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white gap-2">
             <CheckCircle2 className="w-4 h-4" />
-            Assign Room
+            Mark Arrived
           </Button>
-        )}
-        
-        {!isArrived && hasRoom && (
-          <>
-            <Button onClick={() => setMatrixOpen(true)} variant="outline" className="w-full sm:w-auto gap-2">
-              Change Room
-            </Button>
-            <Button onClick={handleMarkArrived} isLoading={isMarkingArrived} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              Mark Arrived
-            </Button>
-          </>
         )}
 
         {isArrived && (
@@ -154,15 +113,6 @@ export function DoctorStatusControl({
           </Button>
         )}
       </div>
-      <RoomMatrixModal 
-        open={matrixOpen} 
-        onOpenChange={setMatrixOpen}
-        doctorName={doctor.fullName}
-        sessions={doctor.sessions || []}
-        onAssign={handleAssignRoom}
-        selectedDate={selectedDate}
-        isAssigning={isAssigning}
-      />
     </div>
   );
 }
