@@ -27,7 +27,6 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
