@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Menu, Sun, Moon, Maximize, Minimize, Pointer } from "lucide-react";
+import { Search, Menu, Sun, Moon, Maximize, Minimize, Pointer, CalendarCheck } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -119,6 +119,10 @@ export function TopNav() {
               </div>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push('/hr')} className="cursor-pointer w-full flex items-center gap-2">
+              <CalendarCheck className="w-4 h-4 text-primary" />
+              <span>My HR & Leaves</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer w-full">
               Settings
             </DropdownMenuItem>
