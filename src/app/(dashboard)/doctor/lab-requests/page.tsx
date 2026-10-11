@@ -51,7 +51,8 @@ export default function DoctorLabRequestsPage() {
     fetchLabData();
   }, [user, token]);
 
-  const viewReport = (url: string) => {
+  const viewReport = (report: any) => {
+    const url = report?.reportUrl || (report?.id ? `/reports/${report.id.slice(0, 8).toUpperCase()}` : null);
     if (!url) {
       toast.error("Report URL not found");
       return;
@@ -125,7 +126,7 @@ export default function DoctorLabRequestsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => viewReport(report.reportUrl)} className="gap-2">
+                          <Button size="sm" variant="outline" onClick={() => viewReport(report)} className="gap-2">
                             <FileText className="w-4 h-4" /> View Report
                           </Button>
                         </TableCell>
