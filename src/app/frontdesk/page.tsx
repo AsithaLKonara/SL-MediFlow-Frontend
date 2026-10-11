@@ -3,10 +3,11 @@
 import { useShift } from "./hooks/useShift";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2 } from "lucide-react";
 import { NodePrintClient } from "@asithakonara/node-print-client";
 import { EscPosBuilder } from "@asithakonara/escpos";
 import {
@@ -82,7 +83,11 @@ export default function FrontDeskDashboard() {
 
   const handleArrivalsClick = () => {
     if (!shift.isOpen) {
-      toast.error("You must open a shift to access Doctor Arrivals / Clinic Operations.");
+      if (isNurse) {
+        toast.error("Please punch your fingerprint on the attendance scanner to start duty.");
+      } else {
+        toast.error("You must open a shift to access Doctor Arrivals.");
+      }
       return;
     }
     router.push('/frontdesk/arrivals');
@@ -93,25 +98,61 @@ export default function FrontDeskDashboard() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Front Desk Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              {shift.isOpen ? `Shift started by ${shift.cashierName}` : "No active shift"}
-            </p>
+            <h1 className="text-3xl font-bold text-foreground">
+              {isNurse ? "Nurse Station & Clinic Operations" : "Front Desk Dashboard"}
+            </h1>
+            
+            {isNurse ? (
+              <div className="mt-1 flex items-center gap-2">
+                {shift.isOpen ? (
+                  <>
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 gap-1.5 py-0.5">
+                      <Fingerprint className="w-3.5 h-3.5 text-emerald-600" /> On Duty · Biometric Verified
+                    </Badge>
+                    {shift.startedAt && (
+                      <span className="text-xs text-muted-foreground">
+                        Fingerprint clock-in at {new Date(shift.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 gap-1.5 py-0.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-600" /> Off Duty · Biometric Scan Required
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Please punch your fingerprint on the attendance scanner to start duty
+                    </span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground mt-1">
+                {shift.isOpen ? `Shift started by ${shift.cashierName}` : "No active shift"}
+              </p>
+            )}
           </div>
-          <div className="flex gap-4">
-            {shift.isOpen ? (
-              <Button variant="destructive" onClick={() => setIsCloseShiftOpen(true)}>
-                <LogOut className="w-4 h-4 mr-2" /> Close Shift
+
+          <div className="flex gap-3">
+            {isNurse ? (
+              <Button variant="outline" onClick={logout}>
+                <LogOut className="w-4 h-4 mr-2" /> Log Out
               </Button>
             ) : (
-              <>
-                <Button variant="default" onClick={() => setIsStartShiftOpen(true)}>
-                  <LogIn className="w-4 h-4 mr-2" /> Start Shift
+              shift.isOpen ? (
+                <Button variant="destructive" onClick={() => setIsCloseShiftOpen(true)}>
+                  <LogOut className="w-4 h-4 mr-2" /> Close Shift
                 </Button>
-                <Button variant="outline" onClick={logout}>
-                  <LogOut className="w-4 h-4 mr-2" /> Log Out
-                </Button>
-              </>
+              ) : (
+                <>
+                  <Button variant="default" onClick={() => setIsStartShiftOpen(true)}>
+                    <LogIn className="w-4 h-4 mr-2" /> Start Shift
+                  </Button>
+                  <Button variant="outline" onClick={logout}>
+                    <LogOut className="w-4 h-4 mr-2" /> Log Out
+                  </Button>
+                </>
+              )
             )}
           </div>
         </div>
@@ -216,55 +257,59 @@ export default function FrontDeskDashboard() {
         </div>
       </div>
 
-      {/* Modals with global backdrop blur styling */}
-      <Dialog open={isStartShiftOpen} onOpenChange={setIsStartShiftOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Open Shift</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Starting Float (LKR)</label>
-              <Input
-                type="number"
-                value={startingFloat}
-                onChange={(e) => setStartingFloat(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleStartShift}>Start Shift</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Cashier/Receptionist Only Modals (Never shown to nurses who do not work with money) */}
+      {!isNurse && (
+        <>
+          <Dialog open={isStartShiftOpen} onOpenChange={setIsStartShiftOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Open Shift</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Starting Float (LKR)</label>
+                  <Input
+                    type="number"
+                    value={startingFloat}
+                    onChange={(e) => setStartingFloat(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleStartShift}>Start Shift</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-      <Dialog open={isCloseShiftOpen} onOpenChange={setIsCloseShiftOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Close Shift & Logout</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Declared Cash Balance (LKR)</label>
-              <Input
-                type="number"
-                value={declaredCash}
-                onChange={(e) => setDeclaredCash(e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Count the physical cash in the drawer and enter the total.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="destructive" onClick={handleCloseShift} disabled={!declaredCash}>
-              Close Shift & Log Out
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <Dialog open={isCloseShiftOpen} onOpenChange={setIsCloseShiftOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Close Shift & Logout</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Declared Cash Balance (LKR)</label>
+                  <Input
+                    type="number"
+                    value={declaredCash}
+                    onChange={(e) => setDeclaredCash(e.target.value)}
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Count the physical cash in the drawer and enter the total.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="destructive" onClick={handleCloseShift} disabled={!declaredCash}>
+                  Close Shift & Log Out
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }

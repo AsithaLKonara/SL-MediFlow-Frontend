@@ -301,49 +301,118 @@ export default function StaffManagementPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table className="min-w-[800px]">
+            <div className="rounded-lg border border-border/80 overflow-x-auto shadow-sm bg-card">
+              <Table className="min-w-[1050px] w-full table-fixed">
                 <TableHeader className="bg-muted/50 whitespace-nowrap">
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[80px] text-right">Actions</TableHead>
+                    <TableHead className="w-[240px] font-semibold text-foreground">Employee</TableHead>
+                    <TableHead className="w-[220px] font-semibold text-foreground">Email</TableHead>
+                    <TableHead className="w-[150px] font-semibold text-foreground">Role</TableHead>
+                    <TableHead className="w-[260px] font-semibold text-foreground">Department & Assignment</TableHead>
+                    <TableHead className="w-[110px] font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="w-[70px] text-right font-semibold text-foreground pr-4">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredStaff.length > 0 ? (
                     filteredStaff.map((member) => (
-                      <TableRow key={member.id}>
-                        <TableCell className="font-medium text-[#3A3435] dark:text-gray-100">{member.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{member.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-muted/30 text-foreground/80 font-semibold border-border">
-                            {member.role.replace('_', ' ')}
+                      <TableRow key={member.id} className="hover:bg-muted/40 transition-colors">
+                        <TableCell className="w-[240px]">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 border border-primary/20">
+                              {member.name ? member.name.slice(0, 2).toUpperCase() : "ST"}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-medium text-foreground truncate">
+                                {member.role.toUpperCase() === 'DOCTOR' && member.title ? `${member.title} ` : ''}{member.name}
+                              </div>
+                              {member.deviceUserId && (
+                                <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                  <span>FP ID:</span>
+                                  <span className="font-mono bg-muted/60 px-1 py-0.5 rounded text-[10px]">{member.deviceUserId}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-[220px] text-muted-foreground text-sm">
+                          <span className="truncate block" title={member.email}>
+                            {member.email}
+                          </span>
+                        </TableCell>
+                        <TableCell className="w-[150px]">
+                          <Badge 
+                            variant="outline" 
+                            className={`font-semibold border text-xs capitalize ${
+                              member.role.toUpperCase() === 'DOCTOR'
+                                ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200/50 dark:border-purple-800/50"
+                                : member.role.toUpperCase() === 'NURSE'
+                                ? "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200/50 dark:border-teal-800/50"
+                                : member.role.toUpperCase() === 'ADMIN' || member.role.toUpperCase() === 'SUPERADMIN'
+                                ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200/50 dark:border-rose-800/50"
+                                : member.role.toUpperCase() === 'RECEPTIONIST'
+                                ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200/50 dark:border-blue-800/50"
+                                : member.role.toUpperCase().includes('LAB')
+                                ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200/50 dark:border-amber-800/50"
+                                : member.role.toUpperCase() === 'PHARMACIST'
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/50"
+                                : "bg-muted/50 text-foreground/80 border-border"
+                            }`}
+                          >
+                            {member.role.replace('_', ' ').toLowerCase()}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {member.role.toUpperCase() === 'DOCTOR' && (
-                            <div className="space-y-1">
-                              <div>{member.title} {member.name}</div>
-                              <div>Dept: {member.departmentName || 'N/A'}</div>
-                              <div>Spec: {member.specialty || 'N/A'}</div>
-                              <div>Room: {member.roomNumber || 'N/A'}</div>
-                              <div>Fee: Rs. {member.consultationFee} ({member.feeType})</div>
+                        <TableCell className="w-[260px]">
+                          {member.role.toUpperCase() === 'DOCTOR' ? (
+                            <div className="space-y-1 text-xs">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {member.departmentName && (
+                                  <span className="font-medium text-foreground">{member.departmentName}</span>
+                                )}
+                                {member.specialty && (
+                                  <span className="text-muted-foreground">({member.specialty})</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-muted-foreground flex-wrap">
+                                {member.roomNumber && (
+                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-background font-normal border-border">
+                                    {member.roomNumber}
+                                  </Badge>
+                                )}
+                                {member.consultationFee !== undefined && (
+                                  <span className="text-[11px]">Rs. {member.consultationFee.toLocaleString()} ({member.feeType})</span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground">
+                              {member.departmentName ? (
+                                <span className="font-medium text-foreground/80">{member.departmentName}</span>
+                              ) : (
+                                <span className="text-muted-foreground/60 italic">General Staff</span>
+                              )}
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant="secondary" 
-                            className={member.status === 'ACTIVE' ? "bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/10" : "bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/10"}
-                          >
-                            {member.status}
-                          </Badge>
+                        <TableCell className="w-[110px]">
+                          {member.status === 'ACTIVE' ? (
+                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium text-xs gap-1.5 py-0.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Active
+                            </Badge>
+                          ) : member.status === 'ON_LEAVE' ? (
+                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium text-xs gap-1.5 py-0.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              On Leave
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-medium text-xs gap-1.5 py-0.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                              {member.status.replace('_', ' ')}
+                            </Badge>
+                          )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="w-[70px] text-right pr-4">
                           <DropdownMenu>
                             <DropdownMenuTrigger className="outline-none">
                               <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0">

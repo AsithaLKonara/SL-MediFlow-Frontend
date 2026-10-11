@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FilePlus2, Trash2, Edit } from "lucide-react";
+import { Plus, FilePlus2, Trash2, Edit, Search, X, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -19,8 +19,13 @@ interface ExtraService {
   description: string | null;
   price: number;
   barcode: string;
-  roomId?: string;
+  roomId?: string | null;
   roomNumber?: string;
+  room?: {
+    id: string;
+    roomNumber: string;
+    department: string;
+  } | null;
   isActive: boolean;
 }
 
@@ -28,11 +33,28 @@ export default function ExtraServicesPage() {
   const [services, setServices] = useState<ExtraService[]>([]);
   const [rooms, setRooms] = useState<{id: string, name: string, department: string}[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState("ALL");
   
   // New service state
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newService, setNewService] = useState({ title: "", description: "", price: 0, barcode: "", roomId: "" });
   const [saving, setSaving] = useState(false);
+
+  // Edit service state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingService, setEditingService] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    barcode: string;
+    roomId: string;
+  } | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
   const { token } = useAuth();
 
   useEffect(() => {
@@ -111,6 +133,54 @@ export default function ExtraServicesPage() {
     }
   };
 
+  const openEditServiceModal = (svc: ExtraService) => {
+    setEditingService({
+      id: svc.id,
+      title: svc.title,
+      description: svc.description || "",
+      price: svc.price,
+      barcode: svc.barcode,
+      roomId: svc.roomId || svc.room?.id || "",
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateService = async () => {
+    if (!editingService) return;
+    if (!editingService.title.trim() || editingService.price < 0 || !editingService.barcode) {
+      return toast.error("Please fill all required fields correctly.");
+    }
+    
+    setEditSaving(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/${editingService.id}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editingService.title,
+          description: editingService.description,
+          price: editingService.price,
+          barcode: editingService.barcode,
+          roomId: editingService.roomId || null,
+        })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Failed to update service");
+      
+      toast.success("Extra service updated successfully!");
+      setIsEditOpen(false);
+      fetchServices();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to deactivate this service?")) return;
     try {
@@ -126,6 +196,32 @@ export default function ExtraServicesPage() {
     } catch (e: any) {
       toast.error(e.message);
     }
+  };
+  const filteredServices = useMemo(() => {
+    return services.filter(svc => {
+      const q = searchQuery.toLowerCase().trim();
+      const roomName = svc.room?.roomNumber?.toLowerCase() || 
+        (rooms.find(r => r.id === svc.roomId)?.name.toLowerCase()) || "";
+      
+      const matchesSearch = !q ||
+        svc.title.toLowerCase().includes(q) ||
+        (svc.description && svc.description.toLowerCase().includes(q)) ||
+        svc.barcode.includes(q) ||
+        roomName.includes(q);
+
+      const svcRoomId = svc.roomId || svc.room?.id;
+      const matchesRoom = selectedRoom === "ALL" ||
+        (selectedRoom === "UNASSIGNED" ? !svcRoomId : svcRoomId === selectedRoom);
+
+      return matchesSearch && matchesRoom;
+    });
+  }, [services, searchQuery, selectedRoom, rooms]);
+
+  const hasActiveFilters = searchQuery !== "" || selectedRoom !== "ALL";
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedRoom("ALL");
   };
 
   if (loading && services.length === 0) return (
@@ -146,6 +242,8 @@ export default function ExtraServicesPage() {
           <Plus className="w-4 h-4 mr-2" />
           Add Extra Service
         </Button>
+
+        {/* Create Dialog */}
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
           <DialogContent>
             <DialogHeader>
@@ -190,12 +288,131 @@ export default function ExtraServicesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Extra Service</DialogTitle>
+            </DialogHeader>
+            {editingService && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Service Title*</Label>
+                  <Input 
+                    value={editingService.title} 
+                    onChange={e => setEditingService({...editingService, title: e.target.value})} 
+                    placeholder="e.g. Admission Fee" 
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Description</Label>
+                  <Textarea 
+                    value={editingService.description} 
+                    onChange={e => setEditingService({...editingService, description: e.target.value})} 
+                    placeholder="Optional details..." 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Default Price (LKR)*</Label>
+                    <Input 
+                      type="number" 
+                      value={editingService.price} 
+                      onChange={e => setEditingService({...editingService, price: parseFloat(e.target.value) || 0})} 
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Barcode (10-digit)*</Label>
+                    <Input 
+                      value={editingService.barcode} 
+                      onChange={e => setEditingService({...editingService, barcode: e.target.value})} 
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Room</Label>
+                  <select 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={editingService.roomId} 
+                    onChange={e => setEditingService({...editingService, roomId: e.target.value})}
+                  >
+                    <option value="">No Room</option>
+                    {rooms.map(r => (
+                      <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+              <Button onClick={handleUpdateService} isLoading={editSaving}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Services Catalog</CardTitle>
-          <CardDescription>All billing items not classified as drugs or lab tests.</CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle>Services Catalog</CardTitle>
+              <CardDescription>All billing items not classified as drugs or lab tests.</CardDescription>
+            </div>
+            <Badge variant="secondary" className="w-fit text-xs font-medium">
+              Showing {filteredServices.length} of {services.length} services
+            </Badge>
+          </div>
+
+          {/* SEARCH & FILTER CONTROLS BAR */}
+          <div className="pt-4 flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by service name, barcode, description, room..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Room Filter */}
+            <div className="w-full md:w-64">
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={selectedRoom} 
+                onChange={e => setSelectedRoom(e.target.value)}
+              >
+                <option value="ALL">All Rooms</option>
+                <option value="UNASSIGNED">Unassigned (No Room)</option>
+                {rooms.map(r => (
+                  <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Reset Filters button */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-10 px-3 text-xs text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border bg-card">
@@ -206,32 +423,60 @@ export default function ExtraServicesPage() {
                   <TableHead className="font-semibold">Barcode</TableHead>
                   <TableHead className="font-semibold">Room</TableHead>
                   <TableHead className="font-semibold text-right">Price</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
+                  <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {services.map((svc) => (
+                {filteredServices.map((svc) => (
                   <TableRow key={svc.id}>
                     <TableCell>
                       <div className="font-medium text-foreground">{svc.title}</div>
                       {svc.description && <div className="text-xs text-muted-foreground mt-0.5">{svc.description}</div>}
                     </TableCell>
                     <TableCell className="text-muted-foreground font-mono text-sm">{svc.barcode}</TableCell>
-                    <TableCell>{svc.roomNumber || svc.roomId || "-"}</TableCell>
+                    <TableCell>
+                      {svc.room?.roomNumber 
+                        ? `${svc.room.roomNumber} (${svc.room.department})`
+                        : (rooms.find(r => r.id === svc.roomId)?.name || svc.roomNumber || "-")}
+                    </TableCell>
                     <TableCell className="text-right font-medium">Rs. {svc.price.toFixed(2)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(svc.id)}>
+                      <div className="flex gap-1 justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50" 
+                          onClick={() => openEditServiceModal(svc)}
+                          title="Edit Service"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10" 
+                          onClick={() => handleDelete(svc.id)}
+                          title="Deactivate Service"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {services.length === 0 && (
+                {filteredServices.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      No extra services found.
+                    <TableCell colSpan={5} className="h-28 text-center text-muted-foreground">
+                      {services.length === 0 ? (
+                        "No extra services found. Click 'Add Extra Service' to create one."
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <p>No extra services match your search and filter criteria.</p>
+                          <Button variant="outline" size="sm" onClick={resetFilters}>
+                            Clear Filters
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
