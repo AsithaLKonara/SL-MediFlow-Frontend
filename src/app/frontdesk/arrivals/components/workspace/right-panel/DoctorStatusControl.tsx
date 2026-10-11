@@ -29,6 +29,7 @@ export function DoctorStatusControl({
   const handleMarkArrived = async () => {
     try {
       setIsMarkingArrived(true);
+      const targetRoomId = doctor.attendance?.roomId || doctor.sessions?.[0]?.roomId || doctor.sessions?.[0]?.room?.id || (doctor as any).roomId || undefined;
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/attendance`, {
         method: 'PUT',
         headers: {
@@ -37,6 +38,7 @@ export function DoctorStatusControl({
         },
         body: JSON.stringify({ 
           status: "ARRIVED",
+          roomId: targetRoomId,
           date: new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
         })
       });
