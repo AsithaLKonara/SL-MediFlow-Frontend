@@ -103,14 +103,18 @@ export default function RoomsManagementPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this room?")) return;
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rooms/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rooms/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Failed to delete room");
+      }
       toast.success("Room deleted");
       fetchRooms();
-    } catch {
-      toast.error("Failed to delete room");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete room");
     }
   };
 

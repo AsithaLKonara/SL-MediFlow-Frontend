@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Microscope, Clock } from "lucide-react";
+import { AlertTriangle, Microscope, Clock, Search, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 
 interface TestItem {
   name: string;
@@ -39,7 +43,36 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 export default function LabTechRequestsPage() {
   const [requests, setRequests] = useState<LabRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tokenSearch, setTokenSearch] = useState("");
+  const [searching, setSearching] = useState(false);
   const { token } = useAuth();
+  const router = useRouter();
+
+  const performTokenSearch = async (query: string) => {
+    if (!query.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/token/${query.trim()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && data.data.LabRequests && data.data.LabRequests.length > 0) {
+        const reqId = data.data.LabRequests[0].id;
+        router.push(`/labtech/results/${reqId}`);
+      } else {
+        toast.error("No pending lab requests found for this token.");
+      }
+    } catch (error) {
+      toast.error("Failed to search token.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Barcode scanner: scanning auto-searches without touching keyboard
+  useBarcodeScanner((barcode) => {
+    performTokenSearch(barcode);
+  });
 
   useEffect(() => {
     if (!token) return;
@@ -148,11 +181,26 @@ export default function LabTechRequestsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Lab Test Requests</h2>
-        <p className="text-muted-foreground mt-1">
-          {active.length} active · {published.length} published today
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Lab Test Requests</h2>
+          <p className="text-muted-foreground mt-1">
+            {active.length} active · {published.length} published today
+          </p>
+        </div>
+        {/* Barcode/Token Search */}
+        <form onSubmit={(e) => { e.preventDefault(); performTokenSearch(tokenSearch); }} className="flex items-center gap-2 max-w-sm w-full bg-card p-2 rounded-lg border shadow-sm">
+          <Search className="w-5 h-5 text-muted-foreground ml-2" />
+          <Input
+            value={tokenSearch}
+            onChange={(e) => setTokenSearch(e.target.value)}
+            placeholder="Scan or type token..."
+            className="border-0 bg-transparent focus-visible:ring-0 shadow-none flex-1 text-lg"
+          />
+          <Button type="submit" disabled={!tokenSearch.trim()} isLoading={searching}>
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </form>
       </div>
 
       {active.length > 0 && (

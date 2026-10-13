@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Search, PackageCheck, Banknote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
-import { useBarcodeScanner } from "@/app/frontdesk/hooks/useBarcodeScanner";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 
 interface Drug {
   id: string;

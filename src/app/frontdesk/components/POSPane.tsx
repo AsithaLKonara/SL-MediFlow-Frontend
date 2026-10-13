@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2 } from "lucide-react";
 import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
-import { useBarcodeScanner } from "../hooks/useBarcodeScanner";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
 import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
 import { toast } from "sonner";
@@ -156,10 +156,14 @@ export function POSPane() {
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const tokenTotal = pendingTokenPayload ? pendingTokenPayload.expectedTotal : 0;
   
+  const hasConsultInInvoice = pendingAppointmentPayload?.invoice?.lineItems?.some(
+    (li: any) => li.department === "CONSULTATION"
+  );
   const appointmentTotal = pendingAppointmentPayload 
-    ? (pendingAppointmentPayload.invoice 
-        ? pendingAppointmentPayload.invoice.totalAmount 
-        : (pendingAppointmentPayload.isUpfront ? pendingAppointmentPayload.fee : 0))
+    ? (
+        (pendingAppointmentPayload.invoice ? pendingAppointmentPayload.invoice.totalAmount : 0) +
+        ((!hasConsultInInvoice && !pendingAppointmentPayload.consultationPaid) ? (pendingAppointmentPayload.fee || 0) : 0)
+      )
     : 0;
     
   const subtotal = cartSubtotal + tokenTotal + appointmentTotal;
@@ -195,33 +199,23 @@ export function POSPane() {
         pendingAppointmentPayload.invoice.lineItems.forEach((li: any) => {
           displayCart.push({ id: li.id, name: li.description, qty: li.quantity, price: li.unitPrice });
         });
-      } else if (pendingAppointmentPayload.isUpfront) {
-         displayCart.push({
-           id: `appt-consult`,
-           name: `Consultation - Dr. ${pendingAppointmentPayload.doctorName || ''}`,
-           qty: 1,
-           price: pendingAppointmentPayload.fee || 0
-         });
       }
 
-      // Add post-pay consultations from the appointment payload
-      pendingAppointmentPayload.allAppointments?.filter((appt: any) => appt.department === "CONSULTATION").forEach((appt: any, idx: number) => {
-        const isUpfront = appt.User?.feeType === "UPFRONT";
-        const fee = appt.User?.consultationFee || 2500;
-        const docName = appt.User?.fullName || appt.doctorName || "Doctor";
-        
-        // If it's upfront AND we have an invoice, it should already be in the invoice line items.
-        if (isUpfront && pendingAppointmentPayload.invoice?.lineItems?.some((li: any) => li.department === "CONSULTATION" && li.description.includes(docName))) {
-           return;
-        }
+      const isPaid = !!pendingAppointmentPayload.consultationPaid;
+      const fee = pendingAppointmentPayload.fee || 2500;
+      const consultDocName = pendingAppointmentPayload.doctorName || "Doctor";
+      const alreadyInInvoice = pendingAppointmentPayload.invoice?.lineItems?.some(
+        (li: any) => li.department === "CONSULTATION"
+      );
 
+      if (!alreadyInInvoice && (pendingAppointmentPayload.doctorName || pendingAppointmentPayload.fee)) {
         displayCart.push({
-          id: `appt-postpay-${idx}`,
-          name: `Consultation - Dr. ${docName}`,
+          id: 'appt-consult',
+          name: `Consultation - Dr. ${consultDocName}`,
           qty: 1,
-          price: isUpfront ? fee : 0 // The UI shows LKR 0.00 for actual Post Pay but LKR fee if it's upfront but not invoiced
+          price: isPaid ? 0 : fee
         });
-      });
+      }
     }
 
 
@@ -328,19 +322,36 @@ export function POSPane() {
         });
         toast.success(`Added ${data.title}`);
       } else if (type === "APPOINTMENT") {
-        const { appointment, invoice, prescriptions } = data;
-        if (appointment.status === "COMPLETED" || appointment.status === "CANCELLED") {
-          toast.error(`Appointment is already ${appointment.status}`);
+        const { appointment, allAppointments, invoice, prescriptions, consultationPaid } = data;
+        if (appointment.status === "CANCELLED") {
+          toast.error("This appointment has been CANCELLED.");
           return;
         }
+
+        const fee = appointment.User?.consultationFee || 2500;
+        const isUpfront = appointment.User?.feeType === "UPFRONT";
+        const hasUnpaidInvoice = !!(invoice && invoice.lineItems?.length > 0);
+        const hasUnpaidPrescriptions = !!(prescriptions && prescriptions.some((p: any) => p.status !== "DISPENSED" && p.items?.length > 0));
+
+        if (consultationPaid && !hasUnpaidInvoice && !hasUnpaidPrescriptions) {
+          setSearchInput("");
+          toast.info(`Visit ${appointment.bookingReference || appointment.tokenNumber} is already fully paid.`);
+          return;
+        }
+
         setPendingAppointmentPayload({
           appointmentId: appointment.id,
           tokenNumber: appointment.tokenNumber,
+          bookingReference: appointment.bookingReference,
           patientName: appointment.Patient?.fullName,
           doctorName: appointment.User?.fullName,
-          isUpfront: appointment.User?.feeType === "UPFRONT",
-          fee: appointment.User?.consultationFee || 2500,
-          invoice: invoice
+          doctorId: appointment.doctorId,
+          isUpfront,
+          fee,
+          invoice,
+          allAppointments,
+          consultationPaid,
+          isAppointmentCheckout: true
         });
 
         // Auto-load prescriptions into the RX cart if available
@@ -373,20 +384,18 @@ export function POSPane() {
               if (rx.patientId) setActivePatientId(rx.patientId);
               if (rx.visitId) setActiveVisitId(rx.visitId);
 
-
-
               apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "IN_PROGRESS" }),
               }).catch(console.error);
               notifyRxStatus(rx.id, "IN_PROGRESS");
-              toast.success(`Loaded prescription from token.`);
             }
           }
-        } else {
-          toast.success(`Appointment loaded for checkout`);
         }
+
+        setSearchInput("");
+        toast.success(`Visit ${appointment.bookingReference || appointment.tokenNumber} loaded for checkout.`);
       }
     } catch (e) {
       console.error(e);
@@ -401,7 +410,9 @@ export function POSPane() {
   const handleBarcodeScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      processBarcode(searchInput.trim());
+      const code = searchInput.trim();
+      setSearchInput("");
+      processBarcode(code);
     }
   };
 
@@ -682,11 +693,12 @@ export function POSPane() {
                   })
                 )}
                 
-                {/* Render Post Pay Consultations or fallback for no invoice */}
+                {/* Render Consultations (Upfront or Post Pay) */}
                 {pendingAppointmentPayload.allAppointments?.filter((appt: any) => appt.department === "CONSULTATION").map((appt: any, idx: number) => {
                   const isUpfront = appt.User?.feeType === "UPFRONT";
                   const fee = appt.User?.consultationFee || 2500;
                   const docName = appt.User?.fullName || appt.doctorName || "Doctor";
+                  const isPaid = !!pendingAppointmentPayload.consultationPaid;
                   
                   // If it's upfront AND we have an invoice, it should already be in the invoice line items.
                   if (isUpfront && pendingAppointmentPayload.invoice?.lineItems?.some((li: any) => li.department === "CONSULTATION" && li.description.includes(docName))) {
@@ -699,20 +711,41 @@ export function POSPane() {
                         Consultation - Dr. {docName}
                         <div className="text-xs text-muted-foreground font-normal">
                           Patient: {pendingAppointmentPayload.patientName || "Walk-in"}
-                          {!isUpfront && " | Post Pay"}
+                          {isPaid ? " | Paid" : (!isUpfront ? " | Post Pay" : "")}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">1</TableCell>
                       <TableCell className="text-right">
-                        {isUpfront ? `LKR ${fee.toFixed(2)}` : "Post Pay"}
+                        LKR {fee.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {isUpfront ? `LKR ${fee.toFixed(2)}` : "LKR 0.00"}
+                        {isPaid ? "PAID" : `LKR ${fee.toFixed(2)}`}
                       </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   );
                 })}
+
+                {/* If allAppointments didn't have CONSULTATION but doctorName/fee is on pendingAppointmentPayload */}
+                {(!pendingAppointmentPayload.allAppointments || !pendingAppointmentPayload.allAppointments.some((a: any) => a.department === "CONSULTATION")) && (pendingAppointmentPayload.doctorName || pendingAppointmentPayload.fee) && (
+                  <TableRow key="fallback-consult" className="border-border bg-primary/5">
+                    <TableCell className="font-medium text-primary">
+                      Consultation - Dr. {pendingAppointmentPayload.doctorName || "Doctor"}
+                      <div className="text-xs text-muted-foreground font-normal">
+                        Patient: {pendingAppointmentPayload.patientName || "Walk-in"}
+                        {pendingAppointmentPayload.consultationPaid ? " | Paid" : (!pendingAppointmentPayload.isUpfront ? " | Post Pay" : "")}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">1</TableCell>
+                    <TableCell className="text-right">
+                      LKR {(pendingAppointmentPayload.fee || 2500).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {pendingAppointmentPayload.consultationPaid ? "PAID" : `LKR ${(pendingAppointmentPayload.fee || 2500).toFixed(2)}`}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                )}
                 <TableRow className="border-border">
                   <TableCell colSpan={4} className="text-right text-xs text-muted-foreground pt-4">
                     <span className="cursor-pointer text-red-500 hover:underline" onClick={() => setPendingAppointmentPayload(null)}>
@@ -885,6 +918,8 @@ export function POSPane() {
 
                     let tokenResultTokens: any[] = [];
 
+                    let createdInvoiceId: string | null = null;
+
                     // 1. Generate Token if payload exists
                     if (pendingTokenPayload) {
                       const resToken = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
@@ -896,6 +931,7 @@ export function POSPane() {
                         const tokenRes = await resToken.json();
                         tokenResultTokens = tokenRes.data.tokens || [];
                         if (tokenRes.data.invoice) {
+                           createdInvoiceId = tokenRes.data.invoice.id;
                            tokenRes.data.invoice.lineItems.forEach((li: any) => {
                              combinedItems.push({
                                name: li.description,
@@ -913,20 +949,26 @@ export function POSPane() {
                       }
                     }
 
-                    // 1.5 Checkout Phone Appointment if payload exists
+                    // 1.5 Checkout Appointment if payload exists
                     if (pendingAppointmentPayload && pendingAppointmentPayload.isAppointmentCheckout) {
                       const resAppt = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/checkout-appointment`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ ...pendingAppointmentPayload, paymentMethod: activePaymentMethod })
+                        body: JSON.stringify({ 
+                          appointmentId: pendingAppointmentPayload.appointmentId,
+                          fee: pendingAppointmentPayload.consultationPaid ? 0 : pendingAppointmentPayload.fee,
+                          isUpfront: pendingAppointmentPayload.isUpfront,
+                          paymentMethod: activePaymentMethod 
+                        })
                       });
                       if (resAppt.ok) {
                         const apptRes = await resAppt.json();
-                        // It returns { tokenNumber, department, doctorName, patientName, invoice }
+                        // It returns { tokenNumber, department, doctorName, patientName, invoice, tokens }
                         if (apptRes.data.tokens && apptRes.data.tokens.length > 0) {
                           apptRes.data.tokens.forEach((t: any) => {
                             tokenResultTokens.push({
                               id: t.id,
+                              refNo: t.bookingReference || t.refNo,
                               tokenNumber: t.tokenNumber,
                               department: t.department,
                               doctorName: t.User?.fullName || apptRes.data.doctorName || "General",
@@ -938,14 +980,15 @@ export function POSPane() {
                           });
                         } else {
                           tokenResultTokens.push({
-                            id: apptRes.data.appointment.id,
-                            tokenNumber: apptRes.data.tokenNumber,
-                            department: apptRes.data.department,
-                            doctorName: apptRes.data.doctorName,
-                            patientName: apptRes.data.patientName,
-                            status: apptRes.data.appointment.status,
-                            appointmentDate: apptRes.data.appointment.appointmentDate,
-                            roomNumber: apptRes.data.appointment.roomNumber || null
+                            id: apptRes.data.appointment?.id || pendingAppointmentPayload.appointmentId,
+                            refNo: apptRes.data.appointment?.bookingReference || pendingAppointmentPayload.bookingReference,
+                            tokenNumber: apptRes.data.tokenNumber || pendingAppointmentPayload.tokenNumber,
+                            department: apptRes.data.department || "CONSULTATION",
+                            doctorName: apptRes.data.doctorName || pendingAppointmentPayload.doctorName,
+                            patientName: apptRes.data.patientName || pendingAppointmentPayload.patientName,
+                            status: apptRes.data.appointment?.status || "WAITING",
+                            appointmentDate: apptRes.data.appointment?.appointmentDate || new Date().toISOString(),
+                            roomNumber: apptRes.data.appointment?.roomNumber || null
                           });
                         }
 
@@ -979,8 +1022,7 @@ export function POSPane() {
                        });
                     }
 
-                    // 2. Process Pharmacy Cart (and/or post pay consultation) if any
-                    let receiptId = `TXN-${Date.now()}`;
+                    let receiptId = tokenResultTokens?.[0]?.refNo || createdInvoiceId || `TXN-${Date.now()}`;
                     if (cart.length > 0) {
                       const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
                         method: "POST",

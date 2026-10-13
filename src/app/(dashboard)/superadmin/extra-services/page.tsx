@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FilePlus2, Trash2, Edit, Search, X, RotateCcw } from "lucide-react";
+import { Plus, FilePlus2, Trash2, Edit, Search, X, RotateCcw, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -37,6 +38,7 @@ export default function ExtraServicesPage() {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
   
   // New service state
   const [isNewOpen, setIsNewOpen] = useState(false);
@@ -52,15 +54,18 @@ export default function ExtraServicesPage() {
     price: number;
     barcode: string;
     roomId: string;
+    isActive: boolean;
   } | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
   const { token } = useAuth();
 
   useEffect(() => {
-    fetchServices();
-    fetchRooms();
-  }, []);
+    if (token) {
+      fetchServices();
+      fetchRooms();
+    }
+  }, [token]);
 
   const fetchRooms = async () => {
     try {
@@ -75,8 +80,9 @@ export default function ExtraServicesPage() {
   };
 
   const fetchServices = () => {
+    if (!token) return;
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services?all=true`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -141,6 +147,7 @@ export default function ExtraServicesPage() {
       price: svc.price,
       barcode: svc.barcode,
       roomId: svc.roomId || svc.room?.id || "",
+      isActive: svc.isActive !== false,
     });
     setIsEditOpen(true);
   };
@@ -165,6 +172,7 @@ export default function ExtraServicesPage() {
           price: editingService.price,
           barcode: editingService.barcode,
           roomId: editingService.roomId || null,
+          isActive: editingService.isActive,
         })
       });
       const data = await res.json();
@@ -197,6 +205,24 @@ export default function ExtraServicesPage() {
       toast.error(e.message);
     }
   };
+
+  const handleReactivate = async (id: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: true })
+      });
+      if (!res.ok) throw new Error("Failed to reactivate");
+      toast.success("Service reactivated successfully!");
+      fetchServices();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to reactivate service");
+    }
+  };
   const filteredServices = useMemo(() => {
     return services.filter(svc => {
       const q = searchQuery.toLowerCase().trim();
@@ -213,15 +239,19 @@ export default function ExtraServicesPage() {
       const matchesRoom = selectedRoom === "ALL" ||
         (selectedRoom === "UNASSIGNED" ? !svcRoomId : svcRoomId === selectedRoom);
 
-      return matchesSearch && matchesRoom;
-    });
-  }, [services, searchQuery, selectedRoom, rooms]);
+      const matchesStatus = filterStatus === "ALL" ||
+        (filterStatus === "ACTIVE" ? svc.isActive !== false : svc.isActive === false);
 
-  const hasActiveFilters = searchQuery !== "" || selectedRoom !== "ALL";
+      return matchesSearch && matchesRoom && matchesStatus;
+    });
+  }, [services, searchQuery, selectedRoom, filterStatus, rooms]);
+
+  const hasActiveFilters = searchQuery !== "" || selectedRoom !== "ALL" || filterStatus !== "ALL";
 
   const resetFilters = () => {
     setSearchQuery("");
     setSelectedRoom("ALL");
+    setFilterStatus("ALL");
   };
 
   if (loading && services.length === 0) return (
@@ -343,6 +373,16 @@ export default function ExtraServicesPage() {
                     ))}
                   </select>
                 </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm">Active Status</Label>
+                    <p className="text-xs text-muted-foreground">Enabled for billing and counter selection</p>
+                  </div>
+                  <Switch 
+                    checked={editingService.isActive} 
+                    onCheckedChange={(checked) => setEditingService({...editingService, isActive: checked})} 
+                  />
+                </div>
               </div>
             )}
             <DialogFooter>
@@ -387,7 +427,7 @@ export default function ExtraServicesPage() {
             </div>
 
             {/* Room Filter */}
-            <div className="w-full md:w-64">
+            <div className="w-full md:w-56">
               <select 
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={selectedRoom} 
@@ -398,6 +438,19 @@ export default function ExtraServicesPage() {
                 {rooms.map(r => (
                   <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
                 ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full md:w-36">
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={filterStatus} 
+                onChange={e => setFilterStatus(e.target.value)}
+              >
+                <option value="ALL">All Status</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Deactivated</option>
               </select>
             </div>
 
@@ -422,13 +475,14 @@ export default function ExtraServicesPage() {
                   <TableHead className="font-semibold">Service</TableHead>
                   <TableHead className="font-semibold">Barcode</TableHead>
                   <TableHead className="font-semibold">Room</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold text-right">Price</TableHead>
                   <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredServices.map((svc) => (
-                  <TableRow key={svc.id}>
+                  <TableRow key={svc.id} className={svc.isActive === false ? "opacity-60 bg-muted/20" : ""}>
                     <TableCell>
                       <div className="font-medium text-foreground">{svc.title}</div>
                       {svc.description && <div className="text-xs text-muted-foreground mt-0.5">{svc.description}</div>}
@@ -438,6 +492,17 @@ export default function ExtraServicesPage() {
                       {svc.room?.roomNumber 
                         ? `${svc.room.roomNumber} (${svc.room.department})`
                         : (rooms.find(r => r.id === svc.roomId)?.name || svc.roomNumber || "-")}
+                    </TableCell>
+                    <TableCell>
+                      {svc.isActive !== false ? (
+                        <Badge variant="outline" className="border-green-500/30 text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30 text-xs">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground text-xs">
+                          Inactive
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-medium">Rs. {svc.price.toFixed(2)}</TableCell>
                     <TableCell>
@@ -451,22 +516,34 @@ export default function ExtraServicesPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10" 
-                          onClick={() => handleDelete(svc.id)}
-                          title="Deactivate Service"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {svc.isActive !== false ? (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10" 
+                            onClick={() => handleDelete(svc.id)}
+                            title="Deactivate Service"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/50" 
+                            onClick={() => handleReactivate(svc.id)}
+                            title="Reactivate Service"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {filteredServices.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-28 text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="h-28 text-center text-muted-foreground">
                       {services.length === 0 ? (
                         "No extra services found. Click 'Add Extra Service' to create one."
                       ) : (

@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
 import { toast } from "sonner";
-import { User, KeyRound, Loader2, Save, Settings as SettingsIcon, Bell, Sun } from "lucide-react";
+import { User, KeyRound, Loader2, Save, Settings as SettingsIcon, Bell, Sun, Hospital } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, token } = useAuth();
@@ -129,12 +130,23 @@ export default function SettingsPage() {
   }
 
   const isDoctor = user?.role?.toLowerCase() === "doctor";
+  const isAdmin = user?.role?.toLowerCase() === "superadmin" || user?.role?.toLowerCase() === "admin";
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Settings & Profile</h2>
-        <p className="text-muted-foreground mt-2">Manage your personal information, security, and app preferences.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Settings & Profile</h2>
+          <p className="text-muted-foreground mt-2">Manage your personal information, security, and app preferences.</p>
+        </div>
+        {isAdmin && (
+          <Link href="/superadmin/settings">
+            <Button variant="outline" className="gap-2 border-primary/30 hover:border-primary">
+              <Hospital className="w-4 h-4 text-primary" />
+              Hospital System Settings
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Tabs defaultValue="profile" orientation="vertical" className="w-full flex flex-col md:flex-row gap-6">

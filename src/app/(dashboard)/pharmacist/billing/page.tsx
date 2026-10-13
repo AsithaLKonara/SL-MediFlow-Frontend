@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, Plus, Minus, Trash2, CreditCard, SendToBack, Printer, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useBarcodeScanner } from "@/app/frontdesk/hooks/useBarcodeScanner";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 
 interface InventoryItem {
   id: string;

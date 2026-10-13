@@ -97,8 +97,10 @@ export default function RBACMatrixPage() {
   };
 
   useEffect(() => {
-    fetchRoles();
-  }, []);
+    if (token) {
+      fetchRoles();
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!loading && data.length > 0 && selectedRoleId) {

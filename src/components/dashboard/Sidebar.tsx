@@ -23,6 +23,7 @@ import {
   FilePlus2,
   CreditCard,
   Shield,
+  Hospital,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,8 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/rooms", label: "Room Management", icon: Building2, category: "Management", permission: "Rooms" },
     
     { href: "/superadmin/rbac", label: "Access Control", icon: Shield, category: "System", permission: "RBAC" },
-    { href: "/settings", label: "Settings", icon: Settings, category: "System", permission: "Settings" },
+    { href: "/superadmin/settings", label: "System Settings", icon: Hospital, category: "System", permission: "Settings" },
+    { href: "/settings", label: "My Profile", icon: Settings, category: "System" },
   ],
   frontdesk: [
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
@@ -80,6 +82,28 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
+  pharmacist: [
+    { href: "/pharmacist", label: "Overview", icon: LayoutDashboard },
+    { href: "/pharmacist/prescriptions", label: "Prescriptions", icon: FileText },
+    { href: "/pharmacist/billing", label: "POS Billing", icon: Receipt },
+    { href: "/pharmacist/inventory", label: "Pharmacy Stock", icon: PackageSearch },
+    { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
+  receptionist: [
+    { href: "/receptionist", label: "Overview", icon: LayoutDashboard },
+    { href: "/receptionist/queue", label: "Patient Queue", icon: ClipboardList },
+    { href: "/receptionist/patients", label: "Patient Directory", icon: Users },
+    { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
+  cashier: [
+    { href: "/cashier", label: "Overview", icon: LayoutDashboard },
+    { href: "/cashier/payments", label: "Payments List", icon: CreditCard },
+    { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
+    { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
 };
 
 const roleLabelMap: Record<string, string> = {
@@ -88,6 +112,9 @@ const roleLabelMap: Record<string, string> = {
   doctor: "Doctor",
   labtech: "Lab",
   nurse: "Nurse",
+  pharmacist: "Pharmacist",
+  receptionist: "Receptionist",
+  cashier: "Cashier",
 };
 
 export function Sidebar() {

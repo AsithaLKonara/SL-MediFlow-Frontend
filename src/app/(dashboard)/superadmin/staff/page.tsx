@@ -138,8 +138,10 @@ export default function StaffManagementPage() {
   };
 
   useEffect(() => {
-    Promise.all([fetchStaff(), fetchRoles(), fetchDepartments(), fetchRooms()]).finally(() => setLoading(false));
-  }, []);
+    if (token) {
+      Promise.all([fetchStaff(), fetchRoles(), fetchDepartments(), fetchRooms()]).finally(() => setLoading(false));
+    }
+  }, [token]);
 
   const openAddModal = () => {
     setEditingId(null);

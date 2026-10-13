@@ -132,9 +132,16 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
           )}
 
           <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
-            {(receiptData?.receiptId || (tokens && tokens.length > 0 && (tokens[0].refNo || tokens[0].id))) && (
+            {((tokens && tokens.length > 0 && (tokens[0].refNo || tokens[0].id)) || receiptData?.receiptId) && (
               <div className="mb-2 w-full flex justify-center overflow-hidden">
-                <Barcode value={get10DigitBarcode(receiptData?.receiptId || tokens?.[0]?.refNo || tokens?.[0]?.id)} width={1} height={40} fontSize={10} margin={0} displayValue={true} />
+                <Barcode 
+                  value={tokens?.[0]?.refNo || (tokens?.[0]?.id ? get10DigitBarcode(tokens[0].id) : get10DigitBarcode(receiptData?.receiptId))} 
+                  width={1} 
+                  height={40} 
+                  fontSize={10} 
+                  margin={0} 
+                  displayValue={true} 
+                />
               </div>
             )}
             <p className="text-xs font-bold">Thank you for your business!</p>

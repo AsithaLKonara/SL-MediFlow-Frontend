@@ -18,6 +18,7 @@ import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
 import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 
 interface Doctor {
   id: string;
@@ -79,6 +80,7 @@ interface GeneratedToken {
 
 export function TokenPane() {
   const { token } = useAuth();
+  const [activeTab, setActiveTab] = useState<"reception" | "phone-booking" | "prescriptions">("reception");
   
   const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
     return fetch(url, {
@@ -320,6 +322,27 @@ export function TokenPane() {
     fetchPendingPrescriptions();
   }, [token, apiFetch, fetchPendingPrescriptions]);
 
+  // Barcode scanner: scanning a token barcode auto-switches to the Rx tab
+  useBarcodeScanner(async (barcode) => {
+    // Token barcodes are UUIDs (36 chars). Medicine barcodes are handled by POSPane.
+    if (barcode.length !== 36) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${barcode}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const { type } = await res.json();
+      if (type === "APPOINTMENT" || type === "PRESCRIPTION") {
+        // Refresh prescriptions and switch to Rx tab
+        await fetchPendingPrescriptions();
+        setActiveTab("prescriptions");
+        toast.success("Token scanned — switched to Rx tab.");
+      }
+    } catch (e) {
+      // Silently ignore — POSPane will handle the error
+    }
+  });
+
   // Listen for status updates from POSPane (via BroadcastChannel)
   useEffect(() => {
     onRxStatusUpdate((update) => {
@@ -539,7 +562,7 @@ export function TokenPane() {
           />
         )}
       </div>
-      <Tabs defaultValue="reception" className="flex flex-col h-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "reception" | "phone-booking" | "prescriptions")} className="flex flex-col h-full">
         <TabsList className="grid w-full grid-cols-3 mb-4 bg-background border border-border !h-[48px] p-1">
           <TabsTrigger value="reception" className="!h-full text-base data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
             <Users className="w-5 h-5 mr-2 hidden sm:block" />

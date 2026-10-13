@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Settings2, Users } from "lucide-react";
+import { Plus, Settings2, Users, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
@@ -56,6 +56,27 @@ export default function RolePayrollTemplatesPage() {
       toast.error("Failed to fetch role templates");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, roleName: string) => {
+    if (!confirm(`Are you sure you want to delete the payroll template for ${roleName}?`)) return;
+    try {
+      const res = await fetch(`${API}/hr/role-templates/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete template");
+      }
+      toast.success("Role template deleted successfully");
+      if (isModalOpen && form.id === id) {
+        setIsModalOpen(false);
+      }
+      fetchTemplates();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete template");
     }
   };
 
@@ -121,19 +142,17 @@ export default function RolePayrollTemplatesPage() {
                 <TableHead>Allowed Leaves/Mo</TableHead>
                 <TableHead>Advance Date</TableHead>
                 <TableHead>Full Salary Date</TableHead>
+                <TableHead className="w-[100px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center">Loading...</TableCell></TableRow>
               ) : templates.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No templates defined.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">No templates defined.</TableCell></TableRow>
               ) : (
                 templates.map((t) => (
-                  <TableRow key={t.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
-                    setForm(t);
-                    setIsModalOpen(true);
-                  }}>
+                  <TableRow key={t.id} className="hover:bg-muted/50 transition-colors">
                     <TableCell className="font-semibold">{t.role}</TableCell>
                     <TableCell>{t.workingHoursPerDay} hrs</TableCell>
                     <TableCell>Rs. {t.perHourRate.toFixed(2)}</TableCell>
@@ -141,6 +160,31 @@ export default function RolePayrollTemplatesPage() {
                     <TableCell>{t.allowedLeavesPerMonth}</TableCell>
                     <TableCell>{t.advancePayDate ? `Day ${t.advancePayDate}` : "-"}</TableCell>
                     <TableCell>{t.fullSalaryPayDate ? `Day ${t.fullSalaryPayDate}` : "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400"
+                          onClick={() => {
+                            setForm(t);
+                            setIsModalOpen(true);
+                          }}
+                          title="Edit Template"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(t.id, t.role)}
+                          title="Delete Template"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -204,9 +248,20 @@ export default function RolePayrollTemplatesPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>Save Template</Button>
+          <DialogFooter className="flex flex-col sm:flex-row justify-between gap-2">
+            {form.id ? (
+              <Button 
+                variant="destructive" 
+                onClick={() => handleDelete(form.id!, form.role || "this role")}
+                className="w-full sm:w-auto"
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Delete Template
+              </Button>
+            ) : <div />}
+            <div className="flex gap-2 justify-end w-full sm:w-auto">
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave}>Save Template</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

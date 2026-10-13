@@ -57,7 +57,7 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
       <div className="mt-8 text-center border-t-2 border-black pt-4 flex flex-col items-center">
         {tokenId ? (
           <div className="mb-2 w-full flex justify-center overflow-hidden">
-            <Barcode value={tokenId} width={1} height={40} fontSize={10} margin={0} displayValue={false} />
+            <Barcode value={tokenId} width={1} height={40} fontSize={10} margin={0} displayValue={true} />
           </div>
         ) : (
           <div className="w-3/4 h-12 border border-black mb-2 flex items-center justify-center text-[10px]">No Barcode Data</div>

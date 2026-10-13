@@ -60,8 +60,10 @@ export default function DepartmentsPage() {
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
-    fetchDepartments();
-  }, []);
+    if (token) {
+      fetchDepartments();
+    }
+  }, [token]);
 
   const fetchDepartments = async () => {
     try {
