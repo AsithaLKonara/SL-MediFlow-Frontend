@@ -24,6 +24,7 @@ import {
   CreditCard,
   Shield,
   Hospital,
+  ActivitySquare,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   nurse: [
+    { href: "/nurse", label: "Extra Services Station", icon: ActivitySquare },
     { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },

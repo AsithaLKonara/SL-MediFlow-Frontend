@@ -422,35 +422,20 @@ export function POSPane() {
           isAppointmentCheckout: true
         });
 
-        // Auto-load prescriptions into the RX cart if available
+        // Auto-load all active prescriptions into the RX cart if available
         if (prescriptions && prescriptions.length > 0) {
-          const rx = prescriptions[0];
-          if (rx.status !== "DISPENSED" && rx.items) {
-            const cartItems: CartItem[] = rx.items
-              .filter((item: any) => item.medicineId && item.medicine)
-              .map((item: any) => ({
-                id: item.medicine.id,
-                name: item.medicine.name,
-                qty: item.dispenseQty || 1,
-                price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
-              }));
-            
-            if (cartItems.length > 0) {
-              setCart(prev => {
-                const updated = [...prev];
-                for (const rxItem of cartItems) {
-                  const idx = updated.findIndex((i) => i.id === rxItem.id);
-                  if (idx >= 0) {
-                    updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
-                  } else {
-                    updated.push(rxItem);
-                  }
-                }
-                return updated;
-              });
-              setActivePrescriptionId(rx.id);
-              if (rx.patientId) setActivePatientId(rx.patientId);
-              if (rx.visitId) setActiveVisitId(rx.visitId);
+          const allCartItems: CartItem[] = [];
+          for (const rx of prescriptions) {
+            if (rx.status !== "DISPENSED" && rx.items) {
+              const items: CartItem[] = rx.items
+                .filter((item: any) => item.medicineId && item.medicine)
+                .map((item: any) => ({
+                  id: item.medicine.id,
+                  name: item.medicine.name,
+                  qty: item.dispenseQty || 1,
+                  price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
+                }));
+              allCartItems.push(...items);
 
               apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
                 method: "PATCH",
@@ -459,6 +444,24 @@ export function POSPane() {
               }).catch(console.error);
               notifyRxStatus(rx.id, "IN_PROGRESS");
             }
+          }
+
+          if (allCartItems.length > 0) {
+            setCart(prev => {
+              const updated = [...prev];
+              for (const rxItem of allCartItems) {
+                const idx = updated.findIndex((i) => i.id === rxItem.id);
+                if (idx >= 0) {
+                  updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+                } else {
+                  updated.push(rxItem);
+                }
+              }
+              return updated;
+            });
+            setActivePrescriptionId(prescriptions[0]?.id);
+            if (prescriptions[0]?.patientId) setActivePatientId(prescriptions[0].patientId);
+            if (prescriptions[0]?.visitId) setActiveVisitId(prescriptions[0].visitId);
           }
         }
 
@@ -750,7 +753,7 @@ export function POSPane() {
                       bgClass = "bg-blue-500/5";
                       textClass = "text-blue-600";
                       subText = "Lab Test";
-                    } else if (li.department === "SERVICE") {
+                    } else if (li.department === "SERVICE" || li.department === "EXTRA_SERVICE") {
                       bgClass = "bg-orange-500/5";
                       textClass = "text-orange-600";
                       subText = "Extra Service";
@@ -1229,6 +1232,9 @@ export function POSPane() {
                     const parsedReceived = parseFloat(receivedAmountInput) || total;
                     setReceiptData({
                       receiptId,
+                      masterBarcode: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo || receiptId,
+                      bookingReference: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo,
+                      refNo: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo,
                       date: new Date(),
                       items: combinedItems,
                       subtotal: subtotal,

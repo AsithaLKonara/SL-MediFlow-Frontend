@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ScanBarcode, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -33,8 +37,64 @@ import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function DoctorQueuePage() {
   const { user, token } = useAuth();
+  const router = useRouter();
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+
+  const handleBarcodeSearch = async (code: string) => {
+    const raw = code.trim();
+    if (!raw) return;
+    setSearching(true);
+
+    try {
+      // 1. Check local queue
+      const match = queue.find(
+        (q) =>
+          q.queueNo.toLowerCase() === raw.toLowerCase() ||
+          q.patientId === raw ||
+          q.id === raw ||
+          (raw.length >= 8 && q.id.startsWith(raw))
+      );
+      if (match) {
+        toast.success(`Found Token #${match.queueNo}: ${match.patientName}. Opening consultation...`);
+        router.push(`/doctor/consultation/${match.patientId}`);
+        return;
+      }
+
+      // 2. Query unified barcode API
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${encodeURIComponent(raw)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const { type, data } = await res.json();
+        if (type === "APPOINTMENT") {
+          const appt = data.appointment;
+          const patientId = appt?.patientId || appt?.Patient?.id;
+          const patientName = appt?.Patient?.fullName || "Patient";
+          const tokenNo = appt?.tokenNumber || "N/A";
+          if (patientId) {
+            toast.success(`Found Token #${tokenNo}: ${patientName}. Opening consultation...`);
+            router.push(`/doctor/consultation/${patientId}`);
+            return;
+          }
+        }
+      }
+
+      toast.error(`No patient appointment found for barcode "${raw}".`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to process token barcode.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  useBarcodeScanner((scanned) => {
+    handleBarcodeSearch(scanned);
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -69,19 +129,72 @@ export default function DoctorQueuePage() {
 
   const waitingCount = queue.filter((q) => q.status === "WAITING").length;
 
+  const filteredQueue = queue.filter((entry) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      entry.queueNo.toLowerCase().includes(q) ||
+      entry.patientName.toLowerCase().includes(q) ||
+      entry.patientId.toLowerCase().includes(q) ||
+      entry.reason.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">My Patient Queue</h2>
-        <p className="text-muted-foreground mt-1">
-          {waitingCount} patient{waitingCount !== 1 ? "s" : ""} waiting for your consultation today.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">My Patient Queue</h2>
+          <p className="text-muted-foreground mt-1">
+            {waitingCount} patient{waitingCount !== 1 ? "s" : ""} waiting for your consultation today.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-lg border">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Barcode Scanner Active</span>
+        </div>
       </div>
+
+      {/* Barcode / Token Search Bar */}
+      <Card className="border-primary/20 bg-card shadow-sm">
+        <CardContent className="p-3 sm:p-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleBarcodeSearch(searchQuery);
+            }}
+            className="flex flex-col sm:flex-row items-center gap-3"
+          >
+            <div className="relative flex-1 w-full">
+              <ScanBarcode className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+              <Input
+                type="text"
+                placeholder="Scan patient token barcode or search by name / token #..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 font-mono text-sm"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={searching || !searchQuery.trim()}
+              className="h-10 px-5 w-full sm:w-auto font-medium gap-2 shrink-0"
+            >
+              {searching ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+              <span>{searching ? "Searching..." : "Open Consultation"}</span>
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Today's Assigned Patients</CardTitle>
-          <CardDescription>Click "Start Consultation" to open the full clinical view for a patient.</CardDescription>
+          <CardDescription>Click "Start Consultation" or scan a patient token to open clinical review.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -104,7 +217,7 @@ export default function DoctorQueuePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {queue.map((entry) => {
+                  {filteredQueue.map((entry) => {
                     const sc = statusConfig[entry.status] ?? { label: entry.status, className: "bg-muted/50 text-foreground/80" };
                     return (
                       <TableRow key={entry.id} className={entry.status === "COMPLETED" ? "opacity-50" : ""}>

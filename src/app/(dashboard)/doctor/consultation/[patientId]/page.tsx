@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useRef } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2, ScanBarcode } from "lucide-react";
 import Link from "next/link";
 import { io } from "socket.io-client";
 import { useReactToPrint } from "react-to-print";
@@ -49,6 +49,8 @@ interface Patient {
   activeVisitId: string | null;
   activeTokenNumber?: string | null;
   activeVisitStartTime?: string | null;
+  bookingReference?: string | null;
+  masterBarcode?: string | null;
 }
 
 
@@ -364,9 +366,10 @@ export default function ConsultationPage() {
         })
       };
 
-      const method = editPrescriptionId ? "PUT" : "POST";
-      const url = editPrescriptionId 
-        ? `${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${editPrescriptionId}`
+      const targetRxId = editPrescriptionId || createdPrescription?.id;
+      const method = targetRxId ? "PUT" : "POST";
+      const url = targetRxId 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${targetRxId}`
         : `${process.env.NEXT_PUBLIC_API_URL}/prescriptions`;
 
       const res = await fetch(url, {
@@ -464,12 +467,22 @@ export default function ConsultationPage() {
               </Button>
             </Link>
             <div className="flex-1 space-y-5">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 flex items-center gap-1.5 border border-green-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                   Active Consultation
                 </span>
-                <span className="text-sm font-medium text-muted-foreground ml-auto md:hidden">Visit #04</span>
+                {patient?.activeTokenNumber && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    Token: {patient.activeTokenNumber}
+                  </span>
+                )}
+                {(patient?.masterBarcode || patient?.bookingReference) && (
+                  <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1.5 shadow-sm">
+                    <ScanBarcode className="w-3.5 h-3.5" />
+                    <span>Barcode: {patient.masterBarcode || patient.bookingReference}</span>
+                  </span>
+                )}
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

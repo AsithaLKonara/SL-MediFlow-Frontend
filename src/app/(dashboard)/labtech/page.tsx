@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Microscope, FileCheck, Clock, AlertTriangle, FlaskConical, Search, ArrowRight, TrendingUp, TrendingDown, FileText, ActivitySquare } from "lucide-react";
+import { Microscope, FileCheck, Clock, AlertTriangle, FlaskConical, Search, ArrowRight, TrendingUp, TrendingDown, FileText, ActivitySquare, ScanBarcode } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { motion } from "framer-motion";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { ConsolidatedLabManifestModal, ConsolidatedLabManifest, ConsolidatedTestItem } from "@/components/lab/ConsolidatedLabManifestModal";
 
 interface Metrics {
   summary: {
@@ -42,26 +43,149 @@ export default function LabTechOverview() {
   const [loading, setLoading] = useState(true);
   const [tokenSearch, setTokenSearch] = useState("");
   const [searching, setSearching] = useState(false);
+  const [manifest, setManifest] = useState<ConsolidatedLabManifest | null>(null);
+  const [isManifestOpen, setIsManifestOpen] = useState(false);
   const router = useRouter();
   const { token } = useAuth();
 
   const performTokenSearch = async (query: string) => {
-    if (!query.trim()) return;
+    const code = query.trim();
+    if (!code) return;
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
     setSearching(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/token/${query.trim()}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      // 1. Fast direct lab request & token resolver (<15ms)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests/token/${encodeURIComponent(code)}`, {
+        headers: { Authorization: `Bearer ${activeToken}` }
       });
       const data = await res.json();
       
-      if (data.success && data.data.LabRequests && data.data.LabRequests.length > 0) {
-        const reqId = data.data.LabRequests[0].id;
-        router.push(`/labtech/results/${reqId}`);
-      } else {
-        toast.error("No pending lab requests found for this token today.");
+      // 1. Check direct lab requests by token/barcode
+      if (data.success && data.data?.LabRequests && data.data.LabRequests.length > 0) {
+        const d = data.data;
+        const tests: ConsolidatedTestItem[] = [];
+        (d.LabRequests || []).forEach((lr: any) => {
+          const isDoctor = !!lr.doctorId;
+          (lr.items || []).forEach((item: any) => {
+            tests.push({
+              requestId: lr.id,
+              testId: item.LabTest?.id || item.labTestId,
+              testName: item.LabTest?.name || "Lab Test",
+              category: item.LabTest?.category,
+              status: lr.status,
+              source: isDoctor ? "Doctor" : "Frontdesk",
+              requestedAt: lr.requestedAt,
+              price: item.price
+            });
+          });
+        });
+
+        setManifest({
+          masterBarcode: d.bookingReference || code,
+          patient: {
+            name: d.Patient?.fullName || "Walk-in Patient",
+            age: d.Patient?.ageFallback,
+            gender: d.Patient?.gender,
+            phone: d.Patient?.phone
+          },
+          tokens: {
+            lab: d.tokens?.lab || d.tokenNumber,
+            consultation: d.tokens?.consultation || null
+          },
+          room: "LAB",
+          tests
+        });
+        setIsManifestOpen(true);
+        toast.success(`Loaded visit manifest for ${d.Patient?.fullName || "Patient"}.`);
+        return;
       }
+
+      // 2. Check universal barcode resolver
+      const barcodeRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${encodeURIComponent(code)}`, {
+        headers: { Authorization: `Bearer ${activeToken}` }
+      });
+
+      if (barcodeRes.ok) {
+        const { type, data: bData, masterBarcode } = await barcodeRes.json();
+        if (type === "LAB_REQUEST") {
+          const lr = bData;
+          const tests: ConsolidatedTestItem[] = (lr.items || []).map((item: any) => ({
+            requestId: lr.id,
+            testId: item.LabTest?.id || item.labTestId,
+            testName: item.LabTest?.name || "Lab Test",
+            category: item.LabTest?.category,
+            status: lr.status,
+            source: lr.doctorId ? "Doctor" : "Frontdesk",
+            requestedAt: lr.requestedAt,
+            price: item.price
+          }));
+
+          setManifest({
+            masterBarcode: code,
+            patient: {
+              name: lr.Patient?.fullName || "Walk-in Patient",
+              age: lr.Patient?.ageFallback,
+              gender: lr.Patient?.gender,
+              phone: lr.Patient?.phone
+            },
+            tokens: { lab: "LAB", consultation: null },
+            room: "LAB",
+            tests
+          });
+          setIsManifestOpen(true);
+          toast.success(`Lab request found.`);
+          return;
+        }
+
+        if (type === "APPOINTMENT") {
+          const lrs = bData.labRequests || bData.appointment?.LabRequests || [];
+          if (lrs.length > 0) {
+            const tests: ConsolidatedTestItem[] = [];
+            lrs.forEach((lr: any) => {
+              const isDoctor = !!lr.doctorId;
+              (lr.items || []).forEach((item: any) => {
+                tests.push({
+                  requestId: lr.id,
+                  testId: item.LabTest?.id || item.labTestId,
+                  testName: item.LabTest?.name || "Lab Test",
+                  category: item.LabTest?.category,
+                  status: lr.status,
+                  source: isDoctor ? "Doctor" : "Frontdesk",
+                  requestedAt: lr.requestedAt,
+                  price: item.price
+                });
+              });
+            });
+
+            setManifest({
+              masterBarcode: masterBarcode || bData.masterBarcode || code,
+              patient: {
+                name: bData.patient?.fullName || bData.appointment?.Patient?.fullName || "Walk-in Patient",
+                age: bData.patient?.ageFallback || bData.appointment?.Patient?.ageFallback,
+                gender: bData.patient?.gender || bData.appointment?.Patient?.gender,
+                phone: bData.patient?.phone || bData.appointment?.Patient?.phone
+              },
+              tokens: {
+                lab: bData.tokens?.lab || null,
+                consultation: bData.tokens?.consultation || null
+              },
+              room: bData.rooms?.lab || "LAB",
+              tests
+            });
+            setIsManifestOpen(true);
+            toast.success(`Visit manifest loaded: ${tests.length} tests found.`);
+            return;
+          } else {
+            toast.info(`Visit ${bData.masterBarcode || code} has no lab tests requested.`);
+            return;
+          }
+        }
+      }
+
+      toast.error(`No pending lab requests found for barcode/token "${code}".`);
     } catch (error) {
-      toast.error("Failed to find token.");
+      console.error(error);
+      toast.error("Failed to find token or barcode.");
     } finally {
       setSearching(false);
     }
@@ -78,32 +202,44 @@ export default function LabTechOverview() {
   });
 
   useEffect(() => {
-    if (!token) return;
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+    if (!activeToken) return;
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/metrics`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${activeToken}` }
     })
       .then(r => {
         if (!r.ok) throw new Error("Failed to fetch");
         return r.json();
       })
       .then(d => { setMetrics(d); setLoading(false); })
-      .catch(e => { console.error("Failed to load metrics", e); setLoading(false); });
+      .catch(e => {
+        console.error("Failed to load metrics", e);
+        setMetrics({
+          summary: {
+            requestsToday: 0,
+            requestsYesterday: 0,
+            pendingRequests: 0,
+            inProgressTests: 0,
+            publishedToday: 0,
+            publishedYesterday: 0,
+            criticalToday: 0,
+            criticalYesterday: 0
+          },
+          charts: { weeklyTests: [], statusDistribution: [] },
+          tables: { urgentRequests: [], recentPublished: [] }
+        });
+        setLoading(false);
+      });
   }, [token]);
-
-  if (loading || !metrics) return (
-    <div className="flex h-[80vh] items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-    </div>
-  );
 
   const calculateGrowth = (today: number, yesterday: number) => {
     if (!yesterday) return 100;
     return ((today - yesterday) / yesterday) * 100;
   };
 
-  const reqGrowth = calculateGrowth(metrics.summary.requestsToday, metrics.summary.requestsYesterday);
-  const pubGrowth = calculateGrowth(metrics.summary.publishedToday, metrics.summary.publishedYesterday);
-  const critGrowth = calculateGrowth(metrics.summary.criticalToday, metrics.summary.criticalYesterday);
+  const reqGrowth = metrics ? calculateGrowth(metrics.summary.requestsToday, metrics.summary.requestsYesterday) : 0;
+  const pubGrowth = metrics ? calculateGrowth(metrics.summary.publishedToday, metrics.summary.publishedYesterday) : 0;
+  const critGrowth = metrics ? calculateGrowth(metrics.summary.criticalToday, metrics.summary.criticalYesterday) : 0;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -113,13 +249,13 @@ export default function LabTechOverview() {
           <p className="text-muted-foreground mt-2">Real-time diagnostic metrics and queue management.</p>
         </div>
         
-        <form onSubmit={handleTokenSearch} className="flex items-center gap-2 max-w-sm w-full bg-card p-2 rounded-lg border shadow-sm">
-          <Search className="w-5 h-5 text-muted-foreground ml-2" />
+        <form onSubmit={handleTokenSearch} className="flex items-center gap-2 max-w-md w-full bg-card p-2 rounded-lg border shadow-sm">
+          <ScanBarcode className="w-5 h-5 text-primary ml-2 shrink-0" />
           <Input 
             value={tokenSearch} 
             onChange={(e) => setTokenSearch(e.target.value)} 
-            placeholder="Scan Token (e.g. A-12)" 
-            className="border-0 bg-transparent focus-visible:ring-0 shadow-none flex-1 text-lg"
+            placeholder="Scan barcode or enter token #..." 
+            className="border-0 bg-transparent focus-visible:ring-0 shadow-none flex-1 text-sm font-mono"
           />
           <Button type="submit" disabled={!tokenSearch.trim()} isLoading={searching}>
             <ArrowRight className="w-5 h-5" />
@@ -127,8 +263,14 @@ export default function LabTechOverview() {
         </form>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {loading || !metrics ? (
+        <div className="flex h-[40vh] items-center justify-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-t-4 border-t-amber-500 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -356,7 +498,14 @@ export default function LabTechOverview() {
           </CardContent>
         </Card>
       </div>
+        </>
+      )}
 
+      <ConsolidatedLabManifestModal
+        isOpen={isManifestOpen}
+        onClose={() => setIsManifestOpen(false)}
+        manifest={manifest}
+      />
     </div>
   );
 }

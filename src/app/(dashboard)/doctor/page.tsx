@@ -4,10 +4,14 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, FileText, FlaskConical, Users } from "lucide-react";
+import { Clock, FileText, FlaskConical, Users, ScanBarcode, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { Input } from "@/components/ui/input";
 
 interface Metrics {
   doctorName: string;
@@ -22,8 +26,91 @@ interface Metrics {
 
 export default function DoctorOverview() {
   const { user, token } = useAuth();
+  const router = useRouter();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tokenInput, setTokenInput] = useState("");
+  const [searching, setSearching] = useState(false);
+
+  const handleBarcodeSearch = async (code: string) => {
+    const raw = code.trim();
+    if (!raw) return;
+    setSearching(true);
+
+    try {
+      // 1. Check local upcoming list first for instant response
+      const localMatch = metrics?.upcomingPatients.find(
+        (p) => p.queueNo.toLowerCase() === raw.toLowerCase() || p.patientId === raw
+      );
+      if (localMatch) {
+        toast.success(`Patient ${localMatch.patientName} (Token #${localMatch.queueNo}) found!`);
+        router.push(`/doctor/consultation/${localMatch.patientId}`);
+        return;
+      }
+
+      // 2. Query unified barcode API
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${encodeURIComponent(raw)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const { type, data } = await res.json();
+        if (type === "APPOINTMENT") {
+          const appt = data.appointment;
+          const patientId = appt?.patientId || appt?.Patient?.id;
+          const patientName = appt?.Patient?.fullName || "Patient";
+          const tokenNo = appt?.tokenNumber || "N/A";
+          if (patientId) {
+            toast.success(`Found Token #${tokenNo}: ${patientName}. Opening consultation...`);
+            router.push(`/doctor/consultation/${patientId}`);
+            return;
+          }
+        } else if (type === "PRESCRIPTION") {
+          const patientId = data.patientId;
+          if (patientId) {
+            toast.success(`Prescription found. Opening consultation...`);
+            router.push(`/doctor/consultation/${patientId}`);
+            return;
+          }
+        }
+      }
+
+      // 3. Fallback: try doctor's full token queue API directly
+      const queueRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user?.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (queueRes.ok) {
+        const qData = await queueRes.json();
+        const tokens: any[] = Array.isArray(qData) ? qData : (qData.data || []);
+        const match = tokens.find((t: any) => 
+          t.tokenNumber === raw || 
+          t.id === raw || 
+          t.bookingReference === raw ||
+          (raw.length >= 8 && t.id?.startsWith(raw))
+        );
+        if (match) {
+          const p = match.Patient || match.patient || {};
+          const pId = p.id || match.patientId;
+          if (pId) {
+            toast.success(`Found Token #${match.tokenNumber}: ${p.fullName || "Patient"}. Opening consultation...`);
+            router.push(`/doctor/consultation/${pId}`);
+            return;
+          }
+        }
+      }
+
+      toast.error(`No patient appointment found for token/barcode "${raw}".`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Failed to process token barcode.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  useBarcodeScanner((scanned) => {
+    handleBarcodeSearch(scanned);
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -101,6 +188,46 @@ export default function DoctorOverview() {
           </div>
         </div>
       </div>
+
+      {/* Quick Token Barcode Scanner / Search Bar */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-card to-card shadow-sm">
+        <CardContent className="p-4 sm:p-5">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleBarcodeSearch(tokenInput);
+            }}
+            className="flex flex-col sm:flex-row items-center gap-3"
+          >
+            <div className="relative flex-1 w-full">
+              <ScanBarcode className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+              <Input
+                type="text"
+                placeholder="Scan patient token barcode or enter token / appointment #..."
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                className="pl-11 h-12 text-base bg-background shadow-inner font-mono tracking-wide"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={searching || !tokenInput.trim()}
+              className="h-12 px-6 w-full sm:w-auto font-semibold gap-2 shadow"
+            >
+              {searching ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+              <span>{searching ? "Searching..." : "Search Token"}</span>
+            </Button>
+          </form>
+          <div className="mt-2.5 flex items-center gap-2 text-xs text-muted-foreground px-1">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Hardware Barcode Scanner Active — point scanner at patient token barcode anytime</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* App-like Action Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

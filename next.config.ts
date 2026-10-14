@@ -10,15 +10,6 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  async redirects() {
-    return [
-      {
-        source: '/nurse',
-        destination: '/frontdesk/arrivals',
-        permanent: false,
-      },
-    ]
-  },
 };
 
 export default nextConfig;

@@ -138,18 +138,30 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
           )}
 
           <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
-            {((tokens && tokens.length > 0 && (tokens[0].refNo || tokens[0].id)) || receiptData?.receiptId) && (
-              <div className="mb-2 w-full flex justify-center overflow-hidden">
-                <Barcode 
-                  value={tokens?.[0]?.refNo || (tokens?.[0]?.id ? get10DigitBarcode(tokens[0].id) : get10DigitBarcode(receiptData?.receiptId))} 
-                  width={1} 
-                  height={40} 
-                  fontSize={10} 
-                  margin={0} 
-                  displayValue={true} 
-                />
-              </div>
-            )}
+            {(() => {
+              const masterBarcode = 
+                tokens?.[0]?.bookingReference ||
+                tokens?.[0]?.refNo ||
+                receiptData?.bookingReference ||
+                receiptData?.masterBarcode ||
+                receiptData?.refNo ||
+                (tokens?.[0]?.id ? get10DigitBarcode(tokens[0].id) : (receiptData?.receiptId ? get10DigitBarcode(receiptData.receiptId) : null));
+
+              if (!masterBarcode) return null;
+
+              return (
+                <div className="mb-2 w-full flex flex-col items-center justify-center overflow-hidden">
+                  <Barcode 
+                    value={masterBarcode} 
+                    width={1.2} 
+                    height={45} 
+                    fontSize={11} 
+                    margin={0} 
+                    displayValue={true} 
+                  />
+                </div>
+              );
+            })()}
             <p className="text-xs font-bold">Thank you for your business!</p>
             <p className="text-[10px] mt-1">Wishing you good health.</p>
           </div>
