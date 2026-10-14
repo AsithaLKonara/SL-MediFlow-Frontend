@@ -188,6 +188,12 @@ export default function CustomerDisplayPage() {
               <span>Subtotal</span>
               <span>LKR {state.subtotal.toFixed(2)}</span>
             </div>
+            {state.discountAmount && state.discountAmount > 0 ? (
+              <div className="flex justify-between text-xl md:text-2xl text-emerald-500 font-semibold">
+                <span>{state.discountLabel || "Discount"}</span>
+                <span>- LKR {state.discountAmount.toFixed(2)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between text-3xl md:text-5xl font-bold text-primary pt-3 md:pt-4 border-t border-border">
               <span>Total</span>
               <span>LKR {state.total.toFixed(2)}</span>

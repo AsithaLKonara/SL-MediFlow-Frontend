@@ -39,7 +39,7 @@ export default function DoctorOverview() {
         const upcoming = tokens
           .filter(t => {
             const s = (t.status || "").toLowerCase();
-            return s !== "completed" && s !== "prescription_issued" && s !== "cancelled";
+            return s !== "completed" && s !== "prescription_issued" && s !== "cancelled" && s !== "no_show";
           })
                     .map(t => {
             const p = t.Patient || t.patient || {};

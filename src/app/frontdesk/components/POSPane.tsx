@@ -121,6 +121,19 @@ export function POSPane() {
             if (invRes.ok) {
               const invoiceData = await invRes.json();
               if (invoiceData && invoiceData.status === 'DRAFT') {
+                if (Array.isArray(invoiceData.lineItems)) {
+                  let seenConsult = false;
+                  invoiceData.lineItems = invoiceData.lineItems.filter((li: any) => {
+                    if (li.department === "CONSULTATION") {
+                      if (seenConsult) return false;
+                      seenConsult = true;
+                    }
+                    return true;
+                  });
+                  const sumItems = invoiceData.lineItems.reduce((acc: number, item: any) => acc + (Number(item.total) || 0), 0);
+                  invoiceData.subtotal = sumItems;
+                  invoiceData.totalAmount = Math.max(0, sumItems - (invoiceData.discountAmount || 0));
+                }
                 setPendingAppointmentPayload({ invoice: invoiceData, isAppointmentCheckout: false });
               }
             }
@@ -149,6 +162,12 @@ export function POSPane() {
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "QR" | null>(null);
+
+  // Discount State
+  type DiscountType = "NONE" | "PRESET_5" | "PRESET_10" | "PRESET_15" | "PRESET_20" | "CUSTOM_PERCENT" | "CUSTOM_AMOUNT";
+  const [discountType, setDiscountType] = useState<DiscountType>("NONE");
+  const [customDiscountValue, setCustomDiscountValue] = useState<string>("");
+  const [discountReason, setDiscountReason] = useState<string>("");
   
   const { showAmount, clearDisplay } = usePoleDisplay(true);
   const { initiateCardPayment, isProcessing: isCardProcessing } = usePaymentTerminal();
@@ -167,7 +186,41 @@ export function POSPane() {
     : 0;
     
   const subtotal = cartSubtotal + tokenTotal + appointmentTotal;
-  const total = subtotal;
+
+  let discountAmount = 0;
+  let discountRateValue = 0;
+  let discountDbMode: "PRESET_PERCENT" | "CUSTOM_PERCENT" | "CUSTOM_VALUE" | null = null;
+
+  if (discountType === "PRESET_5") {
+    discountDbMode = "PRESET_PERCENT";
+    discountRateValue = 5;
+    discountAmount = subtotal * 0.05;
+  } else if (discountType === "PRESET_10") {
+    discountDbMode = "PRESET_PERCENT";
+    discountRateValue = 10;
+    discountAmount = subtotal * 0.10;
+  } else if (discountType === "PRESET_15") {
+    discountDbMode = "PRESET_PERCENT";
+    discountRateValue = 15;
+    discountAmount = subtotal * 0.15;
+  } else if (discountType === "PRESET_20") {
+    discountDbMode = "PRESET_PERCENT";
+    discountRateValue = 20;
+    discountAmount = subtotal * 0.20;
+  } else if (discountType === "CUSTOM_PERCENT") {
+    discountDbMode = "CUSTOM_PERCENT";
+    const pct = Math.min(100, Math.max(0, parseFloat(customDiscountValue) || 0));
+    discountRateValue = pct;
+    discountAmount = subtotal * (pct / 100);
+  } else if (discountType === "CUSTOM_AMOUNT") {
+    discountDbMode = "CUSTOM_VALUE";
+    const val = Math.max(0, parseFloat(customDiscountValue) || 0);
+    discountRateValue = val;
+    discountAmount = Math.min(subtotal, val);
+  }
+
+  discountAmount = Math.round(discountAmount * 100) / 100;
+  const total = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
 
   // Sync to display whenever cart changes, but preserve checkout state
   useEffect(() => {
@@ -196,7 +249,12 @@ export function POSPane() {
     // Convert pendingAppointmentPayload into displayCart items
     if (pendingAppointmentPayload) {
       if (pendingAppointmentPayload.invoice?.lineItems?.length > 0) {
+        let seenConsult = false;
         pendingAppointmentPayload.invoice.lineItems.forEach((li: any) => {
+          if (li.department === "CONSULTATION") {
+            if (seenConsult) return;
+            seenConsult = true;
+          }
           displayCart.push({ id: li.id, name: li.description, qty: li.quantity, price: li.unitPrice });
         });
       }
@@ -217,11 +275,21 @@ export function POSPane() {
         });
       }
     }
+    const discountLabel = discountAmount > 0
+      ? (discountType === "CUSTOM_PERCENT" || discountType.startsWith("PRESET_")
+          ? `Discount (${discountRateValue}%)`
+          : "Discount")
+      : undefined;
 
-
-
-    updateState({ ...state, cart: displayCart, subtotal, total });
-  }, [cart, subtotal, total, pendingTokenPayload, pendingAppointmentPayload]); // Removed updateState from dependency to prevent loop
+    updateState({
+      ...state,
+      cart: displayCart,
+      subtotal,
+      discountAmount: discountAmount > 0 ? discountAmount : 0,
+      discountLabel,
+      total
+    });
+  }, [cart, subtotal, discountAmount, discountType, discountRateValue, total, pendingTokenPayload, pendingAppointmentPayload]); // Removed updateState from dependency to prevent loop
 
   const handleQtyChange = (id: string, qty: number) => {
     setCart(prev => prev.map(item => item.id === id ? { ...item, qty: Math.max(1, qty) } : item));
@@ -448,6 +516,9 @@ export function POSPane() {
     setTokenReceiptData(null);
     setReceivedAmountInput("");
     setPendingAppointmentPayload(null);
+    setDiscountType("NONE");
+    setCustomDiscountValue("");
+    setDiscountReason("");
     clearDisplay();
     updateState({
       ...state,
@@ -656,8 +727,17 @@ export function POSPane() {
             {/* Render Phone Appointment Checkout Item */}
             {pendingAppointmentPayload && (
               <>
-                {pendingAppointmentPayload.invoice && pendingAppointmentPayload.invoice.lineItems?.length > 0 && (
-                  pendingAppointmentPayload.invoice.lineItems.map((li: any, idx: number) => {
+                {pendingAppointmentPayload.invoice && pendingAppointmentPayload.invoice.lineItems?.length > 0 && (() => {
+                  let seenConsultation = false;
+                  const filteredItems = pendingAppointmentPayload.invoice.lineItems.filter((li: any) => {
+                    if (li.department === "CONSULTATION") {
+                      if (seenConsultation) return false;
+                      seenConsultation = true;
+                    }
+                    return true;
+                  });
+
+                  return filteredItems.map((li: any, idx: number) => {
                     let bgClass = "bg-purple-500/5";
                     let textClass = "text-purple-600";
                     let subText = `Phone Booking - Token ${pendingAppointmentPayload.tokenNumber}`;
@@ -690,8 +770,8 @@ export function POSPane() {
                         <TableCell></TableCell>
                       </TableRow>
                     );
-                  })
-                )}
+                  });
+                })()}
                 
                 {/* Render Consultations (Upfront or Post Pay) */}
                 {pendingAppointmentPayload.allAppointments?.filter((appt: any) => appt.department === "CONSULTATION").map((appt: any, idx: number) => {
@@ -700,8 +780,8 @@ export function POSPane() {
                   const docName = appt.User?.fullName || appt.doctorName || "Doctor";
                   const isPaid = !!pendingAppointmentPayload.consultationPaid;
                   
-                  // If it's upfront AND we have an invoice, it should already be in the invoice line items.
-                  if (isUpfront && pendingAppointmentPayload.invoice?.lineItems?.some((li: any) => li.department === "CONSULTATION" && li.description.includes(docName))) {
+                  // If we have an invoice with a CONSULTATION line item, do not render a duplicate consultation row
+                  if (pendingAppointmentPayload.invoice?.lineItems?.some((li: any) => li.department === "CONSULTATION")) {
                      return null;
                   }
 
@@ -727,7 +807,7 @@ export function POSPane() {
                 })}
 
                 {/* If allAppointments didn't have CONSULTATION but doctorName/fee is on pendingAppointmentPayload */}
-                {(!pendingAppointmentPayload.allAppointments || !pendingAppointmentPayload.allAppointments.some((a: any) => a.department === "CONSULTATION")) && (pendingAppointmentPayload.doctorName || pendingAppointmentPayload.fee) && (
+                {!pendingAppointmentPayload.invoice?.lineItems?.some((li: any) => li.department === "CONSULTATION") && (!pendingAppointmentPayload.allAppointments || !pendingAppointmentPayload.allAppointments.some((a: any) => a.department === "CONSULTATION")) && (pendingAppointmentPayload.doctorName || pendingAppointmentPayload.fee) && (
                   <TableRow key="fallback-consult" className="border-border bg-primary/5">
                     <TableCell className="font-medium text-primary">
                       Consultation - Dr. {pendingAppointmentPayload.doctorName || "Doctor"}
@@ -769,12 +849,59 @@ export function POSPane() {
       </div>
 
       {/* Totals & Checkout */}
-      <div className="shrink-0 mt-auto bg-card border border-border rounded-lg p-4 space-y-4 shadow-lg">
-        <div className="flex justify-between text-muted-foreground">
+      <div className="shrink-0 mt-auto bg-card border border-border rounded-lg p-4 space-y-3 shadow-lg">
+        <div className="flex justify-between text-muted-foreground text-sm">
           <span>Subtotal</span>
           <span>LKR {subtotal.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between text-2xl font-bold text-primary">
+
+        {/* Discount Selector */}
+        <div className="space-y-1.5 pt-2 border-t border-border">
+          <div className="flex justify-between items-center text-xs">
+            <span className="font-medium text-muted-foreground">Discount</span>
+            {discountAmount > 0 && (
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                - LKR {discountAmount.toFixed(2)}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {(["NONE", "PRESET_5", "PRESET_10", "PRESET_15", "PRESET_20", "CUSTOM_PERCENT", "CUSTOM_AMOUNT"] as const).map((t) => {
+              const label = t === "NONE" ? "0%" : t === "PRESET_5" ? "5%" : t === "PRESET_10" ? "10%" : t === "PRESET_15" ? "15%" : t === "PRESET_20" ? "20%" : t === "CUSTOM_PERCENT" ? "Custom %" : "Custom LKR";
+              const isActive = discountType === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    setDiscountType(t);
+                    if (t === "NONE") setCustomDiscountValue("");
+                  }}
+                  className={`px-2 py-1 text-xs rounded border transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
+                      : "bg-muted/50 hover:bg-muted text-muted-foreground border-border"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {(discountType === "CUSTOM_PERCENT" || discountType === "CUSTOM_AMOUNT") && (
+            <div className="pt-1 flex gap-2">
+              <Input
+                type="number"
+                value={customDiscountValue}
+                onChange={(e) => setCustomDiscountValue(e.target.value)}
+                placeholder={discountType === "CUSTOM_PERCENT" ? "Enter % (e.g. 8)" : "Enter LKR (e.g. 500)"}
+                className="h-8 text-xs bg-background"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between text-2xl font-bold text-primary pt-1 border-t border-border">
           <span>Total</span>
           <span>LKR {total.toFixed(2)}</span>
         </div>
@@ -794,18 +921,28 @@ export function POSPane() {
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-bold text-foreground">Payment Successful!</h3>
-                <div className="text-muted-foreground w-full p-4 bg-muted rounded-lg">
+                <div className="text-muted-foreground w-full p-4 bg-muted rounded-lg text-sm">
                   <div className="flex justify-between mb-1">
+                    <span>Subtotal</span>
+                    <span>LKR {(receiptData.subtotal || receiptData.total).toFixed(2)}</span>
+                  </div>
+                  {receiptData.discount !== undefined && receiptData.discount > 0 && (
+                    <div className="flex justify-between mb-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span>Discount</span>
+                      <span>- LKR {receiptData.discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between mb-1 text-base font-bold text-foreground pt-1 border-t border-border">
                     <span>Total Paid</span>
-                    <span className="font-bold text-foreground">LKR {receiptData.total.toFixed(2)}</span>
+                    <span>LKR {receiptData.total.toFixed(2)}</span>
                   </div>
                   {receiptData.change > 0 && (
-                    <div className="flex justify-between text-green-500">
+                    <div className="flex justify-between text-green-500 mt-1">
                       <span>Change Due</span>
                       <span className="font-bold">LKR {receiptData.change.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between mt-1 text-sm">
+                  <div className="flex justify-between mt-2 pt-1 border-t border-border text-xs">
                     <span>Method</span>
                     <span>{receiptData.paymentMethod}</span>
                   </div>
@@ -825,10 +962,17 @@ export function POSPane() {
                   <h3 className="font-semibold text-lg">Checkout</h3>
                   <Button variant="ghost" size="sm" onClick={() => handleCloseCheckout(true)}>Cancel</Button>
                 </div>
-            <div className="p-4 space-y-6">
-              <div className="text-center">
-                <div className="text-sm text-muted-foreground mb-1">Total Amount</div>
-                <div className="text-4xl font-bold text-primary">LKR {total.toFixed(2)}</div>
+            <div className="p-4 space-y-5">
+              <div className="text-center p-3 bg-muted/40 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">
+                  Subtotal: LKR {subtotal.toFixed(2)}
+                  {discountAmount > 0 && (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold ml-2">
+                      (- LKR {discountAmount.toFixed(2)})
+                    </span>
+                  )}
+                </div>
+                <div className="text-3xl font-bold text-primary">LKR {total.toFixed(2)}</div>
               </div>
 
               <div className="space-y-3">
@@ -920,12 +1064,23 @@ export function POSPane() {
 
                     let createdInvoiceId: string | null = null;
 
+                    const discountPayload = discountAmount > 0 ? {
+                      type: discountDbMode,
+                      value: discountRateValue,
+                      amount: discountAmount,
+                      reason: discountReason || undefined
+                    } : undefined;
+
                     // 1. Generate Token if payload exists
                     if (pendingTokenPayload) {
                       const resToken = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/token`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ ...pendingTokenPayload, paymentMethod: activePaymentMethod })
+                        body: JSON.stringify({ 
+                          ...pendingTokenPayload, 
+                          paymentMethod: activePaymentMethod,
+                          discount: discountPayload
+                        })
                       });
                       if (resToken.ok) {
                         const tokenRes = await resToken.json();
@@ -958,7 +1113,8 @@ export function POSPane() {
                           appointmentId: pendingAppointmentPayload.appointmentId,
                           fee: pendingAppointmentPayload.consultationPaid ? 0 : pendingAppointmentPayload.fee,
                           isUpfront: pendingAppointmentPayload.isUpfront,
-                          paymentMethod: activePaymentMethod 
+                          paymentMethod: activePaymentMethod,
+                          discount: discountPayload
                         })
                       });
                       if (resAppt.ok) {
@@ -1010,8 +1166,29 @@ export function POSPane() {
                       }
                     }
 
-                    // 1.6 If there's a pending invoice (e.g. from lab tests during Rx checkout)
+                    // 1.6 If there's a pending invoice (e.g. from lab tests or consultation during Rx checkout)
                     if (pendingAppointmentPayload && !pendingAppointmentPayload.isAppointmentCheckout && pendingAppointmentPayload.invoice) {
+                       const invId = pendingAppointmentPayload.invoice.id;
+                       const invAmount = pendingAppointmentPayload.invoice.totalAmount;
+                       if (invId && invAmount > 0 && pendingAppointmentPayload.invoice.status === "DRAFT") {
+                         const payRes = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices/${invId}/pay`, {
+                           method: "POST",
+                           headers: { "Content-Type": "application/json" },
+                           body: JSON.stringify({
+                             amount: Math.max(0, invAmount - (discountAmount || 0)),
+                             method: activePaymentMethod,
+                             discount: discountPayload
+                           })
+                         });
+                         if (!payRes.ok) {
+                           const err = await payRes.json().catch(() => ({}));
+                           toast.error(err.error || "Failed to finalize consultation/lab invoice payment");
+                           setIsProcessing(false);
+                           return;
+                         }
+                         createdInvoiceId = invId;
+                       }
+
                        pendingAppointmentPayload.invoice.lineItems.forEach((li: any) => {
                          combinedItems.push({
                            name: li.description,
@@ -1032,7 +1209,8 @@ export function POSPane() {
                           paymentMethod: activePaymentMethod,
                           prescriptionId: activePrescriptionId,
                           patientId: activePatientId,
-                          visitId: activeVisitId
+                          visitId: activeVisitId,
+                          discount: discountPayload
                         })
                       });
                       
@@ -1053,7 +1231,8 @@ export function POSPane() {
                       receiptId,
                       date: new Date(),
                       items: combinedItems,
-                      subtotal: total,
+                      subtotal: subtotal,
+                      discount: discountAmount,
                       total: total,
                       paymentMethod: activePaymentMethod,
                       receivedAmount: (activePaymentMethod === "CASH" || activePaymentMethod === "BANK") ? parsedReceived : total,

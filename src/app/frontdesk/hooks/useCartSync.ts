@@ -13,6 +13,8 @@ export type CartItem = {
 export type SyncState = {
   cart: CartItem[];
   subtotal: number;
+  discountAmount?: number;
+  discountLabel?: string;
   total: number;
   tokenCalled?: { number: string; doctor: string };
   checkout?: {

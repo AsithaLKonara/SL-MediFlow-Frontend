@@ -15,6 +15,7 @@ import { BillReceipt } from "./PrintTemplates/BillReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { PhoneBookingPane } from "./PhoneBookingPane";
 import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
+import { RxHistoryModal } from "./RxHistoryModal";
 import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -1142,6 +1143,7 @@ export function TokenPane() {
             <div className="p-4 border-b border-border bg-card flex justify-between items-center">
               <h3 className="font-medium">Pending Prescriptions</h3>
               <div className="flex items-center gap-2">
+                <RxHistoryModal />
                 {pendingPrescriptions.length > 0 && (
                   <span className="text-xs font-medium bg-primary/20 text-primary px-2 py-1 rounded-full">
                     {pendingPrescriptions.length} New

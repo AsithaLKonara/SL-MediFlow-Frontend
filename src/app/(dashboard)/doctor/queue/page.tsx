@@ -45,7 +45,7 @@ export default function DoctorQueuePage() {
       const activeQueue = tokens
         .filter((q: any) => {
           const s = (q.status || "").toUpperCase();
-          return s !== "COMPLETED" && s !== "PRESCRIPTION_ISSUED" && s !== "CANCELLED";
+          return s !== "COMPLETED" && s !== "PRESCRIPTION_ISSUED" && s !== "CANCELLED" && s !== "NO_SHOW";
         })
         .map((t: any) => {
           const p = t.Patient || t.patient || {};
