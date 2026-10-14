@@ -99,12 +99,18 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                 </table>
               </div>
 
-              <div className="border-t-2 border-black pt-2 mb-4 text-sm">
+              <div className="border-t-2 border-black pt-2 mb-4 text-sm space-y-0.5">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
                   <span>LKR {receiptData.subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-base mt-1">
+                {receiptData.discount !== undefined && receiptData.discount > 0 && (
+                  <div className="flex justify-between font-medium text-xs">
+                    <span>Discount:</span>
+                    <span>- LKR {receiptData.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-base mt-1 pt-1 border-t border-dashed border-black">
                   <span>Total:</span>
                   <span>LKR {receiptData.total.toFixed(2)}</span>
                 </div>

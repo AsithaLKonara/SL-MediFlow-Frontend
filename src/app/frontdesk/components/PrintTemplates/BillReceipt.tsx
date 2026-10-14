@@ -10,6 +10,7 @@ export interface BillReceiptProps {
   invoice: {
     id: string;
     subtotal: number;
+    discountAmount?: number;
     totalAmount: number;
     lineItems: Array<{
       id: string;
@@ -83,8 +84,18 @@ export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
             ))}
           </div>
           
-          <div className="mt-4 pt-2 border-t-2 border-black">
-            <div className="flex justify-between font-bold text-sm">
+          <div className="mt-4 pt-2 border-t-2 border-black space-y-1">
+            <div className="flex justify-between text-xs">
+              <span>Subtotal</span>
+              <span>Rs. {(invoice.subtotal || invoice.totalAmount).toFixed(2)}</span>
+            </div>
+            {invoice.discountAmount !== undefined && invoice.discountAmount > 0 && (
+              <div className="flex justify-between text-xs font-semibold">
+                <span>Discount</span>
+                <span>- Rs. {invoice.discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-sm pt-1 border-t border-dashed border-black">
               <span>Total Amount</span>
               <span>Rs. {invoice.totalAmount.toFixed(2)}</span>
             </div>
