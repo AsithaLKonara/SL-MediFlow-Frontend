@@ -262,7 +262,7 @@ export default function LabTechRequestsPage() {
   const RequestCard = ({ req }: { req: LabRequest }) => {
     const sc = statusConfig[req.status] ?? { label: req.status, className: "bg-muted/50 text-foreground/80" };
     return (
-      <div className={`rounded-lg border shadow-sm p-4 space-y-3 hover:shadow-md transition-shadow ${req.priority === "URGENT" ? "border-red-500/20 bg-red-500/10/20" : ""}`}>
+      <div className={`rounded-lg border shadow-sm p-4 space-y-3 hover:shadow-md transition-shadow ${req.priority === "URGENT" ? "border-red-500/30 bg-red-50/50 dark:bg-red-950/20 dark:border-red-900/40" : ""}`}>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <div className="flex items-center gap-2 flex-wrap">

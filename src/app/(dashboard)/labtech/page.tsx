@@ -441,16 +441,19 @@ export default function LabTechOverview() {
               <Button variant="outline" size="sm">View All</Button>
             </Link>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
+          <CardContent className="space-y-3 pt-4">
             {metrics.tables.urgentRequests.length > 0 ? (
               metrics.tables.urgentRequests.map((req) => (
-                <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border bg-red-50/50">
+                <div 
+                  key={req.id} 
+                  className="flex items-center justify-between p-3.5 rounded-lg border border-red-200/80 bg-red-50/60 hover:bg-red-50 dark:border-red-900/40 dark:bg-red-950/20 dark:hover:bg-red-950/30 transition-colors"
+                >
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm truncate">{req.patientName}</p>
-                    <p className="text-xs text-muted-foreground truncate">🧪 {req.tests.join(", ")}</p>
+                    <p className="font-semibold text-sm truncate text-foreground">{req.patientName}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-300 truncate mt-0.5">🧪 {req.tests.join(", ")}</p>
                   </div>
                   <Link href={`/labtech/results/${req.id}`}>
-                    <Button size="sm" className="bg-red-600 hover:bg-red-700 h-8 ml-4">
+                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white font-medium h-8 ml-4 shadow-sm">
                       {req.status === "PENDING" ? "Process" : "Edit"}
                     </Button>
                   </Link>
@@ -477,15 +480,15 @@ export default function LabTechOverview() {
               <Button variant="outline" size="sm">View All</Button>
             </Link>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
+          <CardContent className="space-y-3 pt-4">
             {metrics.tables.recentPublished.length > 0 ? (
               metrics.tables.recentPublished.map((req) => (
-                <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={req.id} className="flex items-center justify-between p-3.5 rounded-lg border border-border/70 hover:bg-muted/30 transition-colors">
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm truncate">{req.patientName}</p>
-                    <p className="text-xs text-muted-foreground truncate">by {req.doctor}</p>
+                    <p className="font-semibold text-sm truncate text-foreground">{req.patientName}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">by {req.doctor}</p>
                   </div>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Published</Badge>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400 dark:border-green-800/60 font-medium">Published</Badge>
                 </div>
               ))
             ) : (
