@@ -240,9 +240,10 @@ export default function ConsultationPage() {
 
   useEffect(() => {
     const rxIdToLoad = activeEditRxId || editPrescriptionId;
-    if (rxIdToLoad && token) {
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+    if (rxIdToLoad && activeToken) {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxIdToLoad}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${activeToken}` }
       })
         .then(res => res.json())
         .then(rx => {
@@ -349,16 +350,8 @@ export default function ConsultationPage() {
       prev.some(t => t.id === test.id) ? prev.filter((t) => t.id !== test.id) : [...prev, test]
     );
 
-  const handleSaveDraft = () => {
-    setSavingDraft(true);
-    setTimeout(() => {
-      setSavingDraft(false);
-      toast.success("Draft saved successfully.");
-    }, 500);
-  };
-
-  const handleCompleteConsultation = async () => {
-    const finalVisitId = urlVisitId || patient?.activeVisitId || rxVisitId;
+  const savePrescription = async (navigateNext: boolean = false) => {
+    const finalVisitId = urlVisitId || patient?.activeVisitId || rxVisitId || createdPrescription?.visitId;
     if (!finalVisitId) {
       toast.error("No active visit found for this patient.");
       return;
@@ -369,7 +362,14 @@ export default function ConsultationPage() {
     }
 
     try {
-      setIsCompleting(true);
+      if (navigateNext) {
+        setIsCompleting(true);
+      } else {
+        setSavingDraft(true);
+      }
+
+      const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+
       const payload = {
         patientId: patient?.id,
         patientName: patient?.name,
@@ -409,7 +409,7 @@ export default function ConsultationPage() {
         method,
         headers: { 
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${activeToken}`
         },
         body: JSON.stringify(payload)
       });
@@ -417,30 +417,30 @@ export default function ConsultationPage() {
       if (res.ok) {
         const rx = await res.json();
         setCreatedPrescription(rx);
-        setVisitCompleted(true);
-        toast.success("Consultation completed and prescription sent to pharmacy.");
+        setActiveEditRxId(rx.id);
+        toast.success(targetRxId ? "Prescription updated and sent to pharmacy." : "Prescription completed and sent to pharmacy.");
       } else {
         const errData = await res.json().catch(() => ({}));
-        toast.error(errData.error || "Failed to complete consultation.");
-        setVisitCompleted(false);
-        setIsCompleting(false);
-        return; // Halt: Do not complete token or redirect if prescription creation failed
+        toast.error(errData.error || "Failed to save prescription.");
+        return;
       }
     } catch (e) {
-      console.error("Failed to complete consultation", e);
-      toast.error("Failed to complete consultation.");
-      setVisitCompleted(false);
-      setIsCompleting(false);
+      console.error("Failed to save prescription", e);
+      toast.error("Failed to save prescription.");
       return;
+    } finally {
+      setIsCompleting(false);
+      setSavingDraft(false);
     }
     
     if (selectedTests.length > 0) {
       try {
+        const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${activeToken}`
           },
           body: JSON.stringify({
             patientId: patient?.id,
@@ -456,31 +456,31 @@ export default function ConsultationPage() {
       }
     }
 
-    // 4. Update Token Status
-    try {
-      const finalStatus = "COMPLETED";
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/status`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          patientId: patient?.id,
-          doctorId: user.id,
-          status: finalStatus
-        })
-      });
-    } catch (e) {
-      console.error("Failed to update token status", e);
-    } finally {
-      setIsCompleting(false);
-    }
+    if (navigateNext) {
+      // Update Token Status if completing consultation
+      try {
+        const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/status`, {
+          method: "PATCH",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${activeToken}`
+          },
+          body: JSON.stringify({
+            patientId: patient?.id,
+            doctorId: user.id,
+            status: "COMPLETED"
+          })
+        });
+      } catch (e) {
+        console.error("Failed to update token status", e);
+      }
 
-    // Delay redirect to allow doctor to see completion and print
-    setTimeout(() => {
-      window.location.href = "/doctor/queue";
-    }, 2000);
+      setVisitCompleted(true);
+      setTimeout(() => {
+        window.location.href = "/doctor/queue";
+      }, 1000);
+    }
   };
 
   if (loading || !patient) {
@@ -985,28 +985,22 @@ export default function ConsultationPage() {
             )}
             <Button 
               variant="outline" 
-              onClick={handleSaveDraft}
-              disabled={savingDraft || visitCompleted}
+              onClick={() => savePrescription(false)}
+              disabled={savingDraft || isCompleting}
               className="bg-card text-card-foreground min-w-[120px]"
+              data-testid="save-prescription-btn"
             >
-              {savingDraft ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> Save Draft</>}
+              {savingDraft ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><Save className="w-4 h-4 mr-2" /> Save</>}
             </Button>
-            {createdPrescription ? (
-              <Button size="lg" onClick={() => window.location.href = "/doctor/queue"} className="bg-primary hover:bg-primary text-white">
-                Next Patient
-              </Button>
-            ) : (
-              <Button 
-                size="lg" 
-                onClick={handleCompleteConsultation}
-                disabled={visitCompleted}
-                isLoading={isCompleting}
-                className="bg-primary hover:bg-primary text-white min-w-[220px]"
-              >
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-                {visitCompleted ? "Completed" : "Complete Consultation"}
-              </Button>
-            )}
+            <Button 
+              size="lg" 
+              onClick={() => savePrescription(true)}
+              disabled={isCompleting || savingDraft}
+              className="bg-primary hover:bg-primary text-white min-w-[180px]"
+              data-testid="next-patient-btn"
+            >
+              {isCompleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Next Patient</>}
+            </Button>
           </div>
         </div>
       </div>
