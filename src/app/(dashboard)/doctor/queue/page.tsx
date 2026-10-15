@@ -261,13 +261,13 @@ export default function DoctorQueuePage() {
                         </TableCell>
                         <TableCell className="text-right">
                           {entry.status !== "COMPLETED" ? (
-                            <Link href={`/doctor/consultation/${entry.patientId}`}>
+                            <Link href={`/doctor/consultation/${entry.patientId}?visitId=${entry.id}`}>
                               <Button size="sm" className="bg-primary hover:bg-primary/90 text-white">
                                 Start Consultation
                               </Button>
                             </Link>
                           ) : (
-                            <Link href={`/doctor/consultation/${entry.patientId}`}>
+                            <Link href={`/doctor/consultation/${entry.patientId}?visitId=${entry.id}`}>
                               <Button size="sm" variant="outline">View Record</Button>
                             </Link>
                           )}

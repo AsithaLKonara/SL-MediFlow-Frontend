@@ -21,7 +21,7 @@ interface Metrics {
   pendingQueue: number;
   pendingPrescriptions: number;
   pendingLabRequests: number;
-  upcomingPatients: { queueNo: string; patientId: string; patientName: string; age: number; reason: string; status: string }[];
+  upcomingPatients: { id?: string; queueNo: string; patientId: string; patientName: string; age: number; reason: string; status: string }[];
 }
 
 export default function DoctorOverview() {
@@ -44,7 +44,7 @@ export default function DoctorOverview() {
       );
       if (localMatch) {
         toast.success(`Patient ${localMatch.patientName} (Token #${localMatch.queueNo}) found!`);
-        router.push(`/doctor/consultation/${localMatch.patientId}`);
+        router.push(`/doctor/consultation/${localMatch.patientId}?visitId=${localMatch.id || ''}`);
         return;
       }
 
@@ -65,10 +65,10 @@ export default function DoctorOverview() {
                           || data.prescriptions?.[0];
             if (activeRx) {
               toast.success(`Found Token #${tokenNo}: ${patientName} (Prescription #${activeRx.id.slice(0, 8)}). Resuming for edit & review...`);
-              router.push(`/doctor/consultation/${patientId}?editPrescriptionId=${activeRx.id}`);
+              router.push(`/doctor/consultation/${patientId}?editPrescriptionId=${activeRx.id}&visitId=${appt?.id || ''}`);
             } else {
               toast.success(`Found Token #${tokenNo}: ${patientName}. Opening consultation...`);
-              router.push(`/doctor/consultation/${patientId}`);
+              router.push(`/doctor/consultation/${patientId}?visitId=${appt?.id || ''}`);
             }
             return;
           }
@@ -100,7 +100,7 @@ export default function DoctorOverview() {
           const pId = p.id || match.patientId;
           if (pId) {
             toast.success(`Found Token #${match.tokenNumber}: ${p.fullName || "Patient"}. Opening consultation...`);
-            router.push(`/doctor/consultation/${pId}`);
+            router.push(`/doctor/consultation/${pId}?visitId=${match.id || ''}`);
             return;
           }
         }
@@ -138,9 +138,10 @@ export default function DoctorOverview() {
                     .map(t => {
             const p = t.Patient || t.patient || {};
             return {
-             queueNo: t.tokenNumber,
-             patientId: p.id || t.patientId,
-             patientName: p.fullName || "Unknown",
+              id: t.id,
+              queueNo: t.tokenNumber,
+              patientId: p.id || t.patientId,
+              patientName: p.fullName || "Unknown",
              age: p.ageFallback || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
              reason: t.department || "General Consultation",
              status: t.status
@@ -315,7 +316,7 @@ export default function DoctorOverview() {
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{p.reason}</p>
                 </div>
-                <Link href={`/doctor/consultation/${p.patientId}`}>
+                <Link href={`/doctor/consultation/${p.patientId}?visitId=${p.id || ''}`}>
                   <Button className="bg-primary hover:bg-primary/90 text-white shrink-0 px-6">
                     Start
                   </Button>

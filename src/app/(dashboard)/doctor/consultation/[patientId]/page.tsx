@@ -63,6 +63,7 @@ export default function ConsultationPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const editPrescriptionId = searchParams.get("editPrescriptionId");
+  const urlVisitId = searchParams.get("visitId");
   const [activeEditRxId, setActiveEditRxId] = useState<string | null>(editPrescriptionId);
   const patientId = params.patientId as string;
   const { isCollapsed } = useSidebar();
@@ -171,18 +172,24 @@ export default function ConsultationPage() {
           }).catch(console.error);
         }
 
-        // Auto-detect if patient already has an active prescription for this visit or today
-        if (!editPrescriptionId && d.activeVisitId) {
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions?visitId=${d.activeVisitId}`, {
+        // Auto-detect if patient already has an active prescription for this specific visit
+        const targetVisitId = urlVisitId || d.activeVisitId;
+        if (!editPrescriptionId && targetVisitId) {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions?visitId=${targetVisitId}&patientId=${patientId}`, {
             headers: { Authorization: `Bearer ${activeToken}` }
           })
             .then((r) => (r.ok ? r.json() : null))
             .then((rxList) => {
               const items = Array.isArray(rxList) ? rxList : rxList?.data || [];
-              const activeRx = items.find((p: any) => p.status !== "DISPENSED" && p.status !== "CANCELLED");
+              const activeRx = items.find((p: any) => 
+                p.patientId === patientId && 
+                p.visitId === targetVisitId && 
+                p.status !== "DISPENSED" && 
+                p.status !== "CANCELLED"
+              );
               if (activeRx) {
                 setActiveEditRxId(activeRx.id);
-                toast.info(`Active prescription #${activeRx.id.slice(0, 8)} loaded for review and update.`);
+                toast.info(`Active prescription #${activeRx.id.slice(0, 8)} for this visit loaded for review and update.`);
               }
             })
             .catch(() => {});
@@ -349,7 +356,7 @@ export default function ConsultationPage() {
   };
 
   const handleCompleteConsultation = async () => {
-    const finalVisitId = patient?.activeVisitId || rxVisitId;
+    const finalVisitId = urlVisitId || patient?.activeVisitId || rxVisitId;
     if (!finalVisitId) {
       toast.error("No active visit found for this patient.");
       return;
@@ -405,15 +412,21 @@ export default function ConsultationPage() {
       if (res.ok) {
         const rx = await res.json();
         setCreatedPrescription(rx);
-        toast.success("Consultation completed and securely saved.");
+        setVisitCompleted(true);
+        toast.success("Consultation completed and prescription sent to pharmacy.");
       } else {
-        toast.error("Failed to complete consultation.");
+        const errData = await res.json().catch(() => ({}));
+        toast.error(errData.error || "Failed to complete consultation.");
         setVisitCompleted(false);
+        setIsCompleting(false);
+        return; // Halt: Do not complete token or redirect if prescription creation failed
       }
     } catch (e) {
       console.error("Failed to complete consultation", e);
       toast.error("Failed to complete consultation.");
       setVisitCompleted(false);
+      setIsCompleting(false);
+      return;
     }
     
     if (selectedTests.length > 0) {
@@ -459,10 +472,10 @@ export default function ConsultationPage() {
       setIsCompleting(false);
     }
 
-    // Delay redirect to allow user to print
+    // Delay redirect to allow doctor to see completion and print
     setTimeout(() => {
       window.location.href = "/doctor/queue";
-    }, 1500);
+    }, 2000);
   };
 
   if (loading || !patient) {
