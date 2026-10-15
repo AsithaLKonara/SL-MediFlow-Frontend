@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
@@ -45,6 +46,8 @@ export function POSPane() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
   const [searchInput, setSearchInput] = useState("");
+  const [isSearchingBarcode, setIsSearchingBarcode] = useState(false);
+  const [searchingBarcodeCode, setSearchingBarcodeCode] = useState<string | null>(null);
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
@@ -323,6 +326,10 @@ export function POSPane() {
 
   const processBarcode = async (code: string) => {
     if (!code) return;
+    if (isSearchingBarcode) return; // Guard against concurrent/duplicate barcode scans
+
+    setIsSearchingBarcode(true);
+    setSearchingBarcodeCode(code);
 
     try {
       // Use the unified barcode API
@@ -471,16 +478,22 @@ export function POSPane() {
     } catch (e) {
       console.error(e);
       toast.error(`Error processing barcode ${code}`);
+    } finally {
+      setIsSearchingBarcode(false);
+      setSearchingBarcodeCode(null);
     }
   };
 
   useBarcodeScanner((barcode) => {
-    processBarcode(barcode);
+    if (!isSearchingBarcode) {
+      processBarcode(barcode);
+    }
   });
 
   const handleBarcodeScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      if (isSearchingBarcode) return;
       const code = searchInput.trim();
       setSearchInput("");
       processBarcode(code);
@@ -579,13 +592,32 @@ export function POSPane() {
         </div>
       </div>
 
+      {/* Barcode Searching Status Banner */}
+      {isSearchingBarcode && (
+        <div className="bg-primary/5 border border-primary/20 text-primary px-3 py-2 rounded-lg flex items-center justify-between text-xs font-medium animate-in fade-in slide-in-from-top-1 shrink-0">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+            <span>Resolving barcode <strong className="font-mono text-foreground font-semibold">{searchingBarcodeCode}</strong> across visits, prescriptions, and services...</span>
+          </div>
+          <span className="text-[11px] text-muted-foreground bg-background px-2 py-0.5 rounded border border-border">Searching Manifest</span>
+        </div>
+      )}
+
       {/* Barcode/Search Input */}
       <div className="relative shrink-0">
-        <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {isSearchingBarcode ? (
+          <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
+        ) : (
+          <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        )}
         <Input
-          placeholder="Scan barcode or search medicine..."
-          className="pl-9 bg-background border-border"
+          placeholder={isSearchingBarcode ? `Searching visit manifest for ${searchingBarcodeCode}...` : "Scan barcode or search medicine..."}
+          className={cn(
+            "pl-9 bg-background border-border transition-all",
+            isSearchingBarcode && "border-primary/50 ring-2 ring-primary/20 bg-primary/[0.02]"
+          )}
           value={searchInput}
+          disabled={isSearchingBarcode}
           onChange={(e) => {
             setSearchInput(e.target.value);
             setActiveDrugSearch(true);
@@ -595,6 +627,13 @@ export function POSPane() {
           onKeyDown={handleBarcodeScan}
           autoFocus
         />
+
+        {isSearchingBarcode && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold animate-pulse shadow-sm">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>Searching...</span>
+          </div>
+        )}
         
         {activeDrugSearch && searchInput.length > 0 && (
           <div className="absolute z-50 w-full mt-1 bg-card text-card-foreground border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">

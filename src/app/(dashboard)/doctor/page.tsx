@@ -61,15 +61,22 @@ export default function DoctorOverview() {
           const patientName = appt?.Patient?.fullName || "Patient";
           const tokenNo = appt?.tokenNumber || "N/A";
           if (patientId) {
-            toast.success(`Found Token #${tokenNo}: ${patientName}. Opening consultation...`);
-            router.push(`/doctor/consultation/${patientId}`);
+            const activeRx = data.prescriptions?.find((p: any) => p.status !== "DISPENSED" && p.status !== "CANCELLED") 
+                          || data.prescriptions?.[0];
+            if (activeRx) {
+              toast.success(`Found Token #${tokenNo}: ${patientName} (Prescription #${activeRx.id.slice(0, 8)}). Resuming for edit & review...`);
+              router.push(`/doctor/consultation/${patientId}?editPrescriptionId=${activeRx.id}`);
+            } else {
+              toast.success(`Found Token #${tokenNo}: ${patientName}. Opening consultation...`);
+              router.push(`/doctor/consultation/${patientId}`);
+            }
             return;
           }
         } else if (type === "PRESCRIPTION") {
           const patientId = data.patientId;
           if (patientId) {
-            toast.success(`Prescription found. Opening consultation...`);
-            router.push(`/doctor/consultation/${patientId}`);
+            toast.success(`Prescription #${data.id.slice(0, 8)} found. Opening for edit & review...`);
+            router.push(`/doctor/consultation/${patientId}?editPrescriptionId=${data.id}`);
             return;
           }
         }

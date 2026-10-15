@@ -63,6 +63,7 @@ export default function ConsultationPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const editPrescriptionId = searchParams.get("editPrescriptionId");
+  const [activeEditRxId, setActiveEditRxId] = useState<string | null>(editPrescriptionId);
   const patientId = params.patientId as string;
   const { isCollapsed } = useSidebar();
   const { user, token } = useAuth();
@@ -169,6 +170,23 @@ export default function ConsultationPage() {
             })
           }).catch(console.error);
         }
+
+        // Auto-detect if patient already has an active prescription for this visit or today
+        if (!editPrescriptionId && d.activeVisitId) {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions?visitId=${d.activeVisitId}`, {
+            headers: { Authorization: `Bearer ${activeToken}` }
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((rxList) => {
+              const items = Array.isArray(rxList) ? rxList : rxList?.data || [];
+              const activeRx = items.find((p: any) => p.status !== "DISPENSED" && p.status !== "CANCELLED");
+              if (activeRx) {
+                setActiveEditRxId(activeRx.id);
+                toast.info(`Active prescription #${activeRx.id.slice(0, 8)} loaded for review and update.`);
+              }
+            })
+            .catch(() => {});
+        }
       });
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
@@ -214,8 +232,9 @@ export default function ConsultationPage() {
   }, [patientId]);
 
   useEffect(() => {
-    if (editPrescriptionId && token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${editPrescriptionId}`, {
+    const rxIdToLoad = activeEditRxId || editPrescriptionId;
+    if (rxIdToLoad && token) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rxIdToLoad}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -224,6 +243,7 @@ export default function ConsultationPage() {
             setDiagnosis(rx.diagnosis || "");
             setRxVisitId(rx.visitId || null);
             setNotes(rx.clinicalNotes || "");
+            setCreatedPrescription(rx);
             const parsedDrugs = (rx.items || []).map((item: any) => {
               const freq = item.frequency || "";
               let tabletsPerTime = "";
@@ -260,7 +280,7 @@ export default function ConsultationPage() {
         })
         .catch(err => console.error("Failed to load prescription for edit:", err));
     }
-  }, [editPrescriptionId, token]);
+  }, [activeEditRxId, editPrescriptionId, token]);
 
   const handleAddOrUpdateDrug = () => {
     if (!currentDrug.drug.trim()) return toast.error("Medication name is required.");
@@ -367,7 +387,7 @@ export default function ConsultationPage() {
         })
       };
 
-      const targetRxId = editPrescriptionId || createdPrescription?.id;
+      const targetRxId = activeEditRxId || editPrescriptionId || createdPrescription?.id;
       const method = targetRxId ? "PUT" : "POST";
       const url = targetRxId 
         ? `${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${targetRxId}`
@@ -682,6 +702,29 @@ export default function ConsultationPage() {
 
           {/* PRESCRIPTION BUILDER */}
           <div id="medication-builder" className="bg-card text-card-foreground border border-border rounded-lg p-6 shadow-sm">
+            {/* CONTINUATION CONSULTATION BANNER */}
+            {(activeEditRxId || editPrescriptionId) && (
+              <div className="mb-4 bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 p-3.5 rounded-lg flex items-center justify-between text-xs animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2.5">
+                  <FilePen className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div>
+                    <div className="font-bold flex items-center gap-2">
+                      <span>Resuming Consultation</span>
+                      <span className="font-mono text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded">
+                        Rx #{((activeEditRxId || editPrescriptionId) as string).slice(0, 8)}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground text-[11px] mt-0.5">
+                      Previous prescription items and clinical notes have been loaded for review following lab investigations. Adjust medications as needed and click Complete to update.
+                    </p>
+                  </div>
+                </div>
+                <span className="bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-1 rounded text-[10px] tracking-wider uppercase shrink-0">
+                  Edit Mode
+                </span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold uppercase tracking-wider text-foreground/90 flex items-center gap-2">
                 <Beaker className="w-4 h-4 text-muted-foreground/70" /> Medications
