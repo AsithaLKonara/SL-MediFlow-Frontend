@@ -11,12 +11,14 @@ import { toast } from "sonner";
 export function WalkInForm({ 
   doctorId, 
   sessionId,
+  date,
   onComplete,
   open: externalOpen,
   onOpenChange: setExternalOpen
 }: { 
   doctorId: string; 
   sessionId?: string;
+  date?: string;
   onComplete?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -45,7 +47,7 @@ export function WalkInForm({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ doctorId, sessionId: sessionId || "", patient: formData })
+        body: JSON.stringify({ doctorId, sessionId: sessionId || "", patient: formData, date })
       });
       
       if (!res.ok) throw new Error("API Error");

@@ -281,6 +281,7 @@ export function TokenPane() {
     socketRef.current.on("prescription_created", fetchPendingPrescriptions);
     socketRef.current.on("prescription_status_updated", fetchPendingPrescriptions);
     socketRef.current.on("prescription_updated", fetchPendingPrescriptions);
+    socketRef.current.on("lab_request_created", fetchPendingPrescriptions);
 
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
@@ -587,19 +588,29 @@ export function TokenPane() {
           return;
         }
 
-        if (barcodeType === "APPOINTMENT" && barcodeData?.prescriptions?.length > 0) {
+        const mappedLabRequests = (barcodeData?.labRequests || []).map((lr: any) => ({
+          id: lr.id,
+          tests: (lr.items || []).map((item: any) => item.LabTest?.name || "Lab Test")
+        }));
+
+        const hasPrescriptions = barcodeData?.prescriptions?.length > 0;
+        const hasLabRequests = mappedLabRequests.length > 0;
+
+        if (barcodeType === "APPOINTMENT" && (hasPrescriptions || hasLabRequests)) {
           const apptIds = new Set([
             barcodeData.appointment?.id,
             ...(barcodeData.allAppointments || []).map((a: any) => a.id)
           ].filter(Boolean));
 
-          const rxFromApi = barcodeData.prescriptions.find((p: any) => 
-            p.id === cleanBarcode ||
-            (p.visitId && apptIds.has(p.visitId)) ||
-            p.bookingReference === cleanBarcode
-          ) || barcodeData.prescriptions[0];
+          const rxFromApi = hasPrescriptions
+            ? (barcodeData.prescriptions.find((p: any) => 
+                p.id === cleanBarcode ||
+                (p.visitId && apptIds.has(p.visitId)) ||
+                p.bookingReference === cleanBarcode
+              ) || barcodeData.prescriptions[0])
+            : null;
 
-          const synthesizedRx: Prescription = {
+          const synthesizedRx: Prescription = rxFromApi ? {
             id: rxFromApi.id,
             patientName: barcodeData.patient?.fullName || "Patient",
             doctorName: barcodeData.doctor?.fullName || "Doctor",
@@ -615,8 +626,22 @@ export function TokenPane() {
               medicineId: i.medicineId,
               medicine: i.medicine
             })),
+            labRequests: mappedLabRequests,
             visitId: rxFromApi.visitId || barcodeData.appointment?.id,
             patientId: rxFromApi.patientId || barcodeData.patient?.id,
+            bookingReference: barcodeData.masterBarcode || cleanBarcode,
+            doctor: barcodeData.doctor,
+            consultationPaid: barcodeData.consultationPaid
+          } : {
+            id: `LAB-${barcodeData.appointment?.id || cleanBarcode}`,
+            patientName: barcodeData.patient?.fullName || "Patient",
+            doctorName: barcodeData.doctor?.fullName || "Doctor",
+            createdAt: barcodeData.appointment?.createdAt || new Date().toISOString(),
+            status: "PENDING",
+            items: [],
+            labRequests: mappedLabRequests,
+            visitId: barcodeData.appointment?.id,
+            patientId: barcodeData.patient?.id,
             bookingReference: barcodeData.masterBarcode || cleanBarcode,
             doctor: barcodeData.doctor,
             consultationPaid: barcodeData.consultationPaid
@@ -654,6 +679,7 @@ export function TokenPane() {
               medicineId: i.medicineId,
               medicine: i.medicine
             })),
+            labRequests: mappedLabRequests,
             visitId: barcodeData.visitId,
             patientId: barcodeData.patientId,
             bookingReference: barcodeData.bookingReference || cleanBarcode,
@@ -675,7 +701,7 @@ export function TokenPane() {
           return;
         }
 
-        toast.info(`Visit ${cleanBarcode} scanned — no pending prescriptions to send.`);
+        toast.info(`Visit ${cleanBarcode} scanned — no pending prescriptions or lab tests to send.`);
         return;
       }
     } catch (e) {

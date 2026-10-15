@@ -121,8 +121,8 @@ export default function PharmacyDashboardPage() {
             id: i.id,
             medicineId: i.medicineId,
             name: i.drugName,
-            prescribedQty: parseInt(i.duration) * (parseInt(i.frequency) || 1) || 10, // heuristic if not parsed
-            dispenseQty: 0,
+            prescribedQty: i.dispenseQty || (parseInt(i.duration) * (parseInt(i.frequency) || 1)) || 10,
+            dispenseQty: i.dispenseQty || (parseInt(i.duration) * (parseInt(i.frequency) || 1)) || 10,
             unitPrice: i.medicine?.stockBatches?.[0]?.unitPrice || 0
           }))
         }));

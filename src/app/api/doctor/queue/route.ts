@@ -4,9 +4,14 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const doctorId = searchParams.get("doctorId") || "";
+    const requestedDate = searchParams.get("date") || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
     
-    // We pass doctorId if it exists to filter the appointments
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/appointments${doctorId ? `?doctorId=${doctorId}` : ''}`, {
+    const queryParams = new URLSearchParams();
+    if (doctorId) queryParams.append("doctorId", doctorId);
+    if (requestedDate) queryParams.append("date", requestedDate);
+
+    // We pass doctorId and date to filter the appointments strictly by scheduled day
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/appointments?${queryParams.toString()}`, {
       cache: "no-store"
     });
     

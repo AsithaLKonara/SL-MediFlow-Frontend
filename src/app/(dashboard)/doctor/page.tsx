@@ -129,30 +129,39 @@ export default function DoctorOverview() {
       .then((r) => r.json())
       .then((res: any) => { 
         const tokens: any[] = Array.isArray(res) ? res : (res.data || []);
-        // Build metrics from real token data
-        const upcoming = tokens
+        const todayColombo = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+        
+        // Isolate tokens strictly for today
+        const todayTokens = tokens.filter(t => {
+          if (!t.appointmentDate) return true;
+          const aptDateStr = new Date(t.appointmentDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+          return aptDateStr === todayColombo;
+        });
+
+        // Build metrics from today's token data only
+        const upcoming = todayTokens
           .filter(t => {
             const s = (t.status || "").toLowerCase();
             return s !== "completed" && s !== "prescription_issued" && s !== "cancelled" && s !== "no_show";
           })
-                    .map(t => {
+          .map(t => {
             const p = t.Patient || t.patient || {};
             return {
               id: t.id,
               queueNo: t.tokenNumber,
               patientId: p.id || t.patientId,
               patientName: p.fullName || "Unknown",
-             age: p.ageFallback || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
-             reason: t.department || "General Consultation",
-             status: t.status
+              age: p.ageFallback || (p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 0),
+              reason: t.department || "General Consultation",
+              status: t.status
             };
           });
           
         setMetrics({
           doctorName: user.fullName,
-          specialty: "General", // Placeholder for now
-          patientsToday: tokens.length,
-          completedConsultations: tokens.filter(t => {
+          specialty: "General",
+          patientsToday: todayTokens.length,
+          completedConsultations: todayTokens.filter(t => {
             const s = (t.status || "").toLowerCase();
             return s === "completed" || s === "prescription_issued";
           }).length,

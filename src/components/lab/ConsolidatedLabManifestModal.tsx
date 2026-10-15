@@ -12,6 +12,7 @@ export interface ConsolidatedTestItem {
   testId: string;
   testName: string;
   category?: string;
+  roomNumber?: string;
   status: string;
   source: "Frontdesk" | "Doctor";
   requestedAt?: string;
@@ -151,6 +152,12 @@ export function ConsolidatedLabManifestModal({
                       {test.category && (
                         <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                           {test.category}
+                        </span>
+                      )}
+
+                      {test.roomNumber && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                          {test.roomNumber}
                         </span>
                       )}
                     </div>

@@ -190,6 +190,10 @@ export default function ConsultationPage() {
               );
               if (activeRx) {
                 setActiveEditRxId(activeRx.id);
+                setDiagnosis(activeRx.diagnosis || "");
+                setRxVisitId(activeRx.visitId || null);
+                setNotes(activeRx.clinicalNotes || "");
+                setCreatedPrescription(activeRx);
                 toast.info(`Active prescription #${activeRx.id.slice(0, 8)} for this visit loaded for review and update.`);
               }
             })
@@ -446,7 +450,7 @@ export default function ConsultationPage() {
     if (selectedTests.length > 0) {
       try {
         const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
+        const labRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
@@ -460,7 +464,13 @@ export default function ConsultationPage() {
             priority: isUrgent ? "URGENT" : "ROUTINE"
           })
         });
-        toast.success("Lab orders forwarded to Laboratory.");
+        if (labRes.ok) {
+          toast.success("Lab orders forwarded to Laboratory.");
+          setSelectedTests([]);
+        } else {
+          const labErr = await labRes.json().catch(() => ({}));
+          toast.error(labErr.error || "Failed to send lab requests.");
+        }
       } catch (e) {
         console.error("Failed to send lab requests", e);
       }

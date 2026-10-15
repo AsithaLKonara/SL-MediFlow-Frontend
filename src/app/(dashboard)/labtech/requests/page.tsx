@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,11 @@ import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { ConsolidatedLabManifestModal, ConsolidatedLabManifest, ConsolidatedTestItem } from "@/components/lab/ConsolidatedLabManifestModal";
 
 interface TestItem {
+  id?: string;
   name: string;
   unit: string;
   referenceRange: string;
+  roomNumber?: string;
   result: string | null;
   status: string;
 }
@@ -48,6 +50,7 @@ export default function LabTechRequestsPage() {
   const [searching, setSearching] = useState(false);
   const [manifest, setManifest] = useState<ConsolidatedLabManifest | null>(null);
   const [isManifestOpen, setIsManifestOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<string>("ALL");
   const { token } = useAuth();
   const router = useRouter();
 
@@ -74,6 +77,7 @@ export default function LabTechRequestsPage() {
               testId: item.LabTest?.id || item.labTestId,
               testName: item.LabTest?.name || "Lab Test",
               category: item.LabTest?.category,
+              roomNumber: item.LabTest?.room?.roomNumber || undefined,
               status: lr.status,
               source: isDoctor ? "Doctor" : "Frontdesk",
               requestedAt: lr.requestedAt,
@@ -116,6 +120,7 @@ export default function LabTechRequestsPage() {
             testId: item.LabTest?.id || item.labTestId,
             testName: item.LabTest?.name || "Lab Test",
             category: item.LabTest?.category,
+            roomNumber: item.LabTest?.room?.roomNumber || undefined,
             status: lr.status,
             source: lr.doctorId ? "Doctor" : "Frontdesk",
             requestedAt: lr.requestedAt,
@@ -151,6 +156,7 @@ export default function LabTechRequestsPage() {
                   testId: item.LabTest?.id || item.labTestId,
                   testName: item.LabTest?.name || "Lab Test",
                   category: item.LabTest?.category,
+                  roomNumber: item.LabTest?.room?.roomNumber || undefined,
                   status: lr.status,
                   source: isDoctor ? "Doctor" : "Frontdesk",
                   requestedAt: lr.requestedAt,
@@ -220,6 +226,7 @@ export default function LabTechRequestsPage() {
             name: item.LabTest?.name,
             unit: item.LabTest?.unit || "",
             referenceRange: item.LabTest?.referenceRange || "",
+            roomNumber: item.LabTest?.room?.roomNumber || "",
             result: null,
             status: req.status
           })),
@@ -236,8 +243,15 @@ export default function LabTechRequestsPage() {
       });
   }, []);
 
-  const active = requests.filter(r => r.status === "PENDING" || r.status === "SAVED" || r.status === "IN_PROGRESS");
-  const published = requests.filter(r => r.status === "COMPLETED");
+  const filteredRequests = useMemo(() => {
+    if (selectedRoom === "ALL") return requests;
+    return requests.filter(r =>
+      r.tests.some((t: any) => (t.roomNumber || "").toUpperCase().includes(selectedRoom.toUpperCase()))
+    );
+  }, [requests, selectedRoom]);
+
+  const active = filteredRequests.filter(r => r.status === "PENDING" || r.status === "SAVED" || r.status === "IN_PROGRESS");
+  const published = filteredRequests.filter(r => r.status === "COMPLETED");
 
   if (loading) return (
     <div className="flex h-[80vh] items-center justify-center">
@@ -295,6 +309,11 @@ export default function LabTechRequestsPage() {
             <div key={i} className="flex items-center gap-1.5 text-xs bg-muted/50 rounded-md px-2 py-1">
               <Microscope className="w-3 h-3 text-muted-foreground" />
               <span className="font-medium">{t.name}</span>
+              {t.roomNumber && (
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                  {t.roomNumber}
+                </span>
+              )}
               {t.result && <span className="text-primary font-semibold">→ {t.result}</span>}
             </div>
           ))}
@@ -308,9 +327,27 @@ export default function LabTechRequestsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-[#3A3435] dark:text-gray-100">Lab Test Requests</h2>
-          <p className="text-muted-foreground mt-1">
-            {active.length} active · {published.length} published today
-          </p>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <p className="text-muted-foreground text-sm">
+              {active.length} active · {published.length} published today
+            </p>
+            <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
+              {(["ALL", "LAB-A", "LAB-B"] as const).map(rm => (
+                <button
+                  key={rm}
+                  type="button"
+                  onClick={() => setSelectedRoom(rm)}
+                  className={`px-2.5 py-0.5 rounded-md text-xs font-bold transition-all ${
+                    selectedRoom === rm
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {rm === "ALL" ? "All Labs" : rm === "LAB-A" ? "Lab Room A" : "Lab Room B"}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         {/* Barcode/Token Search */}
         <form onSubmit={(e) => { e.preventDefault(); performTokenSearch(tokenSearch); }} className="flex items-center gap-2 max-w-md w-full bg-card p-2 rounded-lg border shadow-sm">

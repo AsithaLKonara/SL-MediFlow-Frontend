@@ -116,10 +116,18 @@ export default function DoctorQueuePage() {
       headers: { Authorization: `Bearer ${token}` }
     }).then((r) => r.json()).then((d) => {
       const tokens = Array.isArray(d) ? d : (d.data || []);
+      const todayColombo = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+
       const activeQueue = tokens
         .filter((q: any) => {
           const s = (q.status || "").toUpperCase();
-          return s !== "COMPLETED" && s !== "PRESCRIPTION_ISSUED" && s !== "CANCELLED" && s !== "NO_SHOW";
+          const notDone = s !== "COMPLETED" && s !== "PRESCRIPTION_ISSUED" && s !== "CANCELLED" && s !== "NO_SHOW";
+          if (!notDone) return false;
+          if (q.appointmentDate) {
+            const aptDateStr = new Date(q.appointmentDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+            if (aptDateStr !== todayColombo) return false;
+          }
+          return true;
         })
         .map((t: any) => {
           const p = t.Patient || t.patient || {};

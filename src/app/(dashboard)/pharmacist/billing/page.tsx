@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Search, Plus, Minus, Trash2, CreditCard, SendToBack, Printer, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 
 interface InventoryItem {
   id: string;
@@ -66,13 +67,14 @@ export default function PharmacistPOSPage() {
       .catch(err => console.error("Failed to load inventory for POS", err));
   }, []);
 
-  const addToCart = (item: InventoryItem) => {
+  const addToCart = (item: InventoryItem, quantity: number = 1) => {
+    const addQty = Math.max(1, quantity);
     setCart(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
+        return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + addQty } : i);
       }
-      return [...prev, { ...item, qty: 1 }];
+      return [...prev, { ...item, qty: addQty }];
     });
     setSearchQuery(""); // Clear search after adding
     searchInputRef.current?.focus(); // Refocus for next scan
@@ -130,6 +132,7 @@ export default function PharmacistPOSPage() {
            for (const item of rx.items) {
              if (item.medicineId && item.medicine) {
                const price = item.medicine.stockBatches?.[0]?.unitPrice ?? 0;
+               const qty = calculateDispenseQuantity(item);
                addToCart({
                  id: item.medicine.id,
                  name: item.medicine.name,
@@ -138,7 +141,7 @@ export default function PharmacistPOSPage() {
                  category: item.medicine.category,
                  itemType: item.medicine.itemType,
                  barcode: item.medicine.barcode || "",
-               });
+               }, qty);
                count++;
              }
            }
@@ -163,6 +166,7 @@ export default function PharmacistPOSPage() {
             for (const item of rx.items || []) {
               if (item.medicineId && item.medicine) {
                 const price = item.medicine.stockBatches?.[0]?.unitPrice ?? 0;
+                const qty = calculateDispenseQuantity(item);
                 addToCart({
                   id: item.medicine.id,
                   name: item.medicine.name,
@@ -171,7 +175,7 @@ export default function PharmacistPOSPage() {
                   category: item.medicine.category,
                   itemType: item.medicine.itemType,
                   barcode: item.medicine.barcode || "",
-                });
+                }, qty);
                 count++;
               }
             }

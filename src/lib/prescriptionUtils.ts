@@ -12,7 +12,7 @@ export interface RxQuantityInput {
  * If an explicit override quantity (> 1) was specified, that quantity is honored.
  */
 export function calculateDispenseQuantity(item: RxQuantityInput): number {
-  if (item.dispenseQty && Number(item.dispenseQty) > 1) {
+  if (item.dispenseQty != null && Number(item.dispenseQty) >= 1) {
     return parseInt(String(item.dispenseQty), 10);
   }
 
