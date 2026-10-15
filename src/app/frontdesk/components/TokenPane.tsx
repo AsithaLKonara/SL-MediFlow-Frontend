@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon, Edit, Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -143,6 +143,68 @@ export function TokenPane() {
     }, 150); // slight delay for React to render the ref
   };
 
+  // Rx In-Place Edit State
+  const [editingRxModal, setEditingRxModal] = useState<Prescription | null>(null);
+  const [editingRxItems, setEditingRxItems] = useState<Array<{
+    drugName: string;
+    dosage: string;
+    dispenseQty: number;
+    medicineId: string | null;
+  }>>([]);
+  const [newRxItem, setNewRxItem] = useState({ drugName: "", dosage: "", dispenseQty: 1 });
+  const [isSavingRxEdit, setIsSavingRxEdit] = useState(false);
+
+  const handleOpenEditRx = (rx: Prescription) => {
+    setEditingRxModal(rx);
+    setEditingRxItems(
+      rx.items.map((i) => ({
+        drugName: i.drugName,
+        dosage: (i as any).dosage || "",
+        dispenseQty: i.dispenseQty || 1,
+        medicineId: i.medicineId || i.medicine?.id || null,
+      }))
+    );
+    setNewRxItem({ drugName: "", dosage: "", dispenseQty: 1 });
+  };
+
+  const handleSaveRxEdit = async () => {
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+    if (!editingRxModal || !activeToken) return;
+    setIsSavingRxEdit(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${editingRxModal.id}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${activeToken}`
+        },
+        body: JSON.stringify({
+          diagnosis: (editingRxModal as any).diagnosis,
+          clinicalNotes: (editingRxModal as any).clinicalNotes,
+          items: editingRxItems.map((item) => ({
+            drugName: item.drugName,
+            dosage: item.dosage,
+            dispenseQty: item.dispenseQty,
+            medicineId: item.medicineId,
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Prescription updated successfully");
+        setEditingRxModal(null);
+        await fetchPendingPrescriptions();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to update prescription");
+      }
+    } catch (e) {
+      toast.error("Failed to update prescription");
+    } finally {
+      setIsSavingRxEdit(false);
+    }
+  };
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<GeneratedToken | null>(null);
 
@@ -265,6 +327,7 @@ export function TokenPane() {
     socketRef.current.on("TOKEN_STATUS_UPDATED", refreshAll);
     socketRef.current.on("prescription_created", fetchPendingPrescriptions);
     socketRef.current.on("prescription_status_updated", fetchPendingPrescriptions);
+    socketRef.current.on("prescription_updated", fetchPendingPrescriptions);
 
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
@@ -1466,19 +1529,31 @@ export function TokenPane() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
+                          className="h-8 px-2.5 border-primary/30 text-primary hover:bg-primary/10"
                           onClick={() => handlePrintClick(rx)}
                         >
                           Print Rx
                         </Button>
                         <Button
+                          variant="outline"
                           size="sm"
-                          className="flex-1 bg-primary hover:bg-primary/90"
+                          className="h-8 px-2.5 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                          onClick={() => handleOpenEditRx(rx)}
+                          disabled={isInPos || isLocked}
+                          title="Edit Medicines & Dosage"
+                          data-testid={`edit-rx-${rx.id}`}
+                        >
+                          <Edit className="w-3.5 h-3.5 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-primary hover:bg-primary/90 h-8"
                           onClick={() => handleSendToPOS(rx)}
                           disabled={isLocked || isInPos}
                           data-testid={`send-rx-to-pos-${rx.id}`}
                         >
-                          <CheckCircle className="w-4 h-4 mr-2" />
+                          <CheckCircle className="w-4 h-4 mr-1.5" />
                           {isInPos ? "Active in POS" : "Send to POS"}
                         </Button>
                       </div>
@@ -1490,6 +1565,124 @@ export function TokenPane() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Prescription Modal in Rx Tab */}
+      <Dialog open={!!editingRxModal} onOpenChange={(open) => { if (!open) setEditingRxModal(null); }}>
+        <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="pb-3 border-b">
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <Edit className="w-5 h-5 text-amber-500" />
+              Edit Prescription #{editingRxModal?.id.slice(-6).toUpperCase()}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Patient: <span className="font-semibold text-foreground">{editingRxModal?.patientName}</span> • Doctor: {editingRxModal?.doctorName}
+            </p>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 py-3">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prescribed Medications</label>
+              <div className="space-y-2">
+                {editingRxItems.map((item, idx) => (
+                  <div key={idx} className="p-3 border rounded-lg bg-card flex items-center justify-between gap-3 text-xs">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{item.drugName}</p>
+                      <p className="text-muted-foreground">{item.dosage || "As prescribed"}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">Qty:</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.dispenseQty}
+                        onChange={(e) => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          setEditingRxItems(prev => prev.map((it, i) => i === idx ? { ...it, dispenseQty: val } : it));
+                        }}
+                        className="w-16 h-8 text-center text-xs"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                        onClick={() => setEditingRxItems(prev => prev.filter((_, i) => i !== idx))}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {editingRxItems.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">
+                    No medications in this prescription. Add one below.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Add Medicine */}
+            <div className="p-3 border rounded-lg bg-muted/20 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground">Add Medication</p>
+              <div className="grid grid-cols-12 gap-2">
+                <Input
+                  placeholder="Medicine name"
+                  value={newRxItem.drugName}
+                  onChange={(e) => setNewRxItem(prev => ({ ...prev, drugName: e.target.value }))}
+                  className="col-span-6 h-8 text-xs"
+                />
+                <Input
+                  placeholder="Dosage"
+                  value={newRxItem.dosage}
+                  onChange={(e) => setNewRxItem(prev => ({ ...prev, dosage: e.target.value }))}
+                  className="col-span-3 h-8 text-xs"
+                />
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Qty"
+                  value={newRxItem.dispenseQty}
+                  onChange={(e) => setNewRxItem(prev => ({ ...prev, dispenseQty: Math.max(1, parseInt(e.target.value) || 1) }))}
+                  className="col-span-2 h-8 text-xs text-center"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  className="col-span-1 h-8 w-8 bg-primary hover:bg-primary/90"
+                  onClick={() => {
+                    if (!newRxItem.drugName.trim()) return;
+                    setEditingRxItems(prev => [...prev, {
+                      drugName: newRxItem.drugName.trim(),
+                      dosage: newRxItem.dosage.trim(),
+                      dispenseQty: newRxItem.dispenseQty,
+                      medicineId: null
+                    }]);
+                    setNewRxItem({ drugName: "", dosage: "", dispenseQty: 1 });
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditingRxModal(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-primary hover:bg-primary/90"
+              onClick={handleSaveRxEdit}
+              disabled={isSavingRxEdit}
+            >
+              {isSavingRxEdit ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save & Update Rx
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

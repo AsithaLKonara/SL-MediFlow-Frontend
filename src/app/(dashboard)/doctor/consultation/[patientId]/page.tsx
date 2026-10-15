@@ -90,7 +90,7 @@ export default function ConsultationPage() {
   const [rxVisitId, setRxVisitId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   
-  const initialDrugState = { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "" };
+  const initialDrugState = { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "", medicineId: null as string | null, dispenseQty: 1 as number | null };
   const [addedDrugs, setAddedDrugs] = useState<typeof initialDrugState[]>([]);
   const [currentDrug, setCurrentDrug] = useState(initialDrugState);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -273,13 +273,15 @@ export default function ConsultationPage() {
               }
               
               return {
-                drug: item.drugName || "",
+                drug: item.drugName || item.medicine?.name || "",
                 dosage: item.dosage || "",
                 timesPerDay,
                 tabletsPerTime,
                 duration: item.duration || "",
                 instructions: item.instructions || "",
-                timing: ""
+                timing: "",
+                medicineId: item.medicineId || item.medicine?.id || null,
+                dispenseQty: item.dispenseQty || 1
               };
             });
             setAddedDrugs(parsedDrugs);
@@ -334,7 +336,7 @@ export default function ConsultationPage() {
       }
     }
 
-    setCurrentDrug(prev => ({ ...prev, drug: finalDrugName, dosage: parsedDosage }));
+    setCurrentDrug(prev => ({ ...prev, drug: finalDrugName, dosage: parsedDosage, medicineId: medicine.id }));
     setActiveDrugSearch(false);
     
     if (medicine.stock === 0) {
@@ -380,10 +382,13 @@ export default function ConsultationPage() {
           const timesPerDay = parseInt(d.timesPerDay) || 1;
           const tabletsPerTime = parseInt(d.tabletsPerTime) || 1;
           const durationVal = parseInt(d.duration) || 1;
-          const dispenseQty = timesPerDay * tabletsPerTime * durationVal;
+          const calcQty = timesPerDay * tabletsPerTime * durationVal;
+          const dispenseQty = d.dispenseQty || calcQty;
+
+          const resolvedMedId = d.medicineId || availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id || null;
 
           return {
-            medicineId: availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id,
+            medicineId: resolvedMedId,
             drugName: d.drug,
             dosage: d.dosage,
             frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,

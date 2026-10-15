@@ -99,6 +99,10 @@ export default function PharmacyDashboardPage() {
       // new Audio("/chime.mp3").play().catch(()=>null);
     });
 
+    socket.on("prescription_updated", () => {
+      fetchPrescriptions();
+    });
+
     return () => {
       socket.disconnect();
     };

@@ -34,7 +34,7 @@ export default function PrescriptionHistoryPage() {
   const [editDiagnosis, setEditDiagnosis] = useState("");
   const [editNotes, setEditNotes] = useState("");
   
-  const initialDrugState = { drugName: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "" };
+  const initialDrugState = { drugName: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", medicineId: null as string | null, dispenseQty: 1 };
   const [editDrugs, setEditDrugs] = useState<typeof initialDrugState[]>([]);
   const [currentEditDrug, setCurrentEditDrug] = useState(initialDrugState);
   
@@ -89,7 +89,46 @@ export default function PrescriptionHistoryPage() {
       toast.error("Cannot edit a prescription that has already been dispensed.");
       return;
     }
-    router.push(`/doctor/consultation/${rx.patientId}?editPrescriptionId=${rx.id}`);
+    setEditingRx(rx);
+    setEditDiagnosis(rx.diagnosis || "");
+    setEditNotes(rx.clinicalNotes || "");
+
+    const parsedDrugs = (rx.items || []).map((item: any) => {
+      const freq = item.frequency || "";
+      let tabletsPerTime = "";
+      let timesPerDay = "";
+
+      if (freq.includes("x day")) {
+        const match = freq.match(/^(\d+)x day(?: \((.*?)\s*tab\))?/);
+        if (match) {
+          timesPerDay = match[1] || "";
+          tabletsPerTime = match[2] || "";
+        } else {
+          timesPerDay = freq;
+        }
+      } else if (freq.includes("tablets") && freq.includes("times a day")) {
+        const parts = freq.split("tablets,");
+        tabletsPerTime = parts[0]?.trim() || "";
+        timesPerDay = parts[1]?.split("times a day")[0]?.trim() || "";
+      } else {
+        timesPerDay = freq;
+      }
+
+      return {
+        drugName: item.drugName || item.medicine?.name || "",
+        dosage: item.dosage || "",
+        timesPerDay,
+        tabletsPerTime,
+        duration: item.duration || "",
+        instructions: item.instructions || "",
+        dispenseQty: item.dispenseQty || 1,
+        medicineId: item.medicineId || item.medicine?.id || null
+      };
+    });
+
+    setEditDrugs(parsedDrugs);
+    setCurrentEditDrug(initialDrugState);
+    setIsEditModalOpen(true);
   };
   
   const handleAddEditDrug = () => {
@@ -125,13 +164,22 @@ export default function PrescriptionHistoryPage() {
         body: JSON.stringify({
           diagnosis: editDiagnosis,
           clinicalNotes: editNotes,
-          items: editDrugs.map(d => ({
-            drugName: d.drugName,
-            dosage: d.dosage,
-            frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}`.trim() : "",
-            duration: d.duration,
-            instructions: d.instructions
-          }))
+          items: editDrugs.map(d => {
+            const timesPerDay = parseInt(d.timesPerDay) || 1;
+            const tabletsPerTime = parseInt(d.tabletsPerTime) || 1;
+            const durationVal = parseInt(d.duration) || 1;
+            const dispenseQty = d.dispenseQty || (timesPerDay * tabletsPerTime * durationVal);
+
+            return {
+              medicineId: d.medicineId || null,
+              drugName: d.drugName,
+              dosage: d.dosage,
+              frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}`.trim() : "",
+              duration: d.duration,
+              instructions: d.instructions,
+              dispenseQty
+            };
+          })
         })
       });
       
