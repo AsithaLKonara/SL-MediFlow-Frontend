@@ -21,6 +21,7 @@ import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 
 interface Doctor {
   id: string;
@@ -532,7 +533,7 @@ export function TokenPane() {
       .map((item) => ({
         id: item.medicine!.id,
         name: item.medicine!.name,
-        qty: item.dispenseQty || 1,
+        qty: calculateDispenseQuantity(item),
         price: item.medicine!.stockBatches?.[0]?.unitPrice ?? 0,
       }));
 
@@ -607,7 +608,7 @@ export function TokenPane() {
             items: (rxFromApi.items || []).map((i: any) => ({
               id: i.id,
               drugName: i.medicine?.name || i.medicineName || "Medicine",
-              dispenseQty: i.dispenseQty || 1,
+              dispenseQty: calculateDispenseQuantity(i),
               dosage: i.dosage,
               frequency: i.frequency,
               duration: i.duration,
@@ -646,7 +647,7 @@ export function TokenPane() {
             items: (barcodeData.items || []).map((i: any) => ({
               id: i.id,
               drugName: i.medicine?.name || i.drugName || "Medicine",
-              dispenseQty: i.dispenseQty || 1,
+              dispenseQty: calculateDispenseQuantity(i),
               dosage: i.dosage,
               frequency: i.frequency,
               duration: i.duration,

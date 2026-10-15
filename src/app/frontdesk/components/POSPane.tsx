@@ -18,6 +18,7 @@ import { MergedReceiptTemplate } from "../../../components/printing/MergedReceip
 import { CheckCircle2, Printer } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { POSHistoryModal } from "./POSHistoryModal";
+import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 import { useCallback } from "react";
 
 interface Medicine {
@@ -106,7 +107,7 @@ export function POSPane() {
           for (const rxItem of rxItems) {
             const idx = updated.findIndex((i) => i.id === rxItem.id);
             if (idx >= 0) {
-              updated[idx] = { ...updated[idx], qty: rxItem.qty };
+              updated[idx] = { ...updated[idx], qty: (updated[idx].qty || 0) + rxItem.qty };
             } else {
               updated.push(rxItem);
             }
@@ -355,7 +356,7 @@ export function POSPane() {
             .map((item: any) => ({
               id: item.medicine.id,
               name: item.medicine.name,
-              qty: item.dispenseQty || 1,
+              qty: calculateDispenseQuantity(item),
               price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
             }));
           
@@ -439,7 +440,7 @@ export function POSPane() {
                 .map((item: any) => ({
                   id: item.medicine.id,
                   name: item.medicine.name,
-                  qty: item.dispenseQty || 1,
+                  qty: calculateDispenseQuantity(item),
                   price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
                 }));
               allCartItems.push(...items);

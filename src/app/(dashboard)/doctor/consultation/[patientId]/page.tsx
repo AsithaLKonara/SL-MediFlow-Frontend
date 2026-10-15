@@ -13,6 +13,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 
 const formatSafeDate = (dateStr: string) => {
   if (!dateStr) return "N/A";
@@ -90,7 +91,7 @@ export default function ConsultationPage() {
   const [rxVisitId, setRxVisitId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   
-  const initialDrugState = { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "", medicineId: null as string | null, dispenseQty: 1 as number | null };
+  const initialDrugState = { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "", medicineId: null as string | null, dispenseQty: null as number | null };
   const [addedDrugs, setAddedDrugs] = useState<typeof initialDrugState[]>([]);
   const [currentDrug, setCurrentDrug] = useState(initialDrugState);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -273,6 +274,14 @@ export default function ConsultationPage() {
                  timesPerDay = freq;
               }
               
+              const resolvedQty = calculateDispenseQuantity({
+                dispenseQty: item.dispenseQty,
+                frequency: freq,
+                duration: item.duration,
+                timesPerDay,
+                tabletsPerTime
+              });
+
               return {
                 drug: item.drugName || item.medicine?.name || "",
                 dosage: item.dosage || "",
@@ -282,7 +291,7 @@ export default function ConsultationPage() {
                 instructions: item.instructions || "",
                 timing: "",
                 medicineId: item.medicineId || item.medicine?.id || null,
-                dispenseQty: item.dispenseQty || 1
+                dispenseQty: resolvedQty
               };
             });
             setAddedDrugs(parsedDrugs);
@@ -295,11 +304,17 @@ export default function ConsultationPage() {
   const handleAddOrUpdateDrug = () => {
     if (!currentDrug.drug.trim()) return toast.error("Medication name is required.");
     
+    const computedQty = calculateDispenseQuantity(currentDrug);
+    const drugToSave = {
+      ...currentDrug,
+      dispenseQty: computedQty
+    };
+
     if (editingIndex !== null) {
-      setAddedDrugs(prev => prev.map((d, i) => i === editingIndex ? currentDrug : d));
+      setAddedDrugs(prev => prev.map((d, i) => i === editingIndex ? drugToSave : d));
       setEditingIndex(null);
     } else {
-      setAddedDrugs(prev => [...prev, currentDrug]);
+      setAddedDrugs(prev => [...prev, drugToSave]);
     }
     setCurrentDrug(initialDrugState);
   };
@@ -379,12 +394,7 @@ export default function ConsultationPage() {
         diagnosis,
         clinicalNotes: notes,
         items: addedDrugs.map(d => {
-          const timesPerDay = parseInt(d.timesPerDay) || 1;
-          const tabletsPerTime = parseInt(d.tabletsPerTime) || 1;
-          const durationVal = parseInt(d.duration) || 1;
-          const calcQty = timesPerDay * tabletsPerTime * durationVal;
-          const dispenseQty = d.dispenseQty || calcQty;
-
+          const dispenseQty = calculateDispenseQuantity(d);
           const resolvedMedId = d.medicineId || availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id || null;
 
           return {
@@ -907,6 +917,7 @@ export default function ConsultationPage() {
                         <TableHead>Dosage</TableHead>
                         <TableHead>Frequency</TableHead>
                         <TableHead>Duration</TableHead>
+                        <TableHead className="text-center">Total Qty</TableHead>
                         <TableHead className="w-[60px] text-center">Action</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -925,6 +936,11 @@ export default function ConsultationPage() {
                             {d.tabletsPerTime ? ` (${d.tabletsPerTime} tab)` : ""}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{d.duration || "-"}</TableCell>
+                          <TableCell className="text-center font-bold text-foreground">
+                            <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-xs font-mono">
+                              {calculateDispenseQuantity(d)}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-center">
                             <Button
                               type="button"
