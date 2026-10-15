@@ -138,8 +138,9 @@ export default function ConsultationPage() {
   };
 
   useEffect(() => {
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
     fetch(`/api/doctor/patients/${patientId}`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${activeToken}` }
     })
       .then((r) => r.json())
       .then((d) => { 

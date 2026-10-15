@@ -61,6 +61,8 @@ export function PhoneBookingPane() {
   const [patientPhone, setPatientPhone] = useState("");
   const [patientAge, setPatientAge] = useState("");
   const [patientLookupResult, setPatientLookupResult] = useState<{found: boolean; message: string} | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [isNewPatientForPhone, setIsNewPatientForPhone] = useState(false);
   const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
   const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
 
@@ -239,12 +241,24 @@ export function PhoneBookingPane() {
   }, [searchQuery, API, apiFetch]);
 
   const selectPatient = (p: any) => {
+    setSelectedPatientId(p.id);
+    setIsNewPatientForPhone(false);
     setPatientName(p.fullName);
     setPatientPhone(p.phone);
     setPatientAge(p.ageFallback?.toString() || "");
     setSearchQuery(p.phone);
     setIsPatientSearchOpen(false);
     setPatientLookupResult({ found: true, message: `Patient selected: ${p.fullName}` });
+  };
+
+  const startNewPatientForPhone = (phoneNum: string) => {
+    setSelectedPatientId(null);
+    setIsNewPatientForPhone(true);
+    setPatientPhone(phoneNum);
+    setPatientName("");
+    setPatientAge("");
+    setIsPatientSearchOpen(false);
+    setPatientLookupResult({ found: false, message: `Registering new person under ${phoneNum}` });
   };
 
   const handleBook = async () => {
@@ -284,6 +298,8 @@ export function PhoneBookingPane() {
 
       const payload = {
         bookingType: "PHONE",
+        patientId: selectedPatientId || undefined,
+        isNewPatient: isNewPatientForPhone,
         patientName: patientName || "Phone Booking",
         patientPhone,
         ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
@@ -310,6 +326,8 @@ export function PhoneBookingPane() {
       if (result.success) {
         setSuccessTokens(result.data.tokens || []);
         setSuccessPopupOpen(true);
+        setSelectedPatientId(null);
+        setIsNewPatientForPhone(false);
         setSearchQuery("");
         setPatientName("");
         setPatientPhone("");
@@ -353,30 +371,107 @@ export function PhoneBookingPane() {
               onFocus={() => { if (searchQuery.length >= 3) setIsPatientSearchOpen(true) }}
             />
             {isPatientSearchOpen && (
-              <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+              <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-56 overflow-y-auto">
                 {patientSearchResults.length > 0 ? (
-                  <ul className="py-1">
+                  <ul className="py-1 divide-y divide-border/50">
+                    <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
+                      Registered Patients for this Phone ({patientSearchResults.length}):
+                    </div>
                     {patientSearchResults.map((p) => (
                       <li
                         key={p.id}
-                        className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                        className="px-3 py-2.5 hover:bg-muted cursor-pointer text-sm flex items-center justify-between"
                         onMouseDown={(e) => { e.preventDefault(); selectPatient(p); }}
                       >
-                        <div className="font-semibold">{p.fullName}</div>
-                        <div className="text-xs text-muted-foreground">{p.phone} • {p.ageFallback ? `${p.ageFallback} yrs` : "No age"}</div>
+                        <div>
+                          <div className="font-semibold text-foreground flex items-center gap-2">
+                            {p.fullName}
+                            {p.gender && <span className="text-[10px] uppercase font-normal px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.gender}</span>}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{p.phone} • {p.ageFallback ? `${p.ageFallback} yrs` : "No age"} {p.patientId ? `• MRN: ${p.patientId}` : ''}</div>
+                        </div>
+                        <span className="text-xs text-primary font-medium">Select</span>
                       </li>
                     ))}
+                    <li
+                      className="px-3 py-2.5 hover:bg-primary/10 cursor-pointer text-xs text-primary font-medium flex items-center gap-2 bg-background/50"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        startNewPatientForPhone(searchQuery);
+                      }}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      Register new person under {searchQuery}
+                    </li>
                   </ul>
                 ) : (
-                  <div className="px-3 py-2 text-sm text-muted-foreground italic">
-                    No matches found. Quick register instead.
+                  <div className="p-3 text-sm text-muted-foreground flex flex-col gap-2">
+                    <div>No matches found.</div>
+                    <button
+                      type="button"
+                      className="text-xs text-primary font-medium flex items-center gap-1.5 hover:underline text-left"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        startNewPatientForPhone(searchQuery);
+                      }}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" /> Quick register as new patient
+                    </button>
                   </div>
                 )}
               </div>
             )}
           </div>
         </div>
-        {patientLookupResult && (
+
+        {/* Selected Family Member Status Badge */}
+        {selectedPatientId && (
+          <div className="flex items-center justify-between p-2.5 rounded-lg border border-primary/30 bg-primary/5 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs text-muted-foreground font-medium">Selected Patient:</span>
+              <span className="font-semibold text-foreground">{patientName}</span>
+              <span className="text-xs text-muted-foreground">({patientAge ? `${patientAge} yrs` : "No age"}, {patientPhone})</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPatientId(null);
+                setIsNewPatientForPhone(false);
+                setPatientLookupResult(null);
+              }}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              Change / Clear
+            </button>
+          </div>
+        )}
+
+        {/* New Person Registration Indicator */}
+        {isNewPatientForPhone && (
+          <div className="flex items-center justify-between p-2.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Registering New Family Member under {patientPhone}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsNewPatientForPhone(false);
+                setPatientName("");
+                setPatientAge("");
+                setPatientPhone("");
+                setSearchQuery("");
+                setPatientLookupResult(null);
+              }}
+              className="text-xs text-muted-foreground hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {patientLookupResult && !selectedPatientId && !isNewPatientForPhone && (
           <p className={`text-xs mt-1 ${patientLookupResult.found ? "text-green-500" : "text-yellow-500"}`}>
             {patientLookupResult.message}
           </p>

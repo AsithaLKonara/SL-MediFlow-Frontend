@@ -71,7 +71,6 @@ const roleNavConfig: Record<string, NavItem[]> = {
   ],
   labtech: [
     { href: "/labtech", label: "Overview", icon: LayoutDashboard },
-    { href: "/labtech/queue", label: "Frontdesk Queue", icon: Users },
     { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
     { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
     { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical },

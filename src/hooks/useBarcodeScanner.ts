@@ -3,6 +3,11 @@ import { useEffect, useRef } from "react";
 export function useBarcodeScanner(onScan: (barcode: string) => void, isActive: boolean = true) {
   const buffer = useRef("");
   const lastKeyTime = useRef<number>(0);
+  const onScanRef = useRef(onScan);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -20,12 +25,12 @@ export function useBarcodeScanner(onScan: (barcode: string) => void, isActive: b
       if (e.key === "Enter") {
         if (buffer.current.length > 3) {
           // It's a scan!
-          onScan(buffer.current);
+          const scanned = buffer.current;
           buffer.current = "";
+          onScanRef.current(scanned);
           
           if (timeDiff <= 50) {
              e.preventDefault();
-             e.stopPropagation();
           }
         }
       } else if (e.key?.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -33,7 +38,17 @@ export function useBarcodeScanner(onScan: (barcode: string) => void, isActive: b
       }
     };
 
+    const handleCustomScan = (e: any) => {
+      if (e.detail) {
+        onScanRef.current(e.detail);
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onScan, isActive]);
+    window.addEventListener("barcode-scan", handleCustomScan);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("barcode-scan", handleCustomScan);
+    };
+  }, [isActive]);
 }

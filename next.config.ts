@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  async redirects() {
+    return [
+      {
+        source: "/labtech/queue",
+        destination: "/labtech/requests",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

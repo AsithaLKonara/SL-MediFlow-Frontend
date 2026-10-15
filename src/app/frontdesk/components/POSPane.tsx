@@ -96,14 +96,14 @@ export function POSPane() {
 
   // Listen for prescription items or tokens pushed from the Rx/Token tab
   useEffect(() => {
-    onPrescriptionReceived(
+    return onPrescriptionReceived(
       async (rxItems, rxId, doctor, consultationPaid, visitId, patientId) => {
         setCart((prev) => {
           const updated = [...prev];
           for (const rxItem of rxItems) {
             const idx = updated.findIndex((i) => i.id === rxItem.id);
             if (idx >= 0) {
-              updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+              updated[idx] = { ...updated[idx], qty: rxItem.qty };
             } else {
               updated.push(rxItem);
             }
@@ -452,7 +452,7 @@ export function POSPane() {
               for (const rxItem of allCartItems) {
                 const idx = updated.findIndex((i) => i.id === rxItem.id);
                 if (idx >= 0) {
-                  updated[idx] = { ...updated[idx], qty: updated[idx].qty + rxItem.qty };
+                  updated[idx] = { ...updated[idx], qty: rxItem.qty };
                 } else {
                   updated.push(rxItem);
                 }

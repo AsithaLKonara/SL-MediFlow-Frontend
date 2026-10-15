@@ -62,6 +62,9 @@ interface Prescription {
   labRequests?: { id: string; tests: string[] }[];
   visitId?: string;
   patientId?: string;
+  bookingReference?: string | null;
+  doctor?: any;
+  consultationPaid?: boolean;
 }
 
 interface GeneratedToken {
@@ -100,6 +103,9 @@ export function TokenPane() {
   const [patientPhone, setPatientPhone] = useState("");
   const [patientAge, setPatientAge] = useState("");
   const [patientLookupResult, setPatientLookupResult] = useState<{ found: boolean; message: string } | null>(null);
+
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [isNewPatientForPhone, setIsNewPatientForPhone] = useState(false);
 
   const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
   const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
@@ -224,21 +230,27 @@ export function TokenPane() {
       .catch(console.error);
   }, [selectedServiceIds.size, selectedDate, apiFetch]);
 
-  const fetchPendingPrescriptions = useCallback(async () => {
-    if (!token) return;
+  const fetchPendingPrescriptions = useCallback(async (): Promise<Prescription[]> => {
+    console.log("[TokenPane] fetchPendingPrescriptions running, hasToken:", !!token);
+    if (!token) return [];
     setRxLoading(true);
     try {
+      console.log("[TokenPane] calling /prescriptions/pending...");
       const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/pending`);
-      if (!res.ok) throw new Error("Failed to fetch prescriptions");
+      console.log("[TokenPane] /prescriptions/pending status:", res.status);
+      if (!res.ok) throw new Error("Failed to fetch prescriptions: " + res.status);
       const data: Prescription[] = await res.json();
+      console.log("[TokenPane] /prescriptions/pending returned:", data.length, "items");
       setPendingPrescriptions(data);
+      return data;
     } catch (e) {
-      console.error(e);
+      console.error("[TokenPane] fetchPendingPrescriptions error:", e);
       toast.error("Failed to load pending prescriptions.");
+      return [];
     } finally {
       setRxLoading(false);
     }
-  }, [token, apiFetch, selectedDate]);
+  }, [token, apiFetch]);
 
   useEffect(() => {
     socketRef.current = io(SOCKET_URL);
@@ -260,6 +272,8 @@ export function TokenPane() {
   }, [selectedDocId, selectedTestIds.size, selectedServiceIds.size, fetchDocTokens, fetchLabTokens, fetchServiceTokens, fetchPendingPrescriptions]);
 
   const resetForm = () => {
+    setSelectedPatientId(null);
+    setIsNewPatientForPhone(false);
     setPatientName("");
     setPatientPhone("");
     setPatientAge("");
@@ -323,30 +337,11 @@ export function TokenPane() {
     fetchPendingPrescriptions();
   }, [token, apiFetch, fetchPendingPrescriptions]);
 
-  // Barcode scanner: scanning a token barcode auto-switches to the Rx tab
-  useBarcodeScanner(async (barcode) => {
-    // Token barcodes are UUIDs (36 chars). Medicine barcodes are handled by POSPane.
-    if (barcode.length !== 36) return;
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${barcode}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) return;
-      const { type } = await res.json();
-      if (type === "APPOINTMENT" || type === "PRESCRIPTION") {
-        // Refresh prescriptions and switch to Rx tab
-        await fetchPendingPrescriptions();
-        setActiveTab("prescriptions");
-        toast.success("Token scanned — switched to Rx tab.");
-      }
-    } catch (e) {
-      // Silently ignore — POSPane will handle the error
-    }
-  });
+
 
   // Listen for status updates from POSPane (via BroadcastChannel)
   useEffect(() => {
-    onRxStatusUpdate((update) => {
+    return onRxStatusUpdate((update) => {
       if (update.status === "IN_PROGRESS") {
         setInPosPrescriptionId(update.rxId);
       } else if (update.status === "DISPENSED") {
@@ -418,12 +413,24 @@ export function TokenPane() {
   }, [searchQuery]);
 
   const selectPatient = (patient: any) => {
+    setSelectedPatientId(patient.id);
+    setIsNewPatientForPhone(false);
     setSearchQuery(patient.phone);
     setPatientPhone(patient.phone);
     setPatientName(patient.fullName);
     setPatientAge(patient.ageFallback ? patient.ageFallback.toString() : "");
     setIsPatientSearchOpen(false);
     setPatientLookupResult({ found: true, message: `Selected: ${patient.fullName}` });
+  };
+
+  const startNewPatientForPhone = (phoneNum: string) => {
+    setSelectedPatientId(null);
+    setIsNewPatientForPhone(true);
+    setPatientPhone(phoneNum);
+    setPatientName("");
+    setPatientAge("");
+    setIsPatientSearchOpen(false);
+    setPatientLookupResult({ found: false, message: `Registering new person under ${phoneNum}` });
   };
 
   const handleGenerateToken = async () => {
@@ -473,6 +480,8 @@ export function TokenPane() {
     });
 
     sendTokenToPOS({
+      patientId: selectedPatientId || undefined,
+      isNewPatient: isNewPatientForPhone,
       patientName: patientName || "Walk-in Patient",
       patientPhone,
       ageFallback: patientAge ? parseInt(patientAge, 10) : undefined,
@@ -497,7 +506,7 @@ export function TokenPane() {
     resetForm();
   };
 
-  const handleSendToPOS = (rx: Prescription) => {
+  const handleSendToPOS = useCallback((rx: Prescription) => {
     if (inPosPrescriptionId) {
       toast.error("A prescription is already in the POS. Complete checkout first.");
       return;
@@ -520,7 +529,154 @@ export function TokenPane() {
     setInPosPrescriptionId(rx.id);
     sendToPOS(cartItems, rx.id, (rx as any).doctor, (rx as any).consultationPaid, rx.visitId, rx.patientId);
     toast.success(`${cartItems.length} medicine(s) sent to POS — complete checkout to dispense.`);
-  };
+  }, [inPosPrescriptionId, sendToPOS]);
+
+  const triggerRxSendToPOSByBarcode = useCallback(async (barcode: string) => {
+    const cleanBarcode = barcode.trim();
+    console.log("[TokenPane] triggerRxSendToPOSByBarcode called with:", cleanBarcode);
+    if (cleanBarcode.length < 6) return;
+
+    // Immediately switch to Prescriptions tab so frontdesk sees the Rx workspace activate
+    setActiveTab("prescriptions");
+
+    // 1. Instant fast-path: Check if matching prescription is ALREADY in local state!
+    let matchedRx = pendingPrescriptions.find(rx => 
+      rx.id === cleanBarcode ||
+      rx.id.toLowerCase().startsWith(cleanBarcode.toLowerCase()) ||
+      rx.bookingReference === cleanBarcode ||
+      rx.visitId === cleanBarcode
+    );
+
+    if (matchedRx) {
+      console.log("[TokenPane] Instant in-memory match found:", matchedRx.id, matchedRx.patientName);
+      if (inPosPrescriptionId === matchedRx.id) {
+        toast.info(`Prescription for ${matchedRx.patientName} is already active in POS.`);
+        return;
+      }
+      handleSendToPOS(matchedRx);
+      return;
+    }
+
+    // 2. Fast single-record backend lookup if not yet loaded in local state
+    try {
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/barcode/${cleanBarcode}`);
+      if (res.ok) {
+        const json = await res.json();
+        const barcodeType = json.type;
+        const barcodeData = json.data;
+
+        // If not an appointment, prescription, or visit barcode, let other components handle
+        if (barcodeType && barcodeType !== "APPOINTMENT" && barcodeType !== "PRESCRIPTION") {
+          console.log("[TokenPane] barcodeType not appointment or prescription:", barcodeType);
+          return;
+        }
+
+        if (barcodeType === "APPOINTMENT" && barcodeData?.prescriptions?.length > 0) {
+          const apptIds = new Set([
+            barcodeData.appointment?.id,
+            ...(barcodeData.allAppointments || []).map((a: any) => a.id)
+          ].filter(Boolean));
+
+          const rxFromApi = barcodeData.prescriptions.find((p: any) => 
+            p.id === cleanBarcode ||
+            (p.visitId && apptIds.has(p.visitId)) ||
+            p.bookingReference === cleanBarcode
+          ) || barcodeData.prescriptions[0];
+
+          const synthesizedRx: Prescription = {
+            id: rxFromApi.id,
+            patientName: barcodeData.patient?.fullName || "Patient",
+            doctorName: barcodeData.doctor?.fullName || "Doctor",
+            createdAt: rxFromApi.createdAt || new Date().toISOString(),
+            status: rxFromApi.status || "PENDING",
+            items: (rxFromApi.items || []).map((i: any) => ({
+              id: i.id,
+              drugName: i.medicine?.name || i.medicineName || "Medicine",
+              dispenseQty: i.dispenseQty || 1,
+              dosage: i.dosage,
+              frequency: i.frequency,
+              duration: i.duration,
+              medicineId: i.medicineId,
+              medicine: i.medicine
+            })),
+            visitId: rxFromApi.visitId || barcodeData.appointment?.id,
+            patientId: rxFromApi.patientId || barcodeData.patient?.id,
+            bookingReference: barcodeData.masterBarcode || cleanBarcode,
+            doctor: barcodeData.doctor,
+            consultationPaid: barcodeData.consultationPaid
+          };
+
+          // Also inject into local list so the card displays in Rx list immediately
+          setPendingPrescriptions(prev => {
+            if (prev.some(p => p.id === synthesizedRx.id)) {
+              return prev.map(p => p.id === synthesizedRx.id ? { ...p, ...synthesizedRx } : p);
+            }
+            return [synthesizedRx, ...prev];
+          });
+
+          if (inPosPrescriptionId === synthesizedRx.id) {
+            toast.info(`Prescription for ${synthesizedRx.patientName} is already active in POS.`);
+            return;
+          }
+
+          handleSendToPOS(synthesizedRx);
+          return;
+        } else if (barcodeType === "PRESCRIPTION" && barcodeData) {
+          const synthesizedRx: Prescription = {
+            id: barcodeData.id,
+            patientName: barcodeData.patient?.fullName || barcodeData.Patient?.fullName || "Patient",
+            doctorName: barcodeData.doctor?.fullName || barcodeData.doctorName || "Doctor",
+            createdAt: barcodeData.createdAt || new Date().toISOString(),
+            status: barcodeData.status || "PENDING",
+            items: (barcodeData.items || []).map((i: any) => ({
+              id: i.id,
+              drugName: i.medicine?.name || i.drugName || "Medicine",
+              dispenseQty: i.dispenseQty || 1,
+              dosage: i.dosage,
+              frequency: i.frequency,
+              duration: i.duration,
+              medicineId: i.medicineId,
+              medicine: i.medicine
+            })),
+            visitId: barcodeData.visitId,
+            patientId: barcodeData.patientId,
+            bookingReference: barcodeData.bookingReference || cleanBarcode,
+            doctor: barcodeData.doctor,
+            consultationPaid: barcodeData.consultationPaid
+          };
+
+          setPendingPrescriptions(prev => {
+            if (prev.some(p => p.id === synthesizedRx.id)) return prev;
+            return [synthesizedRx, ...prev];
+          });
+
+          if (inPosPrescriptionId === synthesizedRx.id) {
+            toast.info(`Prescription for ${synthesizedRx.patientName} is already active in POS.`);
+            return;
+          }
+
+          handleSendToPOS(synthesizedRx);
+          return;
+        }
+
+        toast.info(`Visit ${cleanBarcode} scanned — no pending prescriptions to send.`);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend barcode lookup failed, continuing with full refresh:", e);
+    }
+
+    // 3. Fallback: refresh all pending prescriptions
+    fetchPendingPrescriptions().then((fresh) => {
+      const rx = fresh.find(r => r.bookingReference === cleanBarcode || r.visitId === cleanBarcode || r.id === cleanBarcode);
+      if (rx && inPosPrescriptionId !== rx.id) {
+        handleSendToPOS(rx);
+      }
+    });
+  }, [pendingPrescriptions, inPosPrescriptionId, handleSendToPOS, apiFetch, fetchPendingPrescriptions]);
+
+  // Barcode scanner: scanning a token/master barcode triggers Rx auto-send to POS
+  useBarcodeScanner(triggerRxSendToPOSByBarcode);
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 relative">
@@ -565,15 +721,15 @@ export function TokenPane() {
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "reception" | "phone-booking" | "prescriptions")} className="flex flex-col h-full">
         <TabsList className="grid w-full grid-cols-3 mb-4 bg-background border border-border !h-[48px] p-1">
-          <TabsTrigger value="reception" className="!h-full text-base data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="reception" data-testid="tab-walk-in" className="!h-full text-base data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
             <Users className="w-5 h-5 mr-2 hidden sm:block" />
             Walk-in
           </TabsTrigger>
-          <TabsTrigger value="phone-booking" className="!h-full text-base data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="phone-booking" data-testid="tab-booking" className="!h-full text-base data-[state=active]:bg-secondary data-[state=active]:text-primary-foreground">
             <Phone className="w-5 h-5 mr-2 hidden sm:block" />
             Booking
           </TabsTrigger>
-          <TabsTrigger value="prescriptions" className="!h-full text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="prescriptions" data-testid="tab-rx" className="!h-full text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <FileText className="w-5 h-5 mr-2 hidden sm:block" />
             Rx
           </TabsTrigger>
@@ -599,30 +755,103 @@ export function TokenPane() {
                 />
 
                 {isPatientSearchOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-56 overflow-y-auto">
                     {patientSearchResults.length > 0 ? (
-                      <ul className="py-1">
+                      <ul className="py-1 divide-y divide-border/50">
+                        <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
+                          Registered Patients for this Phone ({patientSearchResults.length}):
+                        </div>
                         {patientSearchResults.map((p) => (
                           <li
                             key={p.id}
-                            className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                            className="px-3 py-2.5 hover:bg-muted cursor-pointer text-sm flex items-center justify-between"
                             onMouseDown={(e) => { e.preventDefault(); selectPatient(p); }}
                           >
-                            <div className="font-semibold">{p.fullName}</div>
-                            <div className="text-xs text-muted-foreground">{p.phone} • {p.ageFallback ? `${p.ageFallback} yrs` : "No age"}</div>
+                            <div>
+                              <div className="font-semibold text-foreground flex items-center gap-2">
+                                {p.fullName}
+                                {p.gender && <span className="text-[10px] uppercase font-normal px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.gender}</span>}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{p.phone} • {p.ageFallback ? `${p.ageFallback} yrs` : "No age"} {p.patientId ? `• MRN: ${p.patientId}` : ''}</div>
+                            </div>
+                            <span className="text-xs text-primary font-medium">Select</span>
                           </li>
                         ))}
+                        <li
+                          className="px-3 py-2.5 hover:bg-primary/10 cursor-pointer text-xs text-primary font-medium flex items-center gap-2 bg-background/50"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            startNewPatientForPhone(searchQuery);
+                          }}
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          Register new person under {searchQuery}
+                        </li>
                       </ul>
                     ) : (
-                      <div className="px-3 py-2 text-sm text-muted-foreground italic">
-                        No matches found. Quick register instead.
+                      <div className="p-3 text-sm text-muted-foreground flex flex-col gap-2">
+                        <div>No matches found.</div>
+                        <button
+                          type="button"
+                          className="text-xs text-primary font-medium flex items-center gap-1.5 hover:underline text-left"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            startNewPatientForPhone(searchQuery);
+                          }}
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" /> Quick register as new patient
+                        </button>
                       </div>
                     )}
                   </div>
                 )}
               </div>
             </div>
-            {patientLookupResult && (
+
+            {/* Selected Family Member Status Badge */}
+            {selectedPatientId && (
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-primary/30 bg-primary/5 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs text-muted-foreground font-medium">Selected Patient:</span>
+                  <span className="font-semibold text-foreground">{patientName}</span>
+                  <span className="text-xs text-muted-foreground">({patientAge ? `${patientAge} yrs` : "No age"}, {patientPhone})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPatientId(null);
+                    setIsNewPatientForPhone(false);
+                    setPatientLookupResult(null);
+                  }}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Change / Clear
+                </button>
+              </div>
+            )}
+
+            {/* New Person Registration Indicator */}
+            {isNewPatientForPhone && (
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Registering New Family Member under {patientPhone}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNewPatientForPhone(false);
+                    resetForm();
+                  }}
+                  className="text-xs text-muted-foreground hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {patientLookupResult && !selectedPatientId && !isNewPatientForPhone && (
               <p className={`text-xs mt-1 ${patientLookupResult.found ? 'text-green-500' : 'text-yellow-500'}`}>
                 {patientLookupResult.message}
               </p>
@@ -1183,6 +1412,7 @@ export function TokenPane() {
                   return (
                     <div
                       key={rx.id}
+                      data-testid={`rx-card-${rx.id}`}
                       className={`p-4 border rounded-lg flex flex-col gap-3 transition-colors ${isInPos
                         ? "border-primary/50 bg-primary/5"
                         : isLocked
@@ -1196,6 +1426,11 @@ export function TokenPane() {
                             <h4 className="font-semibold text-primary text-sm">
                               RX-{rx.id.slice(-6).toUpperCase()}
                             </h4>
+                            {rx.bookingReference && (
+                              <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-mono">
+                                #{rx.bookingReference}
+                              </span>
+                            )}
                             {isInPos && (
                               <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full animate-pulse">
                                 IN POS
@@ -1241,6 +1476,7 @@ export function TokenPane() {
                           className="flex-1 bg-primary hover:bg-primary/90"
                           onClick={() => handleSendToPOS(rx)}
                           disabled={isLocked || isInPos}
+                          data-testid={`send-rx-to-pos-${rx.id}`}
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           {isInPos ? "Active in POS" : "Send to POS"}

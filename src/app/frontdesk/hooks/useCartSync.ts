@@ -74,6 +74,9 @@ export function useCartSync(isSender = false) {
 export type RxStatusUpdate = { rxId: string; status: "IN_PROGRESS" | "DISPENSED" | "PENDING" };
 
 export type TokenPayload = {
+  patientId?: string;
+  isNewPatient?: boolean;
+  gender?: string;
   patientName: string;
   patientPhone: string;
   ageFallback?: number;
@@ -105,38 +108,55 @@ export type AppointmentPayload = {
   allAppointments?: any[];
 };
 
+let globalBc: BroadcastChannel | null = null;
+function getGlobalBc(): BroadcastChannel | null {
+  if (typeof window === "undefined") return null;
+  if (!globalBc) {
+    try {
+      globalBc = new BroadcastChannel(RX_TO_POS_CHANNEL);
+    } catch (e) {
+      console.warn("BroadcastChannel not supported or failed to initialize:", e);
+    }
+  }
+  return globalBc;
+}
+
+const dispatchRxPosMessage = (msg: any) => {
+  if (typeof window !== "undefined") {
+    // 1. Same-window synchronous event delivery
+    window.dispatchEvent(new CustomEvent("frontdesk-rx-pos-event", { detail: msg }));
+    // 2. Cross-window / multi-tab BroadcastChannel delivery
+    try {
+      getGlobalBc()?.postMessage(msg);
+    } catch (e) {
+      console.warn("Failed to post message to BroadcastChannel:", e);
+    }
+  }
+};
+
 export function useRxToPOS() {
-  const [channel, setChannel] = useState<BroadcastChannel | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const bc = new BroadcastChannel(RX_TO_POS_CHANNEL);
-    setChannel(bc);
-    return () => bc.close();
-  }, []);
-
   /** TokenPane → POSPane: send prescription items */
   const sendToPOS = useCallback(
     (items: CartItem[], rxId: string, doctor?: any, consultationPaid?: boolean, visitId?: string, patientId?: string) => {
-      channel?.postMessage({ type: "RX_ITEMS", items, rxId, doctor, consultationPaid, visitId, patientId });
+      dispatchRxPosMessage({ type: "RX_ITEMS", items, rxId, doctor, consultationPaid, visitId, patientId });
     },
-    [channel]
+    []
   );
 
   /** TokenPane → POSPane: send Token checkout data */
   const sendTokenToPOS = useCallback(
     (tokenData: TokenPayload) => {
-      channel?.postMessage({ type: "TOKEN_CHECKOUT", payload: tokenData });
+      dispatchRxPosMessage({ type: "TOKEN_CHECKOUT", payload: tokenData });
     },
-    [channel]
+    []
   );
 
   /** PhoneBookingPane → POSPane: send existing appointment for checkout */
   const sendAppointmentToPOS = useCallback(
     (appointmentData: AppointmentPayload) => {
-      channel?.postMessage({ type: "APPOINTMENT_CHECKOUT", payload: appointmentData });
+      dispatchRxPosMessage({ type: "APPOINTMENT_CHECKOUT", payload: appointmentData });
     },
-    [channel]
+    []
   );
 
   /** POSPane listens for incoming prescription or token */
@@ -145,41 +165,66 @@ export function useRxToPOS() {
       rxHandler: (items: CartItem[], rxId: string, doctor?: any, consultationPaid?: boolean, visitId?: string, patientId?: string) => void,
       tokenHandler?: (payload: TokenPayload) => void
     ) => {
-      if (!channel) return;
-      channel.onmessage = (e) => {
-        if (e.data?.type === "RX_ITEMS") {
-          rxHandler(e.data.items as CartItem[], e.data.rxId as string, e.data.doctor, e.data.consultationPaid, e.data.visitId, e.data.patientId);
-        } else if (e.data?.type === "TOKEN_CHECKOUT" && tokenHandler) {
-          tokenHandler(e.data.payload);
-        } else if (e.data?.type === "APPOINTMENT_CHECKOUT" && tokenHandler) {
-          tokenHandler({ ...e.data.payload, isAppointmentCheckout: true });
-        } else if (e.data?.type === "RX_STATUS") {
-          // Ignore status messages on the POSPane side
+      if (typeof window === "undefined") return () => {};
+
+      const handleMsg = (data: any) => {
+        if (!data) return;
+        if (data.type === "RX_ITEMS") {
+          rxHandler(data.items as CartItem[], data.rxId as string, data.doctor, data.consultationPaid, data.visitId, data.patientId);
+        } else if (data.type === "TOKEN_CHECKOUT" && tokenHandler) {
+          tokenHandler(data.payload);
+        } else if (data.type === "APPOINTMENT_CHECKOUT" && tokenHandler) {
+          tokenHandler({ ...data.payload, isAppointmentCheckout: true });
         }
       };
+
+      const handleCustom = (e: any) => handleMsg(e.detail);
+      const handleBc = (e: MessageEvent) => handleMsg(e.data);
+
+      window.addEventListener("frontdesk-rx-pos-event", handleCustom);
+      const bc = getGlobalBc();
+      bc?.addEventListener("message", handleBc);
+
+      return () => {
+        window.removeEventListener("frontdesk-rx-pos-event", handleCustom);
+        bc?.removeEventListener("message", handleBc);
+      };
     },
-    [channel]
+    []
   );
 
   /** POSPane → TokenPane: broadcast a status update */
   const notifyRxStatus = useCallback(
     (rxId: string, status: RxStatusUpdate["status"]) => {
-      channel?.postMessage({ type: "RX_STATUS", rxId, status });
+      dispatchRxPosMessage({ type: "RX_STATUS", rxId, status });
     },
-    [channel]
+    []
   );
 
   /** TokenPane listens for status updates from POSPane */
   const onRxStatusUpdate = useCallback(
     (handler: (update: RxStatusUpdate) => void) => {
-      if (!channel) return;
-      channel.onmessage = (e) => {
-        if (e.data?.type === "RX_STATUS") {
-          handler({ rxId: e.data.rxId, status: e.data.status });
+      if (typeof window === "undefined") return () => {};
+
+      const handleMsg = (data: any) => {
+        if (data?.type === "RX_STATUS") {
+          handler({ rxId: data.rxId, status: data.status });
         }
       };
+
+      const handleCustom = (e: any) => handleMsg(e.detail);
+      const handleBc = (e: MessageEvent) => handleMsg(e.data);
+
+      window.addEventListener("frontdesk-rx-pos-event", handleCustom);
+      const bc = getGlobalBc();
+      bc?.addEventListener("message", handleBc);
+
+      return () => {
+        window.removeEventListener("frontdesk-rx-pos-event", handleCustom);
+        bc?.removeEventListener("message", handleBc);
+      };
     },
-    [channel]
+    []
   );
 
   return { sendToPOS, sendTokenToPOS, sendAppointmentToPOS, onPrescriptionReceived, notifyRxStatus, onRxStatusUpdate };
