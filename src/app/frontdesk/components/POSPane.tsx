@@ -1051,19 +1051,31 @@ export function POSPane() {
                 <div className="space-y-2 animate-in slide-in-from-top-2">
                   <div className="flex justify-between items-end">
                     <label className="text-sm font-medium">Received Amount (LKR)</label>
-                    {receivedAmountInput && (parseFloat(receivedAmountInput) - total >= 0) && (
+                    {receivedAmountInput && (parseFloat(receivedAmountInput) - total >= 0) ? (
                       <div className="text-sm font-bold text-green-600 dark:text-green-500">
                         Balance: LKR {(parseFloat(receivedAmountInput) - total).toFixed(2)}
                       </div>
-                    )}
+                    ) : receivedAmountInput && (parseFloat(receivedAmountInput) - total < 0) ? (
+                      <div className="text-sm font-bold text-red-600 dark:text-red-400 animate-pulse">
+                        Short by: LKR {(total - parseFloat(receivedAmountInput)).toFixed(2)}
+                      </div>
+                    ) : null}
                   </div>
                   <Input 
                     type="number" 
                     value={receivedAmountInput} 
                     onChange={(e) => setReceivedAmountInput(e.target.value)}
                     placeholder={total.toString()} 
-                    className="text-lg h-12" 
+                    className={cn(
+                      "text-lg h-12",
+                      receivedAmountInput && (parseFloat(receivedAmountInput) - total < 0) && "border-red-500 focus-visible:ring-red-500 bg-red-50/20 dark:bg-red-950/20 text-red-600 dark:text-red-400"
+                    )}
                   />
+                  {receivedAmountInput && (parseFloat(receivedAmountInput) - total < 0) && (
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                      ⚠️ Insufficient amount. Total is LKR {total.toFixed(2)}, but received LKR {parseFloat(receivedAmountInput).toFixed(2)}. Payment cannot proceed until full payment is received.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1071,7 +1083,7 @@ export function POSPane() {
 
               <Button 
                 className="w-full h-12 text-lg" 
-                disabled={(total > 0 && !paymentMethod)}
+                disabled={(total > 0 && !paymentMethod) || (Boolean(receivedAmountInput) && parseFloat(receivedAmountInput) < total)}
                 isLoading={isProcessing || isCardProcessing}
                 loadingText="Processing..."
                 onClick={async () => {
@@ -1085,6 +1097,17 @@ export function POSPane() {
                   }
 
                   const activePaymentMethod = paymentMethod || "CASH";
+
+                  // Enforce strict check on received amount for cash / bank payments
+                  if ((activePaymentMethod === "CASH" || activePaymentMethod === "BANK") && total > 0) {
+                    const parsedReceivedVal = receivedAmountInput.trim() !== "" ? parseFloat(receivedAmountInput) : total;
+                    if (isNaN(parsedReceivedVal) || parsedReceivedVal < total) {
+                      const shortage = total - (isNaN(parsedReceivedVal) ? 0 : parsedReceivedVal);
+                      toast.error(`Insufficient amount received! Total is LKR ${total.toFixed(2)}, but received LKR ${(isNaN(parsedReceivedVal) ? 0 : parsedReceivedVal).toFixed(2)}. Short by LKR ${shortage.toFixed(2)}.`);
+                      setIsProcessing(false);
+                      return;
+                    }
+                  }
 
                   if (activePaymentMethod === "CARD" && total > 0) {
                     const success = await initiateCardPayment(total);
