@@ -14,9 +14,21 @@ const ShiftSummaryPrint = React.forwardRef<HTMLDivElement, { summary: any, user:
     if (!summary) return null;
     return (
       <div className="hidden">
-        <div ref={ref} className="w-[300px] p-2 bg-white text-black font-mono text-sm leading-tight">
+        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-mono text-sm print:w-[290px] print:px-3.5 print:py-2 leading-tight">
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media print {
+              @page {
+                size: auto;
+                margin: 3mm 2mm;
+              }
+              body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+            }
+          `}} />
           <div className="text-center mb-4 border-b-2 border-black pb-2">
-            <img src="/logo.png" alt="AMAZ Hospital" className="w-48 mx-auto mb-2 grayscale brightness-0" />
+            <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-2 grayscale brightness-0" />
             <p className="text-xs font-bold uppercase tracking-widest mt-1">Cashier Shift Close</p>
             <p className="text-[10px] mt-1">Date: {new Date().toLocaleString()}</p>
             <p className="text-[10px]">Cashier: {user?.fullName}</p>

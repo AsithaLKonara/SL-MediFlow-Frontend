@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2 } from "lucide-react";
+import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
@@ -68,7 +68,7 @@ export function POSPane() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?limit=1000`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load medicines");
         return r.json();
@@ -101,13 +101,20 @@ export function POSPane() {
   // Listen for prescription items or tokens pushed from the Rx/Token tab
   useEffect(() => {
     return onPrescriptionReceived(
-      async (rxItems, rxId, doctor, consultationPaid, visitId, patientId) => {
+      async (rxItems, rxId, doctor, consultationPaid, visitId, patientId, meta) => {
         setCart((prev) => {
           const updated = [...prev];
           for (const rxItem of rxItems) {
             const idx = updated.findIndex((i) => i.id === rxItem.id);
             if (idx >= 0) {
-              updated[idx] = { ...updated[idx], qty: (updated[idx].qty || 0) + rxItem.qty };
+              updated[idx] = {
+                ...updated[idx],
+                qty: (updated[idx].qty || 0) + rxItem.qty,
+                dosage: rxItem.dosage || updated[idx].dosage,
+                frequency: rxItem.frequency || updated[idx].frequency,
+                duration: rxItem.duration || updated[idx].duration,
+                instructions: rxItem.instructions || updated[idx].instructions,
+              };
             } else {
               updated.push(rxItem);
             }
@@ -118,27 +125,27 @@ export function POSPane() {
         if (visitId) setActiveVisitId(visitId);
         if (patientId) setActivePatientId(patientId);
 
-        // Fetch the DRAFT invoice for this visit to display Lab Tests
+        let invoiceData: any = null;
         if (visitId) {
           try {
             const invRes = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices?visitId=${visitId}`);
             if (invRes.ok) {
-              const invoiceData = await invRes.json();
-              if (invoiceData && invoiceData.status === 'DRAFT') {
-                if (Array.isArray(invoiceData.lineItems)) {
+              const fetchedInv = await invRes.json();
+              if (fetchedInv && fetchedInv.status === "DRAFT") {
+                if (Array.isArray(fetchedInv.lineItems)) {
                   let seenConsult = false;
-                  invoiceData.lineItems = invoiceData.lineItems.filter((li: any) => {
+                  fetchedInv.lineItems = fetchedInv.lineItems.filter((li: any) => {
                     if (li.department === "CONSULTATION") {
                       if (seenConsult) return false;
                       seenConsult = true;
                     }
                     return true;
                   });
-                  const sumItems = invoiceData.lineItems.reduce((acc: number, item: any) => acc + (Number(item.total) || 0), 0);
-                  invoiceData.subtotal = sumItems;
-                  invoiceData.totalAmount = Math.max(0, sumItems - (invoiceData.discountAmount || 0));
+                  const sumItems = fetchedInv.lineItems.reduce((acc: number, item: any) => acc + (Number(item.total) || 0), 0);
+                  fetchedInv.subtotal = sumItems;
+                  fetchedInv.totalAmount = Math.max(0, sumItems - (fetchedInv.discountAmount || 0));
                 }
-                setPendingAppointmentPayload({ invoice: invoiceData, isAppointmentCheckout: false });
+                invoiceData = fetchedInv;
               }
             }
           } catch (e) {
@@ -146,9 +153,30 @@ export function POSPane() {
           }
         }
 
+        const fee = doctor?.consultationFee ?? meta?.consultationFee ?? 2500;
+        const doctorName = doctor?.fullName ?? meta?.doctorName ?? "Doctor";
+        const patientName = meta?.patientName ?? "Walk-in";
+        const bookingReference = meta?.bookingReference ?? null;
+        const isUpfront = doctor?.feeType === "UPFRONT";
+        const isPaid = !!consultationPaid;
+
+        setPendingAppointmentPayload({
+          appointmentId: visitId,
+          tokenNumber: bookingReference || (visitId ? visitId.substring(0, 8) : "RX"),
+          bookingReference,
+          patientName,
+          doctorName,
+          doctorId: doctor?.id,
+          fee,
+          isUpfront,
+          invoice: invoiceData,
+          consultationPaid: isPaid,
+          isAppointmentCheckout: false,
+        });
+
         // Broadcast status to TokenPane so it can lock the UI
         notifyRxStatus(rxId, "IN_PROGRESS");
-        toast.success(`${rxItems.length} medicine(s) and any lab tests loaded into POS from prescription.`);
+        toast.success(`${rxItems.length} medicine(s) and consultation details loaded into POS.`);
       },
       (tokenPayload: any) => {
         if (tokenPayload.isAppointmentCheckout) {
@@ -225,6 +253,20 @@ export function POSPane() {
 
   discountAmount = Math.round(discountAmount * 100) / 100;
   const total = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
+
+  const getCartItemStock = useCallback((item: CartItem) => {
+    const med = availableMedicines.find(
+      (m) => m.id === item.id || m.name.toLowerCase() === item.name.toLowerCase()
+    );
+    const available = med
+      ? (med.stockBatches?.reduce((sum: number, b: any) => sum + (b.currentQuantity || 0), 0) ?? 0)
+      : ((item as any).stock ?? 0);
+    const isOutOfStock = available <= 0;
+    const isInsufficient = available < item.qty;
+    return { available, isInsufficient, isOutOfStock };
+  }, [availableMedicines]);
+
+  const hasInsufficientStock = cart.some((item) => getCartItemStock(item).isInsufficient);
 
   // Sync to display whenever cart changes, but preserve checkout state
   useEffect(() => {
@@ -516,23 +558,14 @@ export function POSPane() {
     }
   };
 
-  const handleCloseCheckout = (cancelled = false) => {
-    // If cancelled and a prescription was in progress, revert it to PENDING
-    if (cancelled && activePrescriptionId) {
-      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${activePrescriptionId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "PENDING" }),
-      }).catch((e) => console.error("Failed to revert Rx status:", e));
-      notifyRxStatus(activePrescriptionId, "PENDING");
-      setActivePrescriptionId(null);
-    }
+  const handleCloseCheckout = (_cancelled = false) => {
+    // Closing the checkout modal does NOT cancel the active prescription
+    // Preserves activePrescriptionId and cart so cashier can adjust items and re-checkout
     setIsCheckoutOpen(false);
     setPaymentMethod(null);
     setReceiptData(null);
     setTokenReceiptData(null);
     setReceivedAmountInput("");
-    setPendingAppointmentPayload(null);
     setDiscountType("NONE");
     setCustomDiscountValue("");
     setDiscountReason("");
@@ -554,6 +587,8 @@ export function POSPane() {
       setActivePrescriptionId(null);
     }
     setCart([]);
+    setPendingAppointmentPayload(null);
+    setPendingTokenPayload(null);
     toast.info("Prescription cancelled. Cart cleared.");
   };
 
@@ -679,33 +714,93 @@ export function POSPane() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {cart.map((item) => (
-              <TableRow key={item.id} className="border-border">
-                <TableCell className="font-medium text-foreground">{item.name}</TableCell>
-                <TableCell className="text-right">
-                  <Input
-                    id={`qty-input-${item.id}`}
-                    type="number"
-                    value={item.qty}
-                    className="w-16 h-8 text-right ml-auto bg-background border-border text-foreground"
-                    onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
-                    onFocus={(e) => e.target.select()}
-                  />
-                </TableCell>
-                <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
-                <TableCell className="text-right font-medium">LKR {(item.price * item.qty).toFixed(2)}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                    onClick={() => handleRemove(item.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {cart.map((item) => {
+              const stockInfo = getCartItemStock(item);
+              const isInsufficient = stockInfo.isInsufficient;
+
+              return (
+                <TableRow
+                  key={item.id}
+                  className={cn(
+                    "border-border transition-colors",
+                    isInsufficient && "bg-red-500/10 border-red-500/30"
+                  )}
+                >
+                  <TableCell className="font-medium text-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className={cn(isInsufficient && "text-red-700 dark:text-red-400 font-bold")}>
+                        {item.name}
+                      </span>
+                      {isInsufficient && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30">
+                          {stockInfo.isOutOfStock ? "Out of Stock" : "Insufficient Stock"}
+                        </span>
+                      )}
+                    </div>
+                    {(item.dosage || item.frequency || item.duration || item.instructions) && (
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                        {item.dosage && (
+                          <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold text-[11px]">
+                            {item.dosage}
+                          </span>
+                        )}
+                        {item.frequency && (
+                          <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium text-[11px]">
+                            {item.frequency}
+                          </span>
+                        )}
+                        {item.duration && (
+                          <span className="text-[11px] text-muted-foreground font-normal">
+                            • {item.duration}
+                          </span>
+                        )}
+                        {item.instructions && (
+                          <div className="w-full text-[11px] italic text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border/50 mt-0.5">
+                            {item.instructions}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {isInsufficient && (
+                      <div className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                        <span>
+                          {stockInfo.isOutOfStock
+                            ? "0 units available in pharmacy"
+                            : `Only ${stockInfo.available} in stock (requested: ${item.qty})`}
+                        </span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Input
+                      id={`qty-input-${item.id}`}
+                      type="number"
+                      value={item.qty}
+                      className={cn(
+                        "w-16 h-8 text-right ml-auto bg-background border-border text-foreground",
+                        isInsufficient && "border-red-500 focus-visible:ring-red-500 text-red-600 font-bold"
+                      )}
+                      onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-medium">LKR {(item.price * item.qty).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                      onClick={() => handleRemove(item.id)}
+                      title="Remove Item from POS"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             
 
             {/* Render Token Payload Itemized */}
@@ -948,9 +1043,27 @@ export function POSPane() {
           <span>Total</span>
           <span>LKR {total.toFixed(2)}</span>
         </div>
-        <Button className="w-full h-12 text-lg" onClick={handleOpenCheckout} disabled={cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload}>
+
+        {hasInsufficientStock && (
+          <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-lg text-xs font-semibold text-red-700 dark:text-red-300 flex items-start gap-2 animate-in fade-in">
+            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold uppercase tracking-wider">Cannot Checkout:</span>{" "}
+              <span>One or more prescription items have insufficient stock in the pharmacy. Please remove the out-of-stock item(s) to proceed with checkout.</span>
+            </div>
+          </div>
+        )}
+
+        <Button
+          className={cn(
+            "w-full h-12 text-lg",
+            hasInsufficientStock && "opacity-60 cursor-not-allowed bg-muted text-muted-foreground hover:bg-muted"
+          )}
+          onClick={handleOpenCheckout}
+          disabled={hasInsufficientStock || (cart.length === 0 && !pendingTokenPayload && !pendingAppointmentPayload)}
+        >
           <CreditCard className="w-5 h-5 mr-2" />
-          Checkout
+          {hasInsufficientStock ? "Insufficient Stock — Remove Item" : "Checkout"}
         </Button>
       </div>
 
@@ -1233,6 +1346,10 @@ export function POSPane() {
                     }
 
                     // 1.6 If there's a pending invoice (e.g. from lab tests or consultation during Rx checkout)
+                    const hasConsultInInv = pendingAppointmentPayload?.invoice?.lineItems?.some(
+                      (li: any) => li.department === "CONSULTATION"
+                    );
+
                     if (pendingAppointmentPayload && !pendingAppointmentPayload.isAppointmentCheckout && pendingAppointmentPayload.invoice) {
                        const invId = pendingAppointmentPayload.invoice.id;
                        const invAmount = pendingAppointmentPayload.invoice.totalAmount;
@@ -1265,7 +1382,50 @@ export function POSPane() {
                        });
                     }
 
-                    let receiptId = tokenResultTokens?.[0]?.refNo || createdInvoiceId || `TXN-${Date.now()}`;
+                    // 1.7 If consultation was not in a draft invoice and not paid, check it out to record revenue
+                    if (
+                      pendingAppointmentPayload &&
+                      !pendingAppointmentPayload.isAppointmentCheckout &&
+                      !pendingAppointmentPayload.consultationPaid &&
+                      !hasConsultInInv &&
+                      pendingAppointmentPayload.appointmentId
+                    ) {
+                      const resAppt = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/checkout-appointment`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 
+                          appointmentId: pendingAppointmentPayload.appointmentId,
+                          fee: pendingAppointmentPayload.fee || 2500,
+                          isUpfront: pendingAppointmentPayload.isUpfront,
+                          paymentMethod: activePaymentMethod,
+                          discount: discountPayload
+                        })
+                      });
+                      if (resAppt.ok) {
+                        const apptRes = await resAppt.json();
+                        if (apptRes.data?.invoice?.lineItems?.length > 0) {
+                          apptRes.data.invoice.lineItems.forEach((li: any) => {
+                            if (!combinedItems.some(ci => ci.name === li.description)) {
+                              combinedItems.push({
+                                name: li.description,
+                                qty: li.quantity,
+                                price: li.unitPrice,
+                                total: li.total
+                              });
+                            }
+                          });
+                        } else {
+                          combinedItems.push({
+                            name: `Consultation - Dr. ${pendingAppointmentPayload.doctorName || 'Doctor'}`,
+                            qty: 1,
+                            price: pendingAppointmentPayload.fee || 2500,
+                            total: pendingAppointmentPayload.fee || 2500
+                          });
+                        }
+                      }
+                    }
+
+                    let receiptId = tokenResultTokens?.[0]?.refNo || pendingAppointmentPayload?.bookingReference || createdInvoiceId || `TXN-${Date.now()}`;
                     if (cart.length > 0) {
                       const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/sell`, {
                         method: "POST",

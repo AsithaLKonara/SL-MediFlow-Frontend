@@ -33,10 +33,22 @@ export const BillPrintTemplate = React.forwardRef<HTMLDivElement, PrintProps>(
     return (
       <div className="hidden">
         {/* The printable area that react-to-print targets */}
-        <div ref={ref} className="w-[300px] p-2 bg-white text-black font-mono text-sm leading-tight">
+        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-mono text-sm print:w-[290px] print:px-3.5 print:py-2 leading-tight">
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media print {
+              @page {
+                size: auto;
+                margin: 3mm 2mm;
+              }
+              body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+            }
+          `}} />
           <div className="text-center mb-4 border-b-2 border-black pb-2">
             {/* Standard HTML img tags are safer for react-to-print than Next/Image */}
-            <img src="/logo.png" alt="AMAZ Hospital" className="w-48 mx-auto mb-2" />
+            <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-2" />
             <p className="text-xs font-bold uppercase tracking-widest mt-1">Pharmacy / POS</p>
             <p className="text-xs mt-1">0472239090 | www.amazhospital.com</p>
             <p className="text-[10px]">info@amazhospital.com</p>

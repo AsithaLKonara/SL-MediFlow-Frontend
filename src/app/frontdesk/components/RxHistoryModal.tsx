@@ -300,7 +300,11 @@ export function RxHistoryModal({ trigger }: RxHistoryModalProps) {
               date={new Date(selectedRxForPrint.createdAt).toLocaleDateString()}
               medicines={(selectedRxForPrint.items || []).map((item: any) => ({
                 name: item.drugName || item.medicine?.name || "Medicine",
-                dosage: item.dispenseQty ? `Dispense: ${item.dispenseQty}` : (item.dosage || 'As prescribed')
+                dosage: item.dosage,
+                frequency: item.frequency,
+                duration: item.duration,
+                instructions: item.instructions,
+                dispenseQty: item.dispenseQty || null,
               }))}
             />
           )}

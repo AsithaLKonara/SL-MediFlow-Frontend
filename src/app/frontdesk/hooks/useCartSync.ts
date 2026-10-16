@@ -8,6 +8,10 @@ export type CartItem = {
   name: string;
   qty: number;
   price: number;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
 };
 
 export type SyncState = {
@@ -134,11 +138,35 @@ const dispatchRxPosMessage = (msg: any) => {
   }
 };
 
+export type RxMetaPayload = {
+  doctorName?: string;
+  patientName?: string;
+  bookingReference?: string;
+  consultationFee?: number;
+};
+
 export function useRxToPOS() {
   /** TokenPane → POSPane: send prescription items */
   const sendToPOS = useCallback(
-    (items: CartItem[], rxId: string, doctor?: any, consultationPaid?: boolean, visitId?: string, patientId?: string) => {
-      dispatchRxPosMessage({ type: "RX_ITEMS", items, rxId, doctor, consultationPaid, visitId, patientId });
+    (
+      items: CartItem[],
+      rxId: string,
+      doctor?: any,
+      consultationPaid?: boolean,
+      visitId?: string,
+      patientId?: string,
+      meta?: RxMetaPayload
+    ) => {
+      dispatchRxPosMessage({
+        type: "RX_ITEMS",
+        items,
+        rxId,
+        doctor,
+        consultationPaid,
+        visitId,
+        patientId,
+        meta,
+      });
     },
     []
   );
@@ -162,7 +190,15 @@ export function useRxToPOS() {
   /** POSPane listens for incoming prescription or token */
   const onPrescriptionReceived = useCallback(
     (
-      rxHandler: (items: CartItem[], rxId: string, doctor?: any, consultationPaid?: boolean, visitId?: string, patientId?: string) => void,
+      rxHandler: (
+        items: CartItem[],
+        rxId: string,
+        doctor?: any,
+        consultationPaid?: boolean,
+        visitId?: string,
+        patientId?: string,
+        meta?: RxMetaPayload
+      ) => void,
       tokenHandler?: (payload: TokenPayload) => void
     ) => {
       if (typeof window === "undefined") return () => {};
@@ -170,7 +206,15 @@ export function useRxToPOS() {
       const handleMsg = (data: any) => {
         if (!data) return;
         if (data.type === "RX_ITEMS") {
-          rxHandler(data.items as CartItem[], data.rxId as string, data.doctor, data.consultationPaid, data.visitId, data.patientId);
+          rxHandler(
+            data.items as CartItem[],
+            data.rxId as string,
+            data.doctor,
+            data.consultationPaid,
+            data.visitId,
+            data.patientId,
+            data.meta
+          );
         } else if (data.type === "TOKEN_CHECKOUT" && tokenHandler) {
           tokenHandler(data.payload);
         } else if (data.type === "APPOINTMENT_CHECKOUT" && tokenHandler) {

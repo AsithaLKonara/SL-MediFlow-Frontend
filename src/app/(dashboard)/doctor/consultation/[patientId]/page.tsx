@@ -201,14 +201,15 @@ export default function ConsultationPage() {
         }
       });
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines`, {
-      headers: { Authorization: `Bearer ${token}` }
+    const activeAuthToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/pharmacy/medicines?limit=1000`, {
+      headers: { Authorization: `Bearer ${activeAuthToken}` }
     })
       .then((r) => r.json())
       .then((data) => {
         const meds = data.data || data;
         const mappedItems = (Array.isArray(meds) ? meds : []).map((med: any) => {
-          const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0;
+          const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + (b.currentQuantity || 0), 0) || 0;
           return { ...med, stock };
         });
         setAvailableMedicines(mappedItems);
@@ -401,13 +402,19 @@ export default function ConsultationPage() {
           const dispenseQty = calculateDispenseQuantity(d);
           const resolvedMedId = d.medicineId || availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id || null;
 
+          const mealTiming = d.timing === "before" ? "Before Eat" : d.timing === "after" ? "After Eat" : "";
+          const combinedInstructions = [mealTiming, d.instructions?.trim()].filter(Boolean).join(" • ");
+          const combinedFrequency = d.timesPerDay 
+            ? `${d.timesPerDay}x day${d.tabletsPerTime ? ` (${d.tabletsPerTime} tab)` : ""}`
+            : (mealTiming || "");
+
           return {
             medicineId: resolvedMedId,
             drugName: d.drug,
             dosage: d.dosage,
-            frequency: d.timesPerDay ? `${d.timesPerDay}x day ${d.tabletsPerTime ? `(${d.tabletsPerTime} tab)` : ''}` : d.timing,
+            frequency: combinedFrequency,
             duration: d.duration,
-            instructions: d.instructions,
+            instructions: combinedInstructions,
             dispenseQty
           };
         })
@@ -788,39 +795,126 @@ export default function ConsultationPage() {
                           setActiveDrugSearch(true);
                         }}
                         onFocus={() => setActiveDrugSearch(true)}
-                        onBlur={() => setTimeout(() => setActiveDrugSearch(false), 200)}
+                        onBlur={() => setTimeout(() => setActiveDrugSearch(false), 250)}
                         className="font-medium bg-card text-card-foreground border-border"
                       />
-                      {activeDrugSearch && currentDrug.drug.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-card text-card-foreground border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          {availableMedicines.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).length > 0 ? (
-                            availableMedicines.filter((m) => m.name.toLowerCase().includes(currentDrug.drug.toLowerCase())).map((m, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                className="w-full text-left px-4 py-2 text-sm hover:bg-muted/30 focus:bg-muted/30 focus:outline-none flex justify-between items-center"
-                                onMouseDown={(e) => {
-                                  e.preventDefault(); // Prevent onBlur from firing before click
-                                  selectDrug(m);
-                                }}
-                              >
-                                <div>
-                                  <span className="font-medium text-foreground block">{m.genericName || m.name}</span>
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.category}</span>
+                      {activeDrugSearch && currentDrug.drug.trim().length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-card text-card-foreground border border-border rounded-md shadow-lg max-h-56 overflow-y-auto">
+                          {(() => {
+                            const q = currentDrug.drug.trim().toLowerCase();
+                            const matches = availableMedicines.filter((m) =>
+                              (m.name && m.name.toLowerCase().includes(q)) ||
+                              (m.genericName && m.genericName.toLowerCase().includes(q)) ||
+                              (m.category && m.category.toLowerCase().includes(q))
+                            );
+                            if (matches.length === 0) {
+                              return (
+                                <div className="px-4 py-3 text-sm text-muted-foreground">
+                                  <p className="font-medium">No pharmacy catalog matches found.</p>
+                                  <p className="text-xs text-muted-foreground/80 mt-0.5">Press tab or continue typing to prescribe as an external medication.</p>
                                 </div>
-                                <div className="text-right">
-                                  <span className="block text-muted-foreground text-xs">{m.unit}</span>
-                                  <span className={cn("text-[10px] font-bold", m.stock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
-                                    {m.stock > 0 ? `${m.stock} IN STOCK` : "OUT OF STOCK"}
-                                  </span>
-                                </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-4 py-2 text-sm text-muted-foreground">No matches found.</div>
-                          )}
+                              );
+                            }
+                            return matches.map((m, i) => {
+                              const isOutOfStock = m.stock === 0;
+                              const isLowStock = m.stock > 0 && m.stock <= (m.reorderLevel || 10);
+                              return (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  className={cn(
+                                    "w-full text-left px-4 py-2.5 text-sm hover:bg-muted/40 focus:bg-muted/40 focus:outline-none flex justify-between items-center border-b border-border/40 last:border-b-0 transition-colors",
+                                    isOutOfStock && "bg-red-500/5 hover:bg-red-500/10"
+                                  )}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    selectDrug(m);
+                                  }}
+                                >
+                                  <div>
+                                    <div className="font-semibold text-foreground flex items-center gap-1.5">
+                                      <span>{m.name}</span>
+                                      {m.genericName && m.genericName.toLowerCase() !== m.name.toLowerCase() && (
+                                        <span className="text-xs font-normal text-muted-foreground">({m.genericName})</span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.category}</span>
+                                  </div>
+                                  <div className="text-right shrink-0 ml-3">
+                                    <span className="block text-muted-foreground text-xs">{m.unit}</span>
+                                    {isOutOfStock ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30">
+                                        <AlertTriangle className="w-3 h-3" /> OUT OF STOCK
+                                      </span>
+                                    ) : isLowStock ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                        ⚠️ {m.stock} LOW STOCK
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30">
+                                        ✓ {m.stock} IN STOCK
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            });
+                          })()}
                         </div>
                       )}
+
+                      {/* Persistent Stock Alert Banners for Selected/Typed Medication */}
+                      {(() => {
+                        const med = availableMedicines.find((m) =>
+                          (currentDrug.medicineId && m.id === currentDrug.medicineId) ||
+                          m.name.toLowerCase() === currentDrug.drug.trim().toLowerCase() ||
+                          (m.genericName && m.genericName.toLowerCase() === currentDrug.drug.trim().toLowerCase())
+                        );
+                        if (!currentDrug.drug.trim()) return null;
+
+                        if (med && med.stock === 0) {
+                          return (
+                            <div className="mt-2.5 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-800 dark:text-red-300 flex items-start gap-2.5 text-xs animate-in fade-in slide-in-from-top-1">
+                              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-bold uppercase tracking-wider text-red-600 dark:text-red-400">OUT OF STOCK IN HOSPITAL PHARMACY</span>
+                                <p className="mt-0.5">
+                                  <strong>{med.name}</strong> currently has <strong>0 units</strong> in stock. You can still prescribe it for outside pharmacy dispensing, but it cannot be dispensed by the hospital pharmacy.
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (med && med.stock > 0 && med.stock <= (med.reorderLevel || 10)) {
+                          return (
+                            <div className="mt-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-center gap-2 text-xs">
+                              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span><strong>Low Stock Warning:</strong> Only <strong>{med.stock} units</strong> remaining in hospital pharmacy.</span>
+                            </div>
+                          );
+                        }
+
+                        if (med && med.stock > (med.reorderLevel || 10)) {
+                          return (
+                            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-medium">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                              <span>In Stock: <strong>{med.stock} units</strong> available in pharmacy.</span>
+                            </div>
+                          );
+                        }
+
+                        if (!med && currentDrug.drug.trim().length > 1) {
+                          return (
+                            <div className="mt-2 p-2 rounded-lg bg-muted border border-border text-muted-foreground flex items-center gap-2 text-xs">
+                              <FileText className="w-3.5 h-3.5 shrink-0" />
+                              <span><strong>External / Non-Catalog Medicine:</strong> Not listed in hospital inventory. Patient will purchase externally.</span>
+                            </div>
+                          );
+                        }
+
+                        return null;
+                      })()}
                     </div>
                   </div>
 
@@ -924,6 +1018,7 @@ export default function ConsultationPage() {
                       <TableRow>
                         <TableHead className="w-[40px] text-center">#</TableHead>
                         <TableHead>Medication</TableHead>
+                        <TableHead className="text-center">Inventory Status</TableHead>
                         <TableHead>Dosage</TableHead>
                         <TableHead>Frequency</TableHead>
                         <TableHead>Duration</TableHead>
@@ -940,6 +1035,41 @@ export default function ConsultationPage() {
                         >
                           <TableCell className="text-center font-medium text-muted-foreground">{i + 1}</TableCell>
                           <TableCell className="font-semibold text-foreground">{d.drug}</TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              const medItem = availableMedicines.find(
+                                (m) => (d.medicineId && m.id === d.medicineId) ||
+                                       m.name.toLowerCase() === d.drug.trim().toLowerCase() ||
+                                       (m.genericName && m.genericName.toLowerCase() === d.drug.trim().toLowerCase())
+                              );
+                              if (!medItem) {
+                                return (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20 whitespace-nowrap">
+                                    External Item
+                                  </span>
+                                );
+                              }
+                              if (medItem.stock === 0) {
+                                return (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 inline-flex items-center gap-1 whitespace-nowrap">
+                                    <AlertTriangle className="w-3 h-3" /> Out of Stock
+                                  </span>
+                                );
+                              }
+                              if (medItem.stock <= (medItem.reorderLevel || 10)) {
+                                return (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap">
+                                    Low Stock ({medItem.stock})
+                                  </span>
+                                );
+                              }
+                              return (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 whitespace-nowrap">
+                                  In Stock ({medItem.stock})
+                                </span>
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">{d.dosage || "-"}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {d.timesPerDay ? `${d.timesPerDay}x day` : "-"}
@@ -968,6 +1098,28 @@ export default function ConsultationPage() {
                   </Table>
                 </div>
               )}
+
+              {/* Prescription Out-of-Stock Summary Banner */}
+              {(() => {
+                const outOfStockItems = addedDrugs.filter(d => {
+                  const m = availableMedicines.find(med =>
+                    (d.medicineId && med.id === d.medicineId) ||
+                    med.name.toLowerCase() === d.drug.trim().toLowerCase() ||
+                    (med.genericName && med.genericName.toLowerCase() === d.drug.trim().toLowerCase())
+                  );
+                  return m && m.stock === 0;
+                });
+                if (outOfStockItems.length === 0) return null;
+                return (
+                  <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-xs text-red-800 dark:text-red-300 flex items-start gap-2.5 animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold uppercase tracking-wider text-red-600 dark:text-red-400">Prescription Inventory Alert:</span>{" "}
+                      <span>{outOfStockItems.length} medication(s) ({outOfStockItems.map(d => d.drug).join(", ")}) are out of stock in the hospital pharmacy and cannot be dispensed internally.</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

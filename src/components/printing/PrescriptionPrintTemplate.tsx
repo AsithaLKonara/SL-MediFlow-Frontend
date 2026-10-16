@@ -12,26 +12,42 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
     return (
       <div className="hidden">
         {/* The printable area that react-to-print targets */}
-        <div ref={ref} className="w-[300px] p-2 bg-white text-black font-mono text-sm leading-tight">
-          <div className="text-center mb-4 border-b-2 border-black pb-2">
-            <img src="/logo.png" alt="AMAZ Hospital" className="w-48 mx-auto mb-2" />
-            <p className="text-xs">0472239090 | www.amazhospital.com</p>
-            <p className="text-[10px]">info@amazhospital.com</p>
-            <p className="text-[10px]">debarawewa, Tissamaharama</p>
+        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-sans print:w-[290px] print:px-3.5 print:py-2 leading-tight">
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media print {
+              @page {
+                size: auto;
+                margin: 3mm 2mm;
+              }
+              body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+            }
+          `}} />
+
+          <div className="text-center mb-3 border-b-2 border-black pb-2">
+            <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-1.5" />
+            <p className="text-xs font-semibold">AMAZ HOSPITAL & MEDICAL SERVICES</p>
+            <p className="text-[10px]">0472239090 | www.amazhospital.com</p>
+            <p className="text-[10px]">Debarawewa, Tissamaharama</p>
+            <div className="border-y border-black py-1 my-1">
+              <p className="text-xs font-bold uppercase tracking-wider">Doctor Prescription</p>
+            </div>
           </div>
 
-          <div className="mb-4 text-xs">
+          <div className="mb-3 text-xs space-y-1 border-b border-dashed border-black pb-3">
             <div className="flex justify-between">
               <span className="font-bold">RX ID:</span>
-              <span>{prescription.id?.substring(0, 8)}...</span>
+              <span className="font-mono">{prescription.id?.substring(0, 8)}...</span>
             </div>
             <div className="flex justify-between">
               <span className="font-bold">Date:</span>
-              <span>{new Date().toLocaleDateString()}</span>
+              <span>{new Date().toLocaleDateString("en-LK")}</span>
             </div>
-            <div className="flex justify-between mt-1">
+            <div className="flex justify-between mt-1 pt-1 border-t border-gray-200">
               <span className="font-bold">Patient:</span>
-              <span>{prescription.patientName}</span>
+              <span className="font-semibold">{prescription.patientName}</span>
             </div>
             <div className="flex justify-between">
               <span className="font-bold">Doctor:</span>
@@ -39,34 +55,71 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
             </div>
           </div>
 
-          <div className="border-t-2 border-black pt-2 mb-4">
-            <h2 className="font-bold uppercase text-center mb-2">Rx - Medications</h2>
-            {prescription.items?.map((item: any, idx: number) => (
-              <div key={idx} className="mb-3">
-                <div className="font-bold text-base flex justify-between">
-                  <span>{idx + 1}. {item.drugName}</span>
-                </div>
-                <div className="text-xs pl-4 flex flex-col">
-                  <span>{item.dosage} - {item.frequency}</span>
-                  {item.duration && <span>For {item.duration}</span>}
-                  {item.instructions && <span className="italic">{item.instructions}</span>}
-                </div>
-              </div>
-            ))}
+          {/* Table Style Layout for Rx */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1.5 border-b-2 border-black pb-1">
+              <h2 className="font-bold text-xs uppercase tracking-wide">Rx - Prescribed Medicines</h2>
+              <span className="text-[10px] font-mono font-bold text-gray-600">({prescription.items?.length || 0})</span>
+            </div>
+
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-black text-black">
+                  <th className="py-1 pr-1 font-bold text-[10px] w-5">#</th>
+                  <th className="py-1 px-1 font-bold text-[10px]">Item & Instructions</th>
+                  <th className="py-1 pl-1 font-bold text-[10px] text-right w-10">Qty</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {prescription.items?.map((item: any, idx: number) => {
+                  const clinicalParts = [
+                    item.dosage,
+                    item.frequency,
+                    item.duration ? `for ${item.duration}` : null,
+                  ].filter(Boolean);
+
+                  return (
+                    <tr key={idx} className="border-b border-gray-200">
+                      <td className="py-1.5 pr-1 align-top font-bold text-[11px] text-black">
+                        {idx + 1}.
+                      </td>
+                      <td className="py-1.5 px-1 align-top">
+                        <div className="font-bold text-[12px] text-black leading-snug">
+                          {item.drugName}
+                        </div>
+                        {clinicalParts.length > 0 && (
+                          <div className="text-[10px] text-gray-800 font-medium leading-tight mt-0.5">
+                            {clinicalParts.join(" • ")}
+                          </div>
+                        )}
+                        {item.instructions && (
+                          <div className="text-[10px] italic text-gray-700 leading-tight mt-0.5">
+                            Note: {item.instructions}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-1.5 pl-1 align-top text-right font-mono font-bold text-[12px] text-black">
+                        {item.dispenseQty != null && item.dispenseQty > 0 ? item.dispenseQty : "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
             
-            {prescription.items?.length === 0 && (
-              <div className="text-center italic text-xs mb-3">No medications prescribed.</div>
+            {(!prescription.items || prescription.items.length === 0) && (
+              <div className="text-center italic text-xs py-2 text-gray-500">No medications prescribed.</div>
             )}
           </div>
 
           {prescription.labRequests && prescription.labRequests.length > 0 && (
             <div className="border-t-2 border-black pt-2 mb-4">
-              <h2 className="font-bold uppercase text-center mb-2">Lab Orders</h2>
+              <h2 className="font-bold uppercase text-xs mb-1.5">Lab Orders</h2>
               {prescription.labRequests.map((req: any, reqIdx: number) => (
-                <div key={reqIdx} className="mb-2">
-                  <div className="text-xs pl-4 flex flex-col list-disc">
+                <div key={reqIdx} className="mb-1">
+                  <div className="text-xs pl-2 flex flex-col space-y-0.5">
                     {req.tests?.map((testName: string, testIdx: number) => (
-                      <span key={testIdx}>• {testName}</span>
+                      <span key={testIdx} className="font-medium">• {testName}</span>
                     ))}
                   </div>
                 </div>
@@ -74,7 +127,7 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
             </div>
           )}
 
-          <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
+          <div className="text-center mt-6 pt-3 border-t border-dashed border-black flex flex-col items-center">
             {(() => {
               const masterBarcode = 
                 prescription.bookingReference || 
@@ -86,12 +139,12 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
 
               return (
                 <div className="mb-2 w-full flex flex-col items-center justify-center overflow-hidden">
-                  <Barcode value={masterBarcode} width={1.2} height={45} fontSize={11} margin={0} displayValue={true} />
+                  <Barcode value={masterBarcode} width={1.1} height={38} fontSize={10} margin={0} displayValue={true} />
                 </div>
               );
             })()}
-            <p className="text-xs italic">Wishing you a speedy recovery!</p>
-            <p className="text-[10px] mt-1">Generated electronically.</p>
+            <p className="text-xs italic mt-1">Wishing you a speedy recovery!</p>
+            <p className="text-[9px] text-gray-500 mt-0.5">Generated electronically.</p>
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon, Edit, Trash2, Plus } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon, Edit, Trash2, Plus, ShoppingBag } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +17,7 @@ import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { PhoneBookingPane } from "./PhoneBookingPane";
 import { ExternalLabRequestModal } from "./ExternalLabRequestModal";
 import { RxHistoryModal } from "./RxHistoryModal";
+import { FrontdeskRxEditModal } from "./FrontdeskRxEditModal";
 import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -46,6 +47,10 @@ interface PrescriptionItem {
   id: string;
   medicineId: string | null;
   drugName: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
   dispenseQty: number | null;
   medicine?: {
     id: string;
@@ -57,6 +62,8 @@ interface PrescriptionItem {
 interface Prescription {
   id: string;
   patientName: string;
+  patientAge?: string;
+  patientPhone?: string;
   doctorName: string;
   createdAt: string;
   status: string;
@@ -146,16 +153,12 @@ export function TokenPane() {
     }, 150); // slight delay for React to render the ref
   };
 
+  const [selectedRxForEdit, setSelectedRxForEdit] = useState<Prescription | null>(null);
+  const [isRxEditModalOpen, setIsRxEditModalOpen] = useState(false);
+
   const handleOpenEditRx = (rx: Prescription) => {
-    const patientParam = rx.patientId || (rx as any).patient?.id;
-    if (!patientParam) {
-      toast.error("Patient profile not linked to this prescription.");
-      return;
-    }
-    const query = new URLSearchParams();
-    query.set("editPrescriptionId", rx.id);
-    if (rx.visitId) query.set("visitId", rx.visitId);
-    router.push(`/doctor/consultation/${patientParam}?${query.toString()}`);
+    setSelectedRxForEdit(rx);
+    setIsRxEditModalOpen(true);
   };
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -536,6 +539,10 @@ export function TokenPane() {
         name: item.medicine!.name,
         qty: calculateDispenseQuantity(item),
         price: item.medicine!.stockBatches?.[0]?.unitPrice ?? 0,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        duration: item.duration,
+        instructions: item.instructions,
       }));
 
     if (cartItems.length === 0) {
@@ -544,7 +551,20 @@ export function TokenPane() {
 
     // Optimistically lock UI immediately (POSPane will also broadcast IN_PROGRESS back)
     setInPosPrescriptionId(rx.id);
-    sendToPOS(cartItems, rx.id, (rx as any).doctor, (rx as any).consultationPaid, rx.visitId, rx.patientId);
+    sendToPOS(
+      cartItems,
+      rx.id,
+      (rx as any).doctor,
+      (rx as any).consultationPaid,
+      rx.visitId,
+      rx.patientId,
+      {
+        doctorName: (rx as any).doctor?.fullName || rx.doctorName || "Doctor",
+        patientName: rx.patientName || "Walk-in",
+        bookingReference: rx.bookingReference || undefined,
+        consultationFee: (rx as any).doctor?.consultationFee ?? 2500,
+      }
+    );
     toast.success(`${cartItems.length} medicine(s) sent to POS — complete checkout to dispense.`);
   }, [inPosPrescriptionId, sendToPOS]);
 
@@ -750,13 +770,17 @@ export function TokenPane() {
             ref={prescriptionPrintRef}
             prescriptionId={selectedRxForPrint.id}
             patientName={selectedRxForPrint.patientName}
-            patientAge="N/A"
-            patientPhone="N/A"
+            patientAge={selectedRxForPrint.patientAge || "N/A"}
+            patientPhone={selectedRxForPrint.patientPhone || "N/A"}
             doctorName={selectedRxForPrint.doctorName}
             date={new Date(selectedRxForPrint.createdAt).toLocaleDateString()}
             medicines={selectedRxForPrint.items.map(item => ({
-              name: item.drugName,
-              dosage: item.dispenseQty ? `Dispense: ${item.dispenseQty}` : 'As prescribed'
+              name: item.drugName || item.medicine?.name || "Medication",
+              dosage: item.dosage,
+              frequency: item.frequency,
+              duration: item.duration,
+              instructions: item.instructions,
+              dispenseQty: item.dispenseQty || calculateDispenseQuantity(item) || null,
             }))}
           />
         )}
@@ -1504,36 +1528,25 @@ export function TokenPane() {
                         </span>
                       </div>
 
-                      <div className="pt-3 border-t border-border flex gap-2">
+                      <div className="pt-3 border-t border-border">
                         <Button
-                          variant="outline"
                           size="sm"
-                          className="h-8 px-2.5 border-primary/30 text-primary hover:bg-primary/10"
-                          onClick={() => handlePrintClick(rx)}
-                        >
-                          Print Rx
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-2.5 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                          className="w-full bg-primary hover:bg-primary/90 h-8 text-xs font-semibold gap-1.5 shadow-sm"
                           onClick={() => handleOpenEditRx(rx)}
-                          disabled={isInPos || isLocked}
-                          title="Edit Medicines & Dosage"
-                          data-testid={`edit-rx-${rx.id}`}
-                        >
-                          <Edit className="w-3.5 h-3.5 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-primary hover:bg-primary/90 h-8"
-                          onClick={() => handleSendToPOS(rx)}
-                          disabled={isLocked || isInPos}
+                          disabled={isLocked}
                           data-testid={`send-rx-to-pos-${rx.id}`}
                         >
-                          <CheckCircle className="w-4 h-4 mr-1.5" />
-                          {isInPos ? "Active in POS" : "Send to POS"}
+                          {isInPos ? (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5 text-white/90" />
+                              Active in POS (Manage & Print)
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                              Send to POS
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1545,6 +1558,22 @@ export function TokenPane() {
         </TabsContent>
       </Tabs>
 
+
+      {/* Prescription Item Management Modal */}
+      <FrontdeskRxEditModal
+        prescription={selectedRxForEdit}
+        isOpen={isRxEditModalOpen}
+        onClose={() => setIsRxEditModalOpen(false)}
+        onSendToPOS={(items, rxId, doctor, consultationPaid, visitId, patientId, meta) => {
+          if (inPosPrescriptionId) {
+            toast.error("A prescription is already in the POS. Complete checkout first.");
+            return;
+          }
+          setInPosPrescriptionId(rxId);
+          sendToPOS(items, rxId, doctor, consultationPaid, visitId, patientId, meta);
+        }}
+        isInPos={selectedRxForEdit ? inPosPrescriptionId === selectedRxForEdit.id : false}
+      />
 
     </div>
   );

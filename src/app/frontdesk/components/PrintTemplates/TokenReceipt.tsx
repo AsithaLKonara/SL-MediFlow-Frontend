@@ -12,9 +12,21 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
   const numericToken = String(tokenNumber.replace(/\D/g, '')).padStart(2, '0');
   
   return (
-    <div ref={ref} className="w-[300px] bg-card text-card-foreground text-black p-4 font-sans print:p-0">
+    <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-sans print:w-[290px] print:px-3.5 print:py-2 leading-tight">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: auto;
+            margin: 3mm 2mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}} />
       <div className="text-center mb-6">
-        <img src="/logo.png" alt="AMAZ Hospital" className="w-48 mx-auto mb-2" />
+        <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-2" />
         <p className="text-xs text-black">0472239090 | www.amazhospital.com</p>
         <p className="text-[10px] text-black">info@amazhospital.com</p>
         <p className="text-[10px] text-black mb-2">debarawewa, Tissamaharama</p>
