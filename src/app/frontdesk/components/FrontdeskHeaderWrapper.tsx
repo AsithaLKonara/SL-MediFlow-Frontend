@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Stethoscope } from "lucide-react";
 import { FrontdeskToggles } from "./FrontdeskToggles";
 import { FullScreenButton } from "./FullScreenButton";
 import { FrontdeskLogoutButton } from "./FrontdeskLogoutButton";
@@ -28,15 +27,6 @@ export function FrontdeskHeaderWrapper() {
           </Link>
           <div className="h-4 w-px bg-border" />
           <div className="text-sm font-medium">Front Desk & POS</div>
-          <div className="h-4 w-px bg-border" />
-          <Link
-            href="/frontdesk/doctor-share"
-            className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800 transition-colors flex items-center gap-1.5"
-            title="Release Doctor Fund / Shares"
-          >
-            <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
-            Release Doctor Fund
-          </Link>
         </div>
         
         <div className="flex items-center gap-4 text-sm">

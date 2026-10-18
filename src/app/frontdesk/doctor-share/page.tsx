@@ -495,7 +495,7 @@ export default function FrontDeskDoctorSharePage() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-40 bg-white"
+            className="w-40 bg-background dark:bg-card border-border text-foreground"
           />
           <Button
             variant="outline"
@@ -512,13 +512,13 @@ export default function FrontDeskDoctorSharePage() {
 
       {/* Top Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-slate-800 shadow-sm">
+        <Card className="border-l-4 border-l-slate-700 dark:border-l-slate-400 shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center justify-between">
+            <CardDescription className="flex items-center justify-between text-muted-foreground">
               Total Doctor Share
-              <DollarSign className="h-4 w-4 text-slate-500" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-slate-900">
+            <CardTitle className="text-2xl font-bold text-foreground">
               LKR {totalEligibleShare.toLocaleString()}
             </CardTitle>
           </CardHeader>
@@ -529,47 +529,47 @@ export default function FrontDeskDoctorSharePage() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-emerald-600 shadow-sm bg-emerald-50/20">
+        <Card className="border-l-4 border-l-emerald-600 shadow-sm bg-emerald-50/20 dark:bg-emerald-950/20">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center justify-between text-emerald-800">
+            <CardDescription className="flex items-center justify-between text-emerald-800 dark:text-emerald-400">
               Available Cash Share (Drawer)
-              <Banknote className="h-4 w-4 text-emerald-600" />
+              <Banknote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-emerald-700">
+            <CardTitle className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
               LKR {totalCashAvailable.toLocaleString()}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-emerald-800">
+            <p className="text-xs text-emerald-800 dark:text-emerald-300">
               Collected as Cash • Safe to issue at Front Desk
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-600 shadow-sm bg-blue-50/20">
+        <Card className="border-l-4 border-l-blue-600 shadow-sm bg-blue-50/20 dark:bg-blue-950/20">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center justify-between text-blue-800">
+            <CardDescription className="flex items-center justify-between text-blue-800 dark:text-blue-400">
               Bank Transfer Share (Card/QR)
-              <CreditCard className="h-4 w-4 text-blue-600" />
+              <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-blue-700">
+            <CardTitle className="text-2xl font-bold text-blue-700 dark:text-blue-400">
               LKR {totalBankPending.toLocaleString()}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-blue-800">
+            <p className="text-xs text-blue-800 dark:text-blue-300">
               Collected via POS/Card • Issued via Bank Transfer
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-600 shadow-sm">
+        <Card className="border-l-4 border-l-purple-600 shadow-sm bg-purple-50/20 dark:bg-purple-950/20">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center justify-between text-purple-800">
+            <CardDescription className="flex items-center justify-between text-purple-800 dark:text-purple-400">
               Total Disbursed Today
-              <CheckCheck className="h-4 w-4 text-purple-600" />
+              <CheckCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-purple-700">
+            <CardTitle className="text-2xl font-bold text-purple-700 dark:text-purple-400">
               LKR {totalDisbursedToday.toLocaleString()}
             </CardTitle>
           </CardHeader>
@@ -582,13 +582,13 @@ export default function FrontDeskDoctorSharePage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex border-b space-x-6 text-sm font-semibold">
+      <div className="flex border-b border-border space-x-6 text-sm font-semibold">
         <button
           onClick={() => setActiveTab("active")}
           className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${
             activeTab === "active"
-              ? "border-emerald-600 text-emerald-700"
-              : "border-transparent text-slate-500 hover:text-slate-800"
+              ? "border-emerald-600 text-emerald-700 dark:text-emerald-400"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           <Wallet className="h-4 w-4" />
@@ -598,8 +598,8 @@ export default function FrontDeskDoctorSharePage() {
           onClick={() => setActiveTab("history")}
           className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${
             activeTab === "history"
-              ? "border-emerald-600 text-emerald-700"
-              : "border-transparent text-slate-500 hover:text-slate-800"
+              ? "border-emerald-600 text-emerald-700 dark:text-emerald-400"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           <Clock className="h-4 w-4" />
@@ -610,7 +610,7 @@ export default function FrontDeskDoctorSharePage() {
       {/* TAB 1: ACTIVE DOCTOR SHARES */}
       {activeTab === "active" && (
         <Card className="shadow-sm">
-          <CardHeader className="py-4 px-6 border-b bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <CardHeader className="py-4 px-6 border-b border-border bg-muted/40 dark:bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg">Doctor Daily Shares for {selectedDate}</CardTitle>
               <CardDescription>
@@ -620,7 +620,7 @@ export default function FrontDeskDoctorSharePage() {
 
             <div className="flex items-center gap-2">
               <Select value={filterDoctorId} onValueChange={(val) => val && setFilterDoctorId(val)}>
-                <SelectTrigger className="w-56 bg-white">
+                <SelectTrigger className="w-56 bg-background dark:bg-card border-border text-foreground">
                   <SelectValue placeholder="All Doctors" />
                 </SelectTrigger>
                 <SelectContent>
@@ -642,18 +642,18 @@ export default function FrontDeskDoctorSharePage() {
                 <p>Loading doctor share rosters...</p>
               </div>
             ) : sheets.length === 0 ? (
-              <div className="py-16 text-center text-slate-500">
-                <AlertCircle className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                <p className="font-semibold text-slate-700">No doctor consultation sheets found for {selectedDate}</p>
-                <p className="text-xs text-slate-500 mt-1">
+              <div className="py-16 text-center text-muted-foreground">
+                <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-60" />
+                <p className="font-semibold text-foreground">No doctor consultation sheets found for {selectedDate}</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Once consultations are completed or synced by Fund Office, they will automatically appear here.
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50">
-                    <TableRow>
+                  <TableHeader className="bg-muted/50 dark:bg-muted/20 border-b border-border">
+                    <TableRow className="border-border hover:bg-transparent">
                       <TableHead>Doctor</TableHead>
                       <TableHead className="text-center">Patients Treated</TableHead>
                       <TableHead className="text-right">Total Revenue</TableHead>
@@ -665,27 +665,27 @@ export default function FrontDeskDoctorSharePage() {
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="divide-y">
+                  <TableBody className="divide-y divide-border">
                     {sheets.map((sheet) => {
                       const remainingCash = Math.max(0, (sheet.cashDoctorShare || 0) - (sheet.cashDisbursed || 0));
                       const remainingBank = Math.max(0, (sheet.bankDoctorShare || 0) - (sheet.bankDisbursed || 0));
                       const isFullyDisbursed = sheet.status === "PAID" || (remainingCash === 0 && remainingBank === 0 && (sheet.cashDisbursed || 0) + (sheet.bankDisbursed || 0) > 0);
 
                       return (
-                        <TableRow key={sheet.id} className="hover:bg-slate-50/60">
+                        <TableRow key={sheet.id} className="hover:bg-muted/50 dark:hover:bg-muted/20 border-b border-border">
                           <TableCell>
                             <div>
-                              <p className="font-bold text-slate-900">Dr. {sheet.doctor?.fullName || "Doctor"}</p>
+                              <p className="font-bold text-foreground">Dr. {sheet.doctor?.fullName || "Doctor"}</p>
                               <p className="text-xs text-muted-foreground">{sheet.doctor?.specialty || "Consultant"}</p>
                               {sheet.doctor?.bankAccountNumber ? (
-                                <p className="text-[11px] text-blue-600 font-mono flex items-center gap-1 mt-0.5">
+                                <p className="text-[11px] text-blue-600 dark:text-blue-400 font-mono flex items-center gap-1 mt-0.5">
                                   <Building className="h-3 w-3" />
                                   {sheet.doctor.bankName} • {sheet.doctor.bankAccountNumber}
                                 </p>
                               ) : (
                                 <button
                                   onClick={() => openDoctorBankEdit(sheet.doctor)}
-                                  className="text-[11px] text-amber-600 underline hover:text-amber-700 flex items-center gap-1 mt-0.5"
+                                  className="text-[11px] text-amber-600 dark:text-amber-400 underline hover:text-amber-700 flex items-center gap-1 mt-0.5"
                                 >
                                   + Add Bank Details
                                 </button>
@@ -694,13 +694,13 @@ export default function FrontDeskDoctorSharePage() {
                           </TableCell>
 
                           <TableCell className="text-center">
-                            <span className="font-semibold text-slate-800">{sheet.totalPatients}</span>
+                            <span className="font-semibold text-foreground">{sheet.totalPatients}</span>
                             <div className="flex items-center justify-center gap-1 text-[10px] mt-0.5">
-                              <span className="text-emerald-700 font-medium">
+                              <span className="text-emerald-700 dark:text-emerald-400 font-medium">
                                 {sheet.patientItems?.filter((p) => (p.collectionMethod || "CASH") === "CASH").length || 0} Cash
                               </span>
                               <span>•</span>
-                              <span className="text-blue-700 font-medium">
+                              <span className="text-blue-700 dark:text-blue-400 font-medium">
                                 {sheet.patientItems?.filter((p) => (p.collectionMethod || "CASH") !== "CASH").length || 0} Card
                               </span>
                             </div>
@@ -710,45 +710,45 @@ export default function FrontDeskDoctorSharePage() {
                             LKR {sheet.totalRevenue.toLocaleString()}
                           </TableCell>
 
-                          <TableCell className="text-right text-red-600 font-medium">
+                          <TableCell className="text-right text-red-600 dark:text-red-400 font-medium">
                             - LKR {(sheet.hospitalCommission || 0).toLocaleString()}
-                            <span className="text-[10px] block text-slate-400 font-normal">
+                            <span className="text-[10px] block text-muted-foreground font-normal">
                               ({sheet.commissionRate}%)
                             </span>
                           </TableCell>
 
-                          <TableCell className="text-right font-black text-slate-900 text-base">
+                          <TableCell className="text-right font-black text-foreground text-base">
                             LKR {sheet.netDoctorPayment.toLocaleString()}
                           </TableCell>
 
                           {/* Cash Share Column */}
                           <TableCell className="text-center">
-                            <div className="bg-emerald-50 rounded-lg p-2 border border-emerald-200">
-                              <p className="text-xs font-bold text-emerald-800">
+                            <div className="bg-emerald-50 dark:bg-emerald-950/40 rounded-lg p-2 border border-emerald-200 dark:border-emerald-800/60">
+                              <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
                                 LKR {(sheet.cashDoctorShare || 0).toLocaleString()}
                               </p>
                               {(sheet.cashDisbursed || 0) > 0 ? (
-                                <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
                                   ✓ Disbursed: LKR {sheet.cashDisbursed?.toLocaleString()}
                                 </p>
                               ) : (
-                                <p className="text-[10px] text-slate-500 mt-0.5">Ready for cash payout</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">Ready for cash payout</p>
                               )}
                             </div>
                           </TableCell>
 
                           {/* Bank Share Column */}
                           <TableCell className="text-center">
-                            <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
-                              <p className="text-xs font-bold text-blue-800">
+                            <div className="bg-blue-50 dark:bg-blue-950/40 rounded-lg p-2 border border-blue-200 dark:border-blue-800/60">
+                              <p className="text-xs font-bold text-blue-800 dark:text-blue-300">
                                 LKR {(sheet.bankDoctorShare || 0).toLocaleString()}
                               </p>
                               {(sheet.bankDisbursed || 0) > 0 ? (
-                                <p className="text-[10px] text-blue-600 font-semibold mt-0.5">
+                                <p className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
                                   ✓ Transferred: LKR {sheet.bankDisbursed?.toLocaleString()}
                                 </p>
                               ) : (
-                                <p className="text-[10px] text-slate-500 mt-0.5">Card/Online receipts</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">Card/Online receipts</p>
                               )}
                             </div>
                           </TableCell>
@@ -764,11 +764,11 @@ export default function FrontDeskDoctorSharePage() {
                                 APPROVED
                               </Badge>
                             ) : sheet.status === "VERIFIED" ? (
-                              <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50">
+                              <Badge variant="outline" className="text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40">
                                 VERIFIED
                               </Badge>
                             ) : (
-                              <Badge variant="secondary" className="text-slate-700">
+                              <Badge variant="secondary" className="text-foreground">
                                 DRAFT
                               </Badge>
                             )}
@@ -795,7 +795,7 @@ export default function FrontDeskDoctorSharePage() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => openBankTransfer(sheet)}
-                                  className="border-blue-600 text-blue-700 hover:bg-blue-50 text-xs h-8 px-2.5 flex items-center gap-1"
+                                  className="border-blue-600 text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-500 dark:hover:bg-blue-950/50 text-xs h-8 px-2.5 flex items-center gap-1"
                                 >
                                   <CreditCard className="h-3.5 w-3.5" />
                                   Bank Transfer
@@ -807,7 +807,7 @@ export default function FrontDeskDoctorSharePage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setViewSheet(sheet)}
-                                className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                                 title="View Patient Roster"
                               >
                                 <Eye className="h-4 w-4" />
@@ -818,8 +818,8 @@ export default function FrontDeskDoctorSharePage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => triggerPrint(sheet)}
-                                className="h-8 w-8 p-0 text-slate-600 hover:text-emerald-700"
-                                title="Print Voucher"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-emerald-500"
+                                title="Print Official Voucher"
                               >
                                 <Printer className="h-4 w-4" />
                               </Button>
@@ -839,7 +839,7 @@ export default function FrontDeskDoctorSharePage() {
       {/* TAB 2: SHARED PAYMENT HISTORY LEDGER */}
       {activeTab === "history" && (
         <Card className="shadow-sm">
-          <CardHeader className="py-4 px-6 border-b bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <CardHeader className="py-4 px-6 border-b border-border bg-muted/40 dark:bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg">Synchronized Payment History Ledger</CardTitle>
               <CardDescription>
@@ -849,17 +849,17 @@ export default function FrontDeskDoctorSharePage() {
 
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search receipt #, doctor..."
                   value={historySearchTerm}
                   onChange={(e) => setHistorySearchTerm(e.target.value)}
-                  className="pl-8 bg-white h-9"
+                  className="pl-8 bg-background dark:bg-card border-border text-foreground h-9"
                 />
               </div>
 
               <Select value={historyFilterMethod} onValueChange={(val) => val && setHistoryFilterMethod(val)}>
-                <SelectTrigger className="w-36 bg-white h-9">
+                <SelectTrigger className="w-36 bg-background dark:bg-card border-border text-foreground h-9">
                   <SelectValue placeholder="Method" />
                 </SelectTrigger>
                 <SelectContent>
@@ -885,21 +885,21 @@ export default function FrontDeskDoctorSharePage() {
 
           <CardContent className="p-0">
             {historyLoading ? (
-              <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+              <div className="py-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
                 <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
                 <p>Loading payment ledger...</p>
               </div>
             ) : filteredHistory.length === 0 ? (
-              <div className="py-16 text-center text-slate-500">
-                <CheckCircle2 className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                <p className="font-semibold text-slate-700">No payment records found</p>
-                <p className="text-xs text-slate-500 mt-1">Disbursements made will be permanently recorded here.</p>
+              <div className="py-16 text-center text-muted-foreground">
+                <CheckCircle2 className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-60" />
+                <p className="font-semibold text-foreground">No payment records found</p>
+                <p className="text-xs text-muted-foreground mt-1">Disbursements made will be permanently recorded here.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50">
-                    <TableRow>
+                  <TableHeader className="bg-muted/50 dark:bg-muted/20 border-b border-border">
+                    <TableRow className="border-border hover:bg-transparent">
                       <TableHead>Receipt / Voucher #</TableHead>
                       <TableHead>Date & Time</TableHead>
                       <TableHead>Doctor</TableHead>
@@ -912,19 +912,19 @@ export default function FrontDeskDoctorSharePage() {
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="divide-y">
+                  <TableBody className="divide-y divide-border">
                     {filteredHistory.map((item) => {
                       const isCash = (item.cashDisbursed || 0) > 0;
                       const isBank = (item.bankDisbursed || 0) > 0;
-                      const roleBadgeColor = item.disbursedByRole === "SUPERADMIN" ? "bg-purple-100 text-purple-800 border-purple-300" : "bg-emerald-100 text-emerald-800 border-emerald-300";
+                      const roleBadgeColor = item.disbursedByRole === "SUPERADMIN" ? "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800" : "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
 
                       return (
-                        <TableRow key={item.id} className="hover:bg-slate-50/60">
-                          <TableCell className="font-mono font-bold text-slate-900 text-xs">
+                        <TableRow key={item.id} className="hover:bg-muted/50 dark:hover:bg-muted/20 border-b border-border">
+                          <TableCell className="font-mono font-bold text-foreground text-xs">
                             {item.receiptNumber || `DOC-RCP-${item.id.slice(0, 8).toUpperCase()}`}
                           </TableCell>
 
-                          <TableCell className="text-xs text-slate-600">
+                          <TableCell className="text-xs text-muted-foreground">
                             {item.paidAt ? new Date(item.paidAt).toLocaleString("en-GB", {
                               day: "2-digit",
                               month: "short",
@@ -935,19 +935,19 @@ export default function FrontDeskDoctorSharePage() {
                           </TableCell>
 
                           <TableCell>
-                            <p className="font-semibold text-slate-900 text-sm">Dr. {item.doctor?.fullName || "Doctor"}</p>
+                            <p className="font-semibold text-foreground text-sm">Dr. {item.doctor?.fullName || "Doctor"}</p>
                             <p className="text-xs text-muted-foreground">{item.doctor?.specialty || "Doctor"}</p>
                           </TableCell>
 
-                          <TableCell className="text-center font-semibold text-slate-700">
+                          <TableCell className="text-center font-semibold text-foreground">
                             {item.totalPatients}
                           </TableCell>
 
-                          <TableCell className="text-right text-slate-700 font-medium">
+                          <TableCell className="text-right text-foreground font-medium">
                             LKR {item.totalRevenue.toLocaleString()}
                           </TableCell>
 
-                          <TableCell className="text-right font-black text-slate-900 text-sm">
+                          <TableCell className="text-right font-black text-foreground text-sm">
                             LKR {((item.cashDisbursed || 0) + (item.bankDisbursed || 0) || item.netDoctorPayment).toLocaleString()}
                           </TableCell>
 
@@ -975,10 +975,10 @@ export default function FrontDeskDoctorSharePage() {
 
                           <TableCell className="text-xs">
                             {item.paymentReference && (
-                              <p className="font-mono text-slate-800 font-semibold">{item.paymentReference}</p>
+                              <p className="font-mono text-foreground font-semibold">{item.paymentReference}</p>
                             )}
                             {(item.doctor?.bankAccountNumber || (item.bankDetails as any)?.bankAccountNumber) && (
-                              <p className="text-slate-500 text-[11px] mt-0.5">
+                              <p className="text-muted-foreground text-[11px] mt-0.5">
                                 {(item.bankDetails as any)?.bankName || item.doctor?.bankName} • {(item.bankDetails as any)?.bankAccountNumber || item.doctor?.bankAccountNumber}
                               </p>
                             )}
@@ -987,7 +987,7 @@ export default function FrontDeskDoctorSharePage() {
                                 href={getSlipViewUrl(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline mt-1 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800"
                                 title="Open Payment Slip"
                               >
                                 <Paperclip className="h-3 w-3" />
@@ -1003,7 +1003,7 @@ export default function FrontDeskDoctorSharePage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => triggerPrint(item)}
-                                className="h-8 w-8 p-0 text-slate-600 hover:text-emerald-700"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-emerald-500"
                                 title="Print Official Voucher"
                               >
                                 <Printer className="h-4 w-4" />
@@ -1012,7 +1012,7 @@ export default function FrontDeskDoctorSharePage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setViewSheet(item)}
-                                className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                                 title="View Details"
                               >
                                 <Eye className="h-4 w-4" />
@@ -1034,8 +1034,8 @@ export default function FrontDeskDoctorSharePage() {
       <Dialog open={cashModalOpen} onOpenChange={setCashModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-emerald-800">
-              <Banknote className="h-5 w-5 text-emerald-600" />
+            <DialogTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
+              <Banknote className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               Issue Cash Share from Front Desk
             </DialogTitle>
             <DialogDescription>
@@ -1045,40 +1045,40 @@ export default function FrontDeskDoctorSharePage() {
 
           {cashTargetSheet && (
             <div className="space-y-4 py-2">
-              <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200 text-xs space-y-1.5">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 rounded-lg p-3 border border-emerald-200 dark:border-emerald-800/60 text-xs space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-emerald-800 font-medium">Doctor Name:</span>
-                  <span className="font-bold text-emerald-950">Dr. {cashTargetSheet.doctor?.fullName}</span>
+                  <span className="text-emerald-800 dark:text-emerald-300 font-medium">Doctor Name:</span>
+                  <span className="font-bold text-emerald-950 dark:text-emerald-100">Dr. {cashTargetSheet.doctor?.fullName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-emerald-800 font-medium">Total Cash Collections:</span>
-                  <span className="font-semibold text-emerald-950">
+                  <span className="text-emerald-800 dark:text-emerald-300 font-medium">Total Cash Collections:</span>
+                  <span className="font-semibold text-emerald-950 dark:text-emerald-100">
                     LKR {(cashTargetSheet.cashRevenue || 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-emerald-800 font-medium">Eligible Cash Share:</span>
-                  <span className="font-bold text-emerald-950">
+                  <span className="text-emerald-800 dark:text-emerald-300 font-medium">Eligible Cash Share:</span>
+                  <span className="font-bold text-emerald-950 dark:text-emerald-100">
                     LKR {(cashTargetSheet.cashDoctorShare || 0).toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-emerald-300 pt-1">
-                  <span className="text-emerald-900 font-bold">Max Allowed Cash Payout:</span>
-                  <span className="font-black text-emerald-900 text-sm">
+                <div className="flex justify-between border-t border-emerald-300 dark:border-emerald-800 pt-1">
+                  <span className="text-emerald-900 dark:text-emerald-200 font-bold">Max Allowed Cash Payout:</span>
+                  <span className="font-black text-emerald-900 dark:text-emerald-200 text-sm">
                     LKR {Math.max(0, (cashTargetSheet.cashDoctorShare || 0) - (cashTargetSheet.cashDisbursed || 0)).toLocaleString()}
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Cash Amount to Disburse (LKR) *
                 </label>
                 <Input
                   type="number"
                   value={cashAmount}
                   onChange={(e) => setCashAmount(parseFloat(e.target.value) || 0)}
-                  className="font-bold text-base text-emerald-900"
+                  className="font-bold text-base text-foreground bg-background dark:bg-card border-border"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Must not exceed drawer cash collections. Card collections cannot be paid out in cash.
@@ -1086,13 +1086,14 @@ export default function FrontDeskDoctorSharePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Voucher / Drawer Remarks
                 </label>
                 <Input
                   value={cashRemarks}
                   onChange={(e) => setCashRemarks(e.target.value)}
                   placeholder="e.g. Front desk morning shift payout"
+                  className="bg-background dark:bg-card border-border text-foreground"
                 />
               </div>
             </div>
@@ -1122,8 +1123,8 @@ export default function FrontDeskDoctorSharePage() {
       <Dialog open={bankModalOpen} onOpenChange={setBankModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-blue-800">
-              <CreditCard className="h-5 w-5 text-blue-600" />
+            <DialogTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-400">
+              <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Issue Bank Transfer Doctor Payout
             </DialogTitle>
             <DialogDescription>
@@ -1133,30 +1134,30 @@ export default function FrontDeskDoctorSharePage() {
 
           {bankTargetSheet && (
             <div className="space-y-4 py-2">
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-xs space-y-1.5">
+              <div className="bg-blue-50 dark:bg-blue-950/40 rounded-lg p-3 border border-blue-200 dark:border-blue-800/60 text-xs space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-blue-800 font-medium">Doctor:</span>
-                  <span className="font-bold text-blue-950">Dr. {bankTargetSheet.doctor?.fullName}</span>
+                  <span className="text-blue-800 dark:text-blue-300 font-medium">Doctor:</span>
+                  <span className="font-bold text-blue-950 dark:text-blue-100">Dr. {bankTargetSheet.doctor?.fullName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-blue-800 font-medium">Card/Bank Collections:</span>
-                  <span className="font-semibold text-blue-950">
+                  <span className="text-blue-800 dark:text-blue-300 font-medium">Card/Bank Collections:</span>
+                  <span className="font-semibold text-blue-950 dark:text-blue-100">
                     LKR {(bankTargetSheet.cardRevenue || 0).toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-blue-300 pt-1">
-                  <span className="text-blue-900 font-bold">Doctor Bank Share Payable:</span>
-                  <span className="font-black text-blue-900 text-sm">
+                <div className="flex justify-between border-t border-blue-300 dark:border-blue-800 pt-1">
+                  <span className="text-blue-900 dark:text-blue-200 font-bold">Doctor Bank Share Payable:</span>
+                  <span className="font-black text-blue-900 dark:text-blue-200 text-sm">
                     LKR {Math.max(0, (bankTargetSheet.bankDoctorShare || 0) - (bankTargetSheet.bankDisbursed || 0)).toLocaleString()}
                   </span>
                 </div>
               </div>
 
               {/* Bank Account Fields */}
-              <div className="border rounded-lg p-3 space-y-3 bg-slate-50">
+              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/40 dark:bg-muted/20">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1">
-                    <Building className="h-3.5 w-3.5 text-blue-600" />
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Building className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                     Doctor Bank Account Information
                   </span>
                   <span className="text-[10px] text-muted-foreground">Editable on the fly</span>
@@ -1164,42 +1165,42 @@ export default function FrontDeskDoctorSharePage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-medium text-slate-600 block mb-0.5">Bank Name</label>
+                    <label className="text-[11px] font-medium text-muted-foreground block mb-0.5">Bank Name</label>
                     <Input
                       value={bankDetailsForm.bankName}
                       onChange={(e) => setBankDetailsForm({ ...bankDetailsForm, bankName: e.target.value })}
                       placeholder="e.g. Commercial Bank"
-                      className="bg-white h-8 text-xs"
+                      className="bg-background dark:bg-card border-border text-foreground h-8 text-xs"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium text-slate-600 block mb-0.5">Branch</label>
+                    <label className="text-[11px] font-medium text-muted-foreground block mb-0.5">Branch</label>
                     <Input
                       value={bankDetailsForm.bankBranch}
                       onChange={(e) => setBankDetailsForm({ ...bankDetailsForm, bankBranch: e.target.value })}
                       placeholder="e.g. Tissamaharama"
-                      className="bg-white h-8 text-xs"
+                      className="bg-background dark:bg-card border-border text-foreground h-8 text-xs"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-medium text-slate-600 block mb-0.5">Account Number</label>
+                    <label className="text-[11px] font-medium text-muted-foreground block mb-0.5">Account Number</label>
                     <Input
                       value={bankDetailsForm.bankAccountNumber}
                       onChange={(e) => setBankDetailsForm({ ...bankDetailsForm, bankAccountNumber: e.target.value })}
                       placeholder="e.g. 8001234567"
-                      className="bg-white h-8 text-xs font-mono font-bold"
+                      className="bg-background dark:bg-card border-border text-foreground h-8 text-xs font-mono font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium text-slate-600 block mb-0.5">Account Holder Name</label>
+                    <label className="text-[11px] font-medium text-muted-foreground block mb-0.5">Account Holder Name</label>
                     <Input
                       value={bankDetailsForm.bankAccountName}
                       onChange={(e) => setBankDetailsForm({ ...bankDetailsForm, bankAccountName: e.target.value })}
                       placeholder="e.g. Dr. John Doe"
-                      className="bg-white h-8 text-xs"
+                      className="bg-background dark:bg-card border-border text-foreground h-8 text-xs"
                     />
                   </div>
                 </div>
@@ -1208,38 +1209,38 @@ export default function FrontDeskDoctorSharePage() {
               {/* Transfer Details */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Transfer Amount (LKR) *
                   </label>
                   <Input
                     type="number"
                     value={bankAmount}
                     onChange={(e) => setBankAmount(parseFloat(e.target.value) || 0)}
-                    className="font-bold text-blue-900"
+                    className="font-bold text-foreground bg-background dark:bg-card border-border"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Payment Reference / Txn ID <span className="text-muted-foreground font-normal">(Optional)</span>
                   </label>
                   <Input
                     value={bankReference}
                     onChange={(e) => setBankReference(e.target.value)}
                     placeholder="e.g. TXN-998822 / REF-001 (optional)"
-                    className="font-mono"
+                    className="font-mono bg-background dark:bg-card border-border text-foreground"
                   />
                 </div>
               </div>
 
               {/* Payment Slip Upload Box */}
-              <div className="border border-dashed border-blue-300 rounded-lg p-3 bg-blue-50/50 space-y-2">
+              <div className="border border-dashed border-blue-300 dark:border-blue-800 rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <UploadCloud className="h-4 w-4 text-blue-600" />
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <UploadCloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     Upload Payment Slip (Image or PDF)
                   </label>
                   {uploadingSlip && (
-                    <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
+                    <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1">
                       <RefreshCw className="h-3 w-3 animate-spin" /> Uploading to S3...
                     </span>
                   )}
@@ -1251,7 +1252,7 @@ export default function FrontDeskDoctorSharePage() {
                     accept="image/*,application/pdf"
                     onChange={handleSlipUpload}
                     disabled={uploadingSlip}
-                    className="bg-white text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer"
+                    className="bg-background dark:bg-card border-border text-foreground text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-100 dark:file:bg-blue-950 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-200 cursor-pointer"
                   />
                   {bankSlipUrl && (
                     <Button
@@ -1262,7 +1263,7 @@ export default function FrontDeskDoctorSharePage() {
                         setBankSlipFile(null);
                         setBankSlipUrl("");
                       }}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40"
                       title="Remove slip"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1271,32 +1272,33 @@ export default function FrontDeskDoctorSharePage() {
                 </div>
 
                 {bankSlipUrl && (
-                  <div className="flex items-center justify-between bg-white border border-blue-200 rounded p-2 text-xs">
-                    <span className="text-blue-900 font-medium truncate max-w-[280px] flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                  <div className="flex items-center justify-between bg-background dark:bg-card border border-blue-200 dark:border-blue-800 rounded p-2 text-xs">
+                    <span className="text-foreground font-medium truncate max-w-[280px] flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                       {bankSlipFile?.name || "Payment Slip Attached"}
                     </span>
                     <a
                       href={getSlipViewUrl(bankSlipUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1 hover:underline text-[11px]"
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 hover:underline text-[11px]"
                     >
                       <ExternalLink className="h-3 w-3" /> View Slip
                     </a>
                   </div>
                 )}
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-muted-foreground">
                   Optional or required by hospital policy. Stored securely on AWS S3 and attached to the doctor payout ledger.
                 </p>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Remarks</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">Remarks</label>
                 <Input
                   value={bankRemarks}
                   onChange={(e) => setBankRemarks(e.target.value)}
                   placeholder="Optional bank transfer remarks"
+                  className="bg-background dark:bg-card border-border text-foreground"
                 />
               </div>
             </div>
@@ -1327,7 +1329,7 @@ export default function FrontDeskDoctorSharePage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-blue-600" />
+              <Building className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Update Doctor Bank Account
             </DialogTitle>
             <DialogDescription>
@@ -1337,36 +1339,39 @@ export default function FrontDeskDoctorSharePage() {
 
           <div className="space-y-3 py-2">
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Bank Name</label>
+              <label className="text-xs font-semibold text-foreground block mb-1">Bank Name</label>
               <Input
                 value={doctorBankForm.bankName}
                 onChange={(e) => setDoctorBankForm({ ...doctorBankForm, bankName: e.target.value })}
                 placeholder="e.g. Commercial Bank of Ceylon"
+                className="bg-background dark:bg-card border-border text-foreground"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Branch</label>
+              <label className="text-xs font-semibold text-foreground block mb-1">Branch</label>
               <Input
                 value={doctorBankForm.bankBranch}
                 onChange={(e) => setDoctorBankForm({ ...doctorBankForm, bankBranch: e.target.value })}
                 placeholder="e.g. Tissamaharama"
+                className="bg-background dark:bg-card border-border text-foreground"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Account Number</label>
+              <label className="text-xs font-semibold text-foreground block mb-1">Account Number</label>
               <Input
                 value={doctorBankForm.bankAccountNumber}
                 onChange={(e) => setDoctorBankForm({ ...doctorBankForm, bankAccountNumber: e.target.value })}
                 placeholder="e.g. 1000234567"
-                className="font-mono font-bold"
+                className="font-mono font-bold bg-background dark:bg-card border-border text-foreground"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Account Holder Name</label>
+              <label className="text-xs font-semibold text-foreground block mb-1">Account Holder Name</label>
               <Input
                 value={doctorBankForm.bankAccountName}
                 onChange={(e) => setDoctorBankForm({ ...doctorBankForm, bankAccountName: e.target.value })}
                 placeholder="e.g. Dr. John Doe"
+                className="bg-background dark:bg-card border-border text-foreground"
               />
             </div>
           </div>
@@ -1391,7 +1396,7 @@ export default function FrontDeskDoctorSharePage() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-emerald-600" />
+              <Stethoscope className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               Consultation Details & Patient Roster
             </DialogTitle>
             <DialogDescription>
@@ -1402,30 +1407,30 @@ export default function FrontDeskDoctorSharePage() {
           {viewSheet && (
             <div className="space-y-4 py-2">
               {/* Financial Snapshot */}
-              <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-lg border text-xs">
+              <div className="grid grid-cols-3 gap-3 p-3 bg-muted/40 dark:bg-muted/20 rounded-lg border border-border text-xs">
                 <div>
-                  <span className="text-slate-500 block">Total Revenue</span>
-                  <span className="font-bold text-slate-900 text-sm">LKR {viewSheet.totalRevenue.toLocaleString()}</span>
+                  <span className="text-muted-foreground block">Total Revenue</span>
+                  <span className="font-bold text-foreground text-sm">LKR {viewSheet.totalRevenue.toLocaleString()}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Hospital Commission</span>
-                  <span className="font-bold text-red-600 text-sm">LKR {(viewSheet.hospitalCommission || 0).toLocaleString()}</span>
+                  <span className="text-muted-foreground block">Hospital Commission</span>
+                  <span className="font-bold text-red-600 dark:text-red-400 text-sm">LKR {(viewSheet.hospitalCommission || 0).toLocaleString()}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Net Doctor Share</span>
-                  <span className="font-bold text-emerald-700 text-sm">LKR {viewSheet.netDoctorPayment.toLocaleString()}</span>
+                  <span className="text-muted-foreground block">Net Doctor Share</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">LKR {viewSheet.netDoctorPayment.toLocaleString()}</span>
                 </div>
               </div>
 
               {/* Patient Items Table */}
               <div>
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">
                   Patients Treated ({viewSheet.patientItems?.length || 0})
                 </h4>
-                <div className="border rounded-md overflow-hidden">
+                <div className="border border-border rounded-md overflow-hidden">
                   <Table className="text-xs">
-                    <TableHeader className="bg-slate-100">
-                      <TableRow>
+                    <TableHeader className="bg-muted/50 dark:bg-muted/30 border-b border-border">
+                      <TableRow className="border-border hover:bg-transparent">
                         <TableHead className="py-2">#</TableHead>
                         <TableHead className="py-2">Patient Name</TableHead>
                         <TableHead className="py-2">Token #</TableHead>
@@ -1434,22 +1439,22 @@ export default function FrontDeskDoctorSharePage() {
                         <TableHead className="py-2 text-right">Doc Share (LKR)</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="divide-y divide-border">
                       {viewSheet.patientItems && viewSheet.patientItems.length > 0 ? (
                         viewSheet.patientItems.map((item, idx) => {
                           const isCard = (item.collectionMethod || "CASH") !== "CASH";
                           return (
-                            <TableRow key={item.id || idx}>
-                              <TableCell className="py-1.5 text-slate-400">{idx + 1}</TableCell>
-                              <TableCell className="py-1.5 font-medium">{item.patientName}</TableCell>
-                              <TableCell className="py-1.5 font-mono text-slate-500">{item.tokenNumber || "-"}</TableCell>
+                            <TableRow key={item.id || idx} className="hover:bg-muted/30 border-b border-border">
+                              <TableCell className="py-1.5 text-muted-foreground">{idx + 1}</TableCell>
+                              <TableCell className="py-1.5 font-medium text-foreground">{item.patientName}</TableCell>
+                              <TableCell className="py-1.5 font-mono text-muted-foreground">{item.tokenNumber || "-"}</TableCell>
                               <TableCell className="py-1.5 text-center">
-                                <Badge variant="outline" className={`text-[10px] ${isCard ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+                                <Badge variant="outline" className={`text-[10px] ${isCard ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800" : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"}`}>
                                   {item.collectionMethod || "CASH"}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-1.5 text-right font-medium">{item.consultationFee.toLocaleString()}</TableCell>
-                              <TableCell className="py-1.5 text-right font-bold text-emerald-700">
+                              <TableCell className="py-1.5 text-right font-medium text-foreground">{item.consultationFee.toLocaleString()}</TableCell>
+                              <TableCell className="py-1.5 text-right font-bold text-emerald-700 dark:text-emerald-400">
                                 {(item.doctorShare || 0).toLocaleString()}
                               </TableCell>
                             </TableRow>
@@ -1457,7 +1462,7 @@ export default function FrontDeskDoctorSharePage() {
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-4 text-slate-400">
+                          <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
                             No patient items recorded
                           </TableCell>
                         </TableRow>
@@ -1469,12 +1474,12 @@ export default function FrontDeskDoctorSharePage() {
 
               {/* Payment Slip Attachment if present */}
               {(viewSheet.paymentSlipUrl || (viewSheet.bankDetails as any)?.slipUrl) && (
-                <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-3 text-xs flex items-center justify-between">
+                <div className="bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-600" />
+                    <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <div>
-                      <p className="font-semibold text-blue-950">Payment Slip Attached</p>
-                      <p className="text-[11px] text-blue-700">Bank transfer receipt uploaded & verified</p>
+                      <p className="font-semibold text-foreground">Payment Slip Attached</p>
+                      <p className="text-[11px] text-blue-600 dark:text-blue-300">Bank transfer receipt uploaded & verified</p>
                     </div>
                   </div>
                   <a
