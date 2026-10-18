@@ -25,6 +25,7 @@ import {
   Shield,
   Hospital,
   ActivitySquare,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -38,12 +39,15 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin", label: "Overview", icon: LayoutDashboard, category: "Dashboard" },
     
     { href: "/superadmin/finance", label: "Finance", icon: Banknote, category: "Operations", permission: "Finance" },
+    { href: "/superadmin/finance/doctor-statements", label: "Doctor Settlements", icon: Stethoscope, category: "Operations", permission: "Finance" },
     { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations", permission: "Inventory" },
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
     { href: "/superadmin/extra-services", label: "Extra Services", icon: FilePlus2, category: "Operations", permission: "Extra Services" },
 
     { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management", permission: "Staff" },
     { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management", permission: "HR" },
+    { href: "/superadmin/hr/overtime", label: "Overtime (OT)", icon: Clock, category: "Management", permission: "HR" },
+    { href: "/superadmin/hr/salary-structures", label: "Salary & Allowances", icon: Receipt, category: "Management", permission: "HR" },
     { href: "/superadmin/hr/components", label: "Role Templates", icon: ClipboardList, category: "Management", permission: "HR" },
     { href: "/superadmin/hr/payroll", label: "Payroll Engine", icon: Banknote, category: "Management", permission: "HR" },
     { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management", permission: "Departments" },
