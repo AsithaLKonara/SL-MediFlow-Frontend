@@ -1,111 +1,54 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 import { useReactToPrint } from "react-to-print";
-import React from "react";
+import { Printer, FileText, LogOut, CheckCircle2 } from "lucide-react";
+import { NodePrintClient } from "@asithakonara/node-print-client";
+import { 
+  ShiftSummaryReceipt, 
+  ShiftSummaryData 
+} from "@/app/frontdesk/components/PrintTemplates/ShiftSummaryReceipt";
+import { buildShiftSummaryEscPos } from "@/app/frontdesk/utils/shiftSummaryEscpos";
 
-const ShiftSummaryPrint = React.forwardRef<HTMLDivElement, { summary: any, user: any }>(
-  ({ summary, user }, ref) => {
-    if (!summary) return null;
-    return (
-      <div className="hidden">
-        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-mono text-sm print:w-[290px] print:px-3.5 print:py-2 leading-tight">
-          <style dangerouslySetInnerHTML={{ __html: `
-            @media print {
-              @page {
-                size: auto;
-                margin: 3mm 2mm;
-              }
-              body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-            }
-          `}} />
-          <div className="text-center mb-4 border-b-2 border-black pb-2">
-            <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-2 grayscale brightness-0" />
-            <p className="text-xs font-bold uppercase tracking-widest mt-1">Cashier Shift Close</p>
-            <p className="text-[10px] mt-1">Date: {new Date().toLocaleString()}</p>
-            <p className="text-[10px]">Cashier: {user?.fullName}</p>
-          </div>
-          
-          <div className="mb-4">
-            <h4 className="font-bold border-b border-dashed border-black mb-1">Sales Summary</h4>
-            <div className="flex justify-between text-xs">
-              <span>Total Invoices:</span>
-              <span>{summary.totalInvoices}</span>
-            </div>
-            <div className="flex justify-between text-xs mt-1">
-              <span>Total Cash (System):</span>
-              <span>LKR {summary.systemCashTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-xs mt-1">
-              <span>Total Card (System):</span>
-              <span>LKR {summary.systemCardTotal.toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div className="mb-4 border-t border-dashed border-black pt-2">
-            <h4 className="font-bold border-b border-dashed border-black mb-1">Reconciliation</h4>
-            <div className="flex justify-between text-xs">
-              <span>Opening Float:</span>
-              <span>LKR {(summary.startingFloat || 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-xs mt-1">
-              <span>Cash Sales:</span>
-              <span>LKR {summary.systemCashTotal.toFixed(2)}</span>
-            </div>
-            {summary.cashRefundsTotal > 0 && (
-              <div className="flex justify-between text-xs mt-1">
-                <span>Cash Refunds:</span>
-                <span>- LKR {summary.cashRefundsTotal.toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-xs mt-1 font-semibold border-t border-dashed border-gray-400 pt-1">
-              <span>Expected in Drawer:</span>
-              <span>LKR {summary.expectedCash.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-xs mt-1">
-              <span>Declared Cash:</span>
-              <span>LKR {summary.declaredCash.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-xs font-bold mt-2 border-t border-black pt-1">
-              <span>Variance:</span>
-              <span>LKR {(summary.variance ?? (summary.declaredCash - summary.expectedCash)).toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div className="text-center mt-6 pt-2 border-t-2 border-black flex flex-col items-center">
-            <p className="text-[10px] mt-4 pt-4 border-t border-dashed border-black w-24">Signature</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
-ShiftSummaryPrint.displayName = "ShiftSummaryPrint";
-
-export function CashierCloseModal({ open, onOpenChange, onClosed }: { open: boolean, onOpenChange: (open: boolean) => void, onClosed?: () => void }) {
+export function CashierCloseModal({ 
+  open, 
+  onOpenChange, 
+  onClosed 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  onClosed?: () => void;
+}) {
   const { token, user, logout } = useAuth();
   const [declaredCash, setDeclaredCash] = useState("");
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<ShiftSummaryData | null>(null);
+  const [showSummaryView, setShowSummaryView] = useState(false);
   
   const printRef = useRef<HTMLDivElement>(null);
-  const handlePrint = useReactToPrint({
+  const handleBrowserPrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: "Shift_Summary",
-    onAfterPrint: () => {
-      onOpenChange(false);
-      if (onClosed) onClosed();
-      else logout();
-    }
+    documentTitle: `AMAZ_Shift_Summary_${new Date().toISOString().slice(0, 10)}`,
   });
+
+  const printThermalHardware = async (summaryData: ShiftSummaryData) => {
+    try {
+      const client = new NodePrintClient({ url: "http://127.0.0.1:18181" });
+      const builder = buildShiftSummaryEscPos(summaryData);
+      await client.print({ type: "escpos", data: builder.build().toString("base64") });
+      toast.success("Shift settlement receipt printed to thermal printer.");
+      return true;
+    } catch (e) {
+      console.warn("Hardware thermal printer offline or bridge error:", e);
+      return false;
+    }
+  };
 
   const handleSubmit = async () => {
     if (!declaredCash || isNaN(Number(declaredCash))) {
@@ -115,69 +58,267 @@ export function CashierCloseModal({ open, onOpenChange, onClosed }: { open: bool
 
     try {
       setLoading(true);
-      // Fetch today's invoices for this user
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reception/shift-summary`, {
-        method: 'POST',
+        method: "POST",
         headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ declaredCash: Number(declaredCash) })
       });
       
       if (!res.ok) {
-        throw new Error("Failed to close shift");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to close shift");
       }
       
       const data = await res.json();
-      setSummary({
-        ...data.data,
-        declaredCash: Number(declaredCash)
-      });
-      
-      // Delay to allow React to render the print template
-      setTimeout(() => {
-        handlePrint();
-      }, 500);
+      const summaryPayload: ShiftSummaryData = data.data;
+      setSummary(summaryPayload);
+      setShowSummaryView(true);
+
+      // Attempt thermal hardware print
+      const hwSuccess = await printThermalHardware(summaryPayload);
+      if (!hwSuccess) {
+        toast.info("Thermal printer bridge offline. Triggering browser print preview...");
+        setTimeout(() => {
+          handleBrowserPrint();
+        }, 350);
+      }
 
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Failed to close shift");
+    } finally {
       setLoading(false);
     }
   };
 
+  const handleFinishAndLogout = () => {
+    onOpenChange(false);
+    if (onClosed) {
+      onClosed();
+    } else {
+      logout();
+    }
+  };
+
+  const handleDialogChange = (isOpen: boolean) => {
+    if (!isOpen && showSummaryView) {
+      // If closing after summary was shown, reset and handle exit
+      setShowSummaryView(false);
+      setSummary(null);
+      setDeclaredCash("");
+    }
+    onOpenChange(isOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
+      <DialogContent className={showSummaryView ? "sm:max-w-[550px] max-h-[90vh] overflow-y-auto" : "sm:max-w-[425px]"}>
         <DialogHeader>
-          <DialogTitle>Close Cashier Shift</DialogTitle>
+          <div className="flex items-center gap-2">
+            {showSummaryView && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+            <DialogTitle>
+              {showSummaryView ? "Shift Settlement Summary" : "Close Cashier Shift"}
+            </DialogTitle>
+          </div>
         </DialogHeader>
-        {!summary ? (
+
+        {!showSummaryView ? (
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Counted Cash in Drawer (LKR)</label>
+              <label className="text-sm font-medium">Counted Physical Cash in Drawer (LKR)</label>
               <Input 
                 type="number" 
-                placeholder="Enter physical cash amount" 
+                placeholder="0.00" 
                 value={declaredCash}
                 onChange={(e) => setDeclaredCash(e.target.value)}
                 autoFocus
               />
+              <p className="text-xs text-muted-foreground">
+                Count the physical cash in the drawer and enter the total.
+              </p>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={loading}>
-                {loading ? "Processing..." : "Close Shift & Print"}
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={loading || !declaredCash}>
+                {loading ? "Settling Shift..." : "Close Shift & Print Receipt"}
               </Button>
             </div>
           </div>
-        ) : (
-          <div className="py-4 text-center">
-            <p className="text-sm text-muted-foreground mb-4">Printing shift summary...</p>
+        ) : summary && (
+          <div className="space-y-4 py-2 text-sm">
+            {/* Cashier & Time Info */}
+            <div className="bg-muted/40 p-3 rounded-lg border text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cashier:</span>
+                <span className="font-semibold">{summary.cashierName} ({summary.cashierRole})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Shift Ref:</span>
+                <span className="font-mono">{summary.shiftRef || summary.shiftId.slice(0, 8)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Shift Start:</span>
+                <span>{new Date(summary.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Shift Close:</span>
+                <span>{new Date(summary.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              </div>
+              <div className="flex justify-between border-t pt-1 font-medium">
+                <span className="text-muted-foreground">Duration:</span>
+                <span className="text-primary">{summary.durationFormatted}</span>
+              </div>
+            </div>
+
+            {/* Day & Shift Sales */}
+            <div className="border rounded-lg p-3 space-y-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground border-b pb-1">
+                Day & Shift Sales
+              </h4>
+              {summary.todayHospitalTotalSales !== undefined && (
+                <div className="flex justify-between text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 p-1.5 rounded">
+                  <span>Today Hospital Total Sales:</span>
+                  <span>LKR {summary.todayHospitalTotalSales.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                <div>
+                  <span className="text-muted-foreground">Gross Shift Sales:</span>
+                  <p className="font-semibold">LKR {summary.grossSales.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Cash Collections:</span>
+                  <p className="font-semibold text-emerald-600">LKR {summary.systemCashTotal.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Card Collections:</span>
+                  <p className="font-semibold">LKR {summary.systemCardTotal.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Total Invoices:</span>
+                  <p className="font-semibold">{summary.totalInvoices}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Cash Balance Reconciliation */}
+            <div className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between border-b pb-1">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                  Cash Balance Drawer
+                </h4>
+                <Badge 
+                  variant={summary.variance === 0 ? "outline" : summary.variance > 0 ? "default" : "destructive"}
+                  className="text-[10px]"
+                >
+                  {summary.varianceStatus || (summary.variance === 0 ? "BALANCED" : summary.variance > 0 ? "SURPLUS" : "SHORTAGE")}
+                </Badge>
+              </div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Starting Float:</span>
+                  <span>LKR {summary.startingFloat.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-emerald-600">
+                  <span>(+) Cash Collected:</span>
+                  <span>LKR {summary.systemCashTotal.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                </div>
+                {summary.cashRefundsTotal > 0 && (
+                  <div className="flex justify-between text-destructive">
+                    <span>(-) Cash Refunds:</span>
+                    <span>- LKR {summary.cashRefundsTotal.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                {(summary.doctorCashDisbursed ?? 0) > 0 && (
+                  <div className="flex justify-between text-amber-600">
+                    <span>(-) Doctor Cash Payouts:</span>
+                    <span>- LKR {summary.doctorCashDisbursed?.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold border-t pt-1">
+                  <span>Expected Cash in Drawer:</span>
+                  <span>LKR {summary.expectedCash.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between font-bold text-primary">
+                  <span>Declared Physical Cash:</span>
+                  <span>LKR {summary.declaredCash.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between font-bold border-t border-dashed pt-1">
+                  <span>Variance:</span>
+                  <span className={summary.variance === 0 ? "text-emerald-600" : summary.variance > 0 ? "text-blue-600" : "text-destructive"}>
+                    LKR {summary.variance.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Doctor Payments Breakdown */}
+            {summary.doctorPayments && summary.doctorPayments.length > 0 && (
+              <div className="border rounded-lg p-3 space-y-2">
+                <div className="flex justify-between items-center border-b pb-1">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                    Doctor Payments ({summary.doctorPayments.length})
+                  </h4>
+                  <span className="text-xs font-bold text-primary">
+                    Net Due: LKR {(summary.totalDoctorPayments?.netDoctorPayment ?? summary.totalDoctorPayments?.totalDoctorNetPayment ?? 0).toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {summary.doctorPayments.map((dp, i) => (
+                    <div key={i} className="flex justify-between items-center text-xs bg-muted/30 p-1.5 rounded">
+                      <div>
+                        <p className="font-medium">{dp.doctorName}</p>
+                        <p className="text-[10px] text-muted-foreground">{dp.patientCount} patients · Fee: LKR {dp.totalFee.toFixed(2)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">LKR {dp.netDoctorPayment.toFixed(2)}</p>
+                        {Boolean(dp.cashDisbursed && dp.cashDisbursed > 0) && (
+                          <p className="text-[10px] text-amber-600 font-medium">Paid Cash: LKR {dp.cashDisbursed?.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => summary && printThermalHardware(summary)}
+                className="gap-1.5"
+              >
+                <Printer className="w-4 h-4" /> Thermal Print
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleBrowserPrint()}
+                className="gap-1.5"
+              >
+                <FileText className="w-4 h-4" /> Browser / PDF
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={handleFinishAndLogout}
+                className="gap-1.5"
+              >
+                <LogOut className="w-4 h-4" /> Finish & Log Out
+              </Button>
+            </DialogFooter>
           </div>
         )}
         
-        <ShiftSummaryPrint ref={printRef} summary={summary} user={user} />
+        {/* Hidden 80mm Roll Thermal Receipt for Browser Printing */}
+        <div className="hidden">
+          <ShiftSummaryReceipt ref={printRef} summary={summary} user={user} />
+        </div>
       </DialogContent>
     </Dialog>
   );
