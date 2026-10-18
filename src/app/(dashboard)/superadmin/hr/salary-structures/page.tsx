@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Sliders, Plus, Edit2, ShieldAlert, Sparkles, Building, Banknote, UserCheck, Trash2, CheckCircle2 } from "lucide-react";
+import { Sliders, Plus, Edit2, ShieldAlert, Sparkles, Building, Banknote, UserCheck, Trash2, CheckCircle2, UserMinus, RotateCcw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -187,7 +187,36 @@ export default function SalaryStructuresPage() {
     }
   };
 
-  const handleRemoveComponent = async (assignmentId: string) => {
+  // Remove or exempt a designation rule for this specific staff member
+  const handleExemptRoleRule = async (componentId: string, ruleName?: string) => {
+    if (!selectedStaff) return;
+    try {
+      const res = await fetch(`${API}/hr/employees/${selectedStaff.id}/components`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          componentId,
+          value: 0,
+          effectiveFrom: new Date().toISOString(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`"${ruleName || "Rule"}" removed for ${selectedStaff.fullName || selectedStaff.name}`);
+        handleOpenStaffModal(selectedStaff);
+      } else {
+        toast.error(data.error || "Failed to exempt rule for employee");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  // Restore an exempted designation rule for this employee
+  const handleRestoreRoleRule = async (assignmentId: string, ruleName?: string) => {
     if (!selectedStaff) return;
     try {
       const res = await fetch(`${API}/hr/employees/${selectedStaff.id}/components/${assignmentId}`, {
@@ -195,7 +224,54 @@ export default function SalaryStructuresPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        toast.success("Specific assignment removed");
+        toast.success(`"${ruleName || "Rule"}" restored to designation default`);
+        handleOpenStaffModal(selectedStaff);
+      } else {
+        toast.error("Failed to restore rule");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  // Delete a policy rule globally from the hospital
+  const handleDeleteRuleGlobally = async (ruleId: string, ruleName?: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete policy rule "${ruleName || "this rule"}"? It will be removed for all staff members.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/hr/allowance-rules/${ruleId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Policy rule "${ruleName || "Rule"}" deleted successfully`);
+        await fetchData();
+        if (selectedStaff) {
+          handleOpenStaffModal(selectedStaff);
+        }
+      } else {
+        toast.error(data.error || "Failed to delete rule");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  // Remove a specific custom assignment for this employee
+  const handleRemoveComponent = async (assignmentId: string, compName?: string) => {
+    if (!selectedStaff) return;
+    if (!window.confirm(`Remove "${compName || "this allowance/deduction"}" from ${selectedStaff.fullName || selectedStaff.name}?`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/hr/employees/${selectedStaff.id}/components/${assignmentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        toast.success(`"${compName || "Assignment"}" removed`);
         handleOpenStaffModal(selectedStaff);
       } else {
         toast.error("Failed to remove assignment");
@@ -246,6 +322,8 @@ export default function SalaryStructuresPage() {
   // Filter applicable designation rules for the selected employee
   const applicableRoleRules = selectedStaff
     ? rules.filter((r) => {
+        if (r.isActive === false) return false;
+        if (r.type === "BASIC" || r.type === "OVERTIME") return false;
         const roles = (r.applicableRoles || "ALL").split(",").map((x: string) => x.trim().toUpperCase());
         const staffRole = (selectedStaff.Role?.name || selectedStaff.role || "").toUpperCase();
         return roles.includes("ALL") || roles.includes(staffRole);
@@ -356,6 +434,7 @@ export default function SalaryStructuresPage() {
                     <TableHead className="text-right">Default Value (LKR)</TableHead>
                     <TableHead>EPF</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -388,6 +467,17 @@ export default function SalaryStructuresPage() {
                         <Badge className={r.isActive ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800"}>
                           {r.isActive ? "Active" : "Inactive"}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          title="Delete Rule Globally"
+                          onClick={() => handleDeleteRuleGlobally(r.id, r.name)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -508,22 +598,93 @@ export default function SalaryStructuresPage() {
                   </p>
                 ) : (
                   <div className="space-y-1">
-                    {applicableRoleRules.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between p-2 rounded-md bg-muted/40 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={r.category === "DEDUCTION" ? "destructive" : "default"} className="text-[10px]">
-                            {r.type || r.category}
-                          </Badge>
-                          <span className="font-semibold text-foreground">{r.name}</span>
-                          <span className="text-[11px] text-muted-foreground">
-                            ({r.applicableRoles === "ALL" ? "All Staff" : `${r.applicableRoles} Only`})
-                          </span>
+                    {applicableRoleRules.map((r) => {
+                      const override = staffProfile?.components?.find(
+                        (c: any) => c.componentId === r.id || c.component?.id === r.id
+                      );
+                      const isExempted = override && Number(override.value) === 0;
+                      const hasCustomOverride = override && Number(override.value) > 0;
+
+                      return (
+                        <div
+                          key={r.id}
+                          className={`flex items-center justify-between p-2.5 rounded-md border text-xs transition-colors ${
+                            isExempted
+                              ? "bg-muted/20 border-dashed border-muted text-muted-foreground opacity-75"
+                              : "bg-muted/40 border-muted/50 text-foreground"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge
+                              variant={r.category === "DEDUCTION" ? "destructive" : "default"}
+                              className="text-[10px]"
+                            >
+                              {r.type || r.category}
+                            </Badge>
+                            <span className={`font-semibold ${isExempted ? "line-through text-muted-foreground" : ""}`}>
+                              {r.name}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              ({r.applicableRoles === "ALL" ? "All Staff" : `${r.applicableRoles} Only`})
+                            </span>
+                            {isExempted && (
+                              <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">
+                                Exempted for this Staff
+                              </Badge>
+                            )}
+                            {hasCustomOverride && (
+                              <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                                Custom Override
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-mono font-semibold ${isExempted ? "line-through text-muted-foreground" : ""}`}>
+                              {hasCustomOverride
+                                ? `LKR ${override.value?.toLocaleString()}`
+                                : r.calculationMethod === "PERCENTAGE"
+                                ? `${r.defaultAmount}% of Basic`
+                                : `LKR ${r.defaultAmount?.toLocaleString()}`}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {isExempted ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs px-2 text-green-700 hover:text-green-800 hover:bg-green-50 border-green-200 gap-1"
+                                  title="Restore designation rule for this employee"
+                                  onClick={() => handleRestoreRoleRule(override.id, r.name)}
+                                >
+                                  <RotateCcw className="w-3 h-3" /> Restore
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs px-2 text-amber-700 hover:text-amber-800 hover:bg-amber-50 gap-1"
+                                  title="Remove / exempt for this employee only"
+                                  onClick={() => handleExemptRoleRule(r.id, r.name)}
+                                >
+                                  <UserMinus className="w-3 h-3" /> Remove for Employee
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                title="Delete policy rule globally from hospital"
+                                onClick={() => handleDeleteRuleGlobally(r.id, r.name)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <span className="font-mono font-semibold">
-                          {r.calculationMethod === "PERCENTAGE" ? `${r.defaultAmount}% of Basic` : `LKR ${r.defaultAmount?.toLocaleString()}`}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -533,36 +694,45 @@ export default function SalaryStructuresPage() {
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
                   Employee-Specific Custom Assignments
                 </span>
-                {(!staffProfile?.components || staffProfile.components.length === 0) ? (
+                {(!staffProfile?.components ||
+                  staffProfile.components.filter((ec: any) => Number(ec.value) > 0).length === 0) ? (
                   <p className="text-xs text-muted-foreground italic bg-muted/20 p-2.5 rounded-md">
                     No custom overrides or individual items assigned. This staff member receives the standard designation rules above.
                   </p>
                 ) : (
                   <div className="space-y-1">
-                    {staffProfile.components.map((ec: any) => (
-                      <div key={ec.id} className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="border-primary/50 text-primary text-[10px]">
-                            Specific Employee
-                          </Badge>
-                          <span className="font-semibold text-foreground">{ec.component?.name}</span>
+                    {staffProfile.components
+                      .filter((ec: any) => Number(ec.value) > 0)
+                      .map((ec: any) => (
+                        <div
+                          key={ec.id}
+                          className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20 text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="border-primary/50 text-primary text-[10px]">
+                              {ec.component?.category === "DEDUCTION" ? "Deduction" : "Allowance"}
+                            </Badge>
+                            <span className="font-semibold text-foreground">
+                              {ec.component?.name || "Custom Component"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-primary">
+                              LKR {(ec.value !== null && ec.value !== undefined ? ec.value : ec.component?.defaultAmount)?.toLocaleString()}
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1"
+                              title="Remove custom assignment"
+                              onClick={() => handleRemoveComponent(ec.id, ec.component?.name)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Remove
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-primary">
-                            LKR {(ec.value !== null && ec.value !== undefined ? ec.value : ec.component?.defaultAmount)?.toLocaleString()}
-                          </span>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleRemoveComponent(ec.id)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
