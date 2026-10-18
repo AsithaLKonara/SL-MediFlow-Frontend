@@ -40,8 +40,9 @@ export default function SalaryStructuresPage() {
   });
   const [assigning, setAssigning] = useState(false);
 
-  // Modal: Create Global / Designation-based Allowance / Deduction Rule
+  // Modal: Create or Edit Global / Designation-based Allowance / Deduction Rule
   const [openRuleModal, setOpenRuleModal] = useState(false);
+  const [editingRule, setEditingRule] = useState<any>(null);
   const [ruleFormData, setRuleFormData] = useState({
     code: "",
     name: "",
@@ -281,12 +282,49 @@ export default function SalaryStructuresPage() {
     }
   };
 
-  const handleCreateRule = async (e: React.FormEvent) => {
+  const handleOpenCreateRule = () => {
+    setEditingRule(null);
+    setRuleFormData({
+      code: "",
+      name: "",
+      category: "EARNING",
+      type: "ALLOWANCE",
+      calculationMethod: "FIXED",
+      defaultAmount: "",
+      applicableRoles: "ALL",
+      isTaxable: true,
+      isEpfEligible: true,
+    });
+    setOpenRuleModal(true);
+  };
+
+  const handleOpenEditRule = (rule: any) => {
+    setEditingRule(rule);
+    setRuleFormData({
+      code: rule.code || "",
+      name: rule.name || "",
+      category: rule.category || "EARNING",
+      type: rule.type || rule.category || "ALLOWANCE",
+      calculationMethod: rule.calculationMethod || "FIXED",
+      defaultAmount: rule.defaultAmount !== undefined && rule.defaultAmount !== null ? String(rule.defaultAmount) : "",
+      applicableRoles: rule.applicableRoles || "ALL",
+      isTaxable: rule.isTaxable !== false,
+      isEpfEligible: rule.isEpfEligible !== false,
+    });
+    setOpenRuleModal(true);
+  };
+
+  const handleSaveRule = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingRule(true);
     try {
-      const res = await fetch(`${API}/hr/allowance-rules`, {
-        method: "POST",
+      const url = editingRule
+        ? `${API}/hr/allowance-rules/${editingRule.id}`
+        : `${API}/hr/allowance-rules`;
+      const method = editingRule ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -295,8 +333,9 @@ export default function SalaryStructuresPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success("New allowance rule created");
+        toast.success(editingRule ? "Policy rule updated successfully" : "New allowance rule created");
         setOpenRuleModal(false);
+        setEditingRule(null);
         setRuleFormData({
           code: "",
           name: "",
@@ -309,8 +348,11 @@ export default function SalaryStructuresPage() {
           isEpfEligible: true,
         });
         fetchData();
+        if (selectedStaff) {
+          handleOpenStaffModal(selectedStaff);
+        }
       } else {
-        toast.error(data.error || "Failed to create rule");
+        toast.error(data.error || "Failed to save rule");
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -417,7 +459,7 @@ export default function SalaryStructuresPage() {
                 Define hospital-wide policy rules targeted at all employees or specific designations (Nurses, Doctors, etc.).
               </CardDescription>
             </div>
-            <Button onClick={() => setOpenRuleModal(true)} className="bg-primary text-white gap-2">
+            <Button onClick={handleOpenCreateRule} className="bg-primary text-white gap-2">
               <Plus className="w-4 h-4" /> Add Policy Rule
             </Button>
           </CardHeader>
@@ -469,15 +511,26 @@ export default function SalaryStructuresPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          title="Delete Rule Globally"
-                          onClick={() => handleDeleteRuleGlobally(r.id, r.name)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                            title="Edit Rule"
+                            onClick={() => handleOpenEditRule(r)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            title="Delete Rule Globally"
+                            onClick={() => handleDeleteRuleGlobally(r.id, r.name)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -802,16 +855,26 @@ export default function SalaryStructuresPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Allowance / Deduction Rule Dialog */}
-      <Dialog open={openRuleModal} onOpenChange={setOpenRuleModal}>
+      {/* Create / Edit Allowance / Deduction Rule Dialog */}
+      <Dialog
+        open={openRuleModal}
+        onOpenChange={(open) => {
+          setOpenRuleModal(open);
+          if (!open) setEditingRule(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Allowance / Deduction Rule</DialogTitle>
+            <DialogTitle>
+              {editingRule ? "Edit Allowance / Deduction Rule" : "Add Allowance / Deduction Rule"}
+            </DialogTitle>
             <DialogDescription>
-              Create a policy rule targeted to all staff or a specific designation.
+              {editingRule
+                ? `Update configuration and amounts for "${editingRule.name}".`
+                : "Create a policy rule targeted to all staff or a specific designation."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateRule} className="space-y-4 py-2">
+          <form onSubmit={handleSaveRule} className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Rule Code</label>
@@ -909,11 +972,18 @@ export default function SalaryStructuresPage() {
             </div>
 
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setOpenRuleModal(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setOpenRuleModal(false);
+                  setEditingRule(null);
+                }}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={savingRule} className="bg-primary text-white">
-                {savingRule ? "Saving..." : "Create Policy Rule"}
+                {savingRule ? "Saving..." : (editingRule ? "Update Policy Rule" : "Create Policy Rule")}
               </Button>
             </DialogFooter>
           </form>
