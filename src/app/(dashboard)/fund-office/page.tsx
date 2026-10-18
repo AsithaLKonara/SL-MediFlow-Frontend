@@ -497,6 +497,32 @@ export default function FundOfficePage() {
             size="sm"
             onClick={async () => {
               setRefreshing(true);
+              try {
+                for (const d of doctors) {
+                  await fetch(`${API}/fund-office/doctor-summary?doctorId=${d.id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                }
+                await Promise.all([fetchMetrics(), fetchDailySheets(), fetchReports()]);
+                toast.success("Synced all completed consultations with daily sheets!");
+              } catch (e) {
+                console.error(e);
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+            disabled={refreshing}
+            className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+          >
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
+            Sync Consultations
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              setRefreshing(true);
               await Promise.all([fetchMetrics(), fetchDailySheets(), fetchReports()]);
               setRefreshing(false);
               toast.info("Data refreshed");
