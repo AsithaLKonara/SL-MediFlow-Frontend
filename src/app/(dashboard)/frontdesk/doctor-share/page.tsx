@@ -51,7 +51,12 @@ import {
   DollarSign,
   ArrowRightLeft,
   Calendar,
-  Wallet
+  Wallet,
+  UploadCloud,
+  FileText,
+  ExternalLink,
+  Paperclip,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -105,6 +110,9 @@ export default function FrontDeskDoctorSharePage() {
     bankAccountNumber: "",
     bankAccountName: ""
   });
+  const [bankSlipFile, setBankSlipFile] = useState<File | null>(null);
+  const [bankSlipUrl, setBankSlipUrl] = useState<string>("");
+  const [uploadingSlip, setUploadingSlip] = useState(false);
   const [disbursingBank, setDisbursingBank] = useState(false);
 
   // Doctor Bank Details Edit Modal
@@ -280,7 +288,9 @@ export default function FrontDeskDoctorSharePage() {
     const remainingBank = Math.max(0, (sheet.bankDoctorShare || 0) - (sheet.bankDisbursed || 0));
     setBankTargetSheet(sheet);
     setBankAmount(remainingBank);
-    setBankReference("");
+    setBankReference(sheet.paymentReference || "");
+    setBankSlipFile(null);
+    setBankSlipUrl(sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl || "");
     setBankRemarks(`Bank Transfer payout for Dr. ${sheet.doctor?.fullName || "Doctor"}`);
     setBankDetailsForm({
       bankName: sheet.doctor?.bankName || (sheet.bankDetails as any)?.bankName || "",
@@ -291,15 +301,49 @@ export default function FrontDeskDoctorSharePage() {
     setBankModalOpen(true);
   };
 
+  // Upload Payment Slip to S3
+  const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("File size exceeds 15MB limit");
+      return;
+    }
+
+    setBankSlipFile(file);
+    setUploadingSlip(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API}/fund-office/upload-slip`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.success && data.fileUrl) {
+        setBankSlipUrl(data.fileUrl);
+        toast.success("Payment slip uploaded successfully!");
+      } else {
+        toast.error(data.error || "Failed to upload payment slip");
+      }
+    } catch (err: any) {
+      toast.error("Network error uploading payment slip");
+    } finally {
+      setUploadingSlip(false);
+    }
+  };
+
   // Submit Bank Transfer Payout
   const submitBankTransfer = async () => {
     if (!bankTargetSheet) return;
     if (bankAmount <= 0) {
       toast.error("Please enter a valid bank transfer amount");
-      return;
-    }
-    if (!bankReference.trim()) {
-      toast.error("Payment Reference / Transaction ID is required for bank transfer");
       return;
     }
 
@@ -314,8 +358,12 @@ export default function FrontDeskDoctorSharePage() {
         body: JSON.stringify({
           disbursementType: "BANK_TRANSFER",
           bankAmount,
-          paymentReference: bankReference,
-          bankDetails: bankDetailsForm,
+          paymentReference: bankReference.trim() || undefined,
+          paymentSlipUrl: bankSlipUrl.trim() || undefined,
+          bankDetails: {
+            ...bankDetailsForm,
+            slipUrl: bankSlipUrl.trim() || undefined
+          },
           remarks: bankRemarks
         })
       });
@@ -912,6 +960,19 @@ export default function FrontDeskDoctorSharePage() {
                                 {(item.bankDetails as any)?.bankName || item.doctor?.bankName} • {(item.bankDetails as any)?.bankAccountNumber || item.doctor?.bankAccountNumber}
                               </p>
                             )}
+                            {(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl) && (
+                              <a
+                                href={item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                                title="Open Payment Slip"
+                              >
+                                <Paperclip className="h-3 w-3" />
+                                Payment Slip
+                                <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                              </a>
+                            )}
                           </TableCell>
 
                           <TableCell className="text-center">
@@ -1137,15 +1198,75 @@ export default function FrontDeskDoctorSharePage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    Payment Reference / Txn ID *
+                    Payment Reference / Txn ID <span className="text-muted-foreground font-normal">(Optional)</span>
                   </label>
                   <Input
                     value={bankReference}
                     onChange={(e) => setBankReference(e.target.value)}
-                    placeholder="e.g. TXN-998822 / REF-001"
-                    className="font-mono font-bold"
+                    placeholder="e.g. TXN-998822 / REF-001 (optional)"
+                    className="font-mono"
                   />
                 </div>
+              </div>
+
+              {/* Payment Slip Upload Box */}
+              <div className="border border-dashed border-blue-300 rounded-lg p-3 bg-blue-50/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <UploadCloud className="h-4 w-4 text-blue-600" />
+                    Upload Payment Slip (Image or PDF)
+                  </label>
+                  {uploadingSlip && (
+                    <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
+                      <RefreshCw className="h-3 w-3 animate-spin" /> Uploading to S3...
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleSlipUpload}
+                    disabled={uploadingSlip}
+                    className="bg-white text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer"
+                  />
+                  {bankSlipUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setBankSlipFile(null);
+                        setBankSlipUrl("");
+                      }}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      title="Remove slip"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {bankSlipUrl && (
+                  <div className="flex items-center justify-between bg-white border border-blue-200 rounded p-2 text-xs">
+                    <span className="text-blue-900 font-medium truncate max-w-[280px] flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                      {bankSlipFile?.name || "Payment Slip Attached"}
+                    </span>
+                    <a
+                      href={bankSlipUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1 hover:underline text-[11px]"
+                    >
+                      <ExternalLink className="h-3 w-3" /> View Slip
+                    </a>
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Optional or required by hospital policy. Stored securely on AWS S3 and attached to the doctor payout ledger.
+                </p>
               </div>
 
               <div>
@@ -1165,7 +1286,7 @@ export default function FrontDeskDoctorSharePage() {
             </Button>
             <Button
               onClick={submitBankTransfer}
-              disabled={disbursingBank}
+              disabled={disbursingBank || uploadingSlip}
               className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5"
             >
               {disbursingBank ? (
@@ -1323,6 +1444,28 @@ export default function FrontDeskDoctorSharePage() {
                   </Table>
                 </div>
               </div>
+
+              {/* Payment Slip Attachment if present */}
+              {(viewSheet.paymentSlipUrl || (viewSheet.bankDetails as any)?.slipUrl) && (
+                <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-3 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <p className="font-semibold text-blue-950">Payment Slip Attached</p>
+                      <p className="text-[11px] text-blue-700">Bank transfer receipt uploaded & verified</p>
+                    </div>
+                  </div>
+                  <a
+                    href={viewSheet.paymentSlipUrl || (viewSheet.bankDetails as any)?.slipUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs shadow-sm"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Slip
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
