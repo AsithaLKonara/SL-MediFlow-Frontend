@@ -9,6 +9,7 @@ export interface DoctorDailyItem {
   consultationFee: number;
   hospitalShare?: number;
   doctorShare?: number;
+  collectionMethod?: string; // CASH, CARD, BANK
   time?: string;
   remarks?: string;
 }
@@ -28,6 +29,10 @@ export interface DoctorDailySheetData {
     specialization?: string;
     commissionRate?: number;
     consultationFee?: number;
+    bankName?: string;
+    bankBranch?: string;
+    bankAccountNumber?: string;
+    bankAccountName?: string;
   };
   totalPatients: number;
   consultationFee: number;
@@ -37,6 +42,20 @@ export interface DoctorDailySheetData {
   doctorPayment?: number;
   netDoctorPayment: number;
   otherAdjustments: number;
+  cashRevenue?: number;
+  cardRevenue?: number;
+  cashDoctorShare?: number;
+  bankDoctorShare?: number;
+  cashDisbursed?: number;
+  bankDisbursed?: number;
+  disbursedByRole?: string;
+  disbursedById?: string;
+  bankDetails?: {
+    bankName?: string;
+    bankBranch?: string;
+    bankAccountNumber?: string;
+    bankAccountName?: string;
+  };
   status: "DRAFT" | "VERIFIED" | "APPROVED" | "PAID" | "CANCELLED";
   paymentMethod?: string;
   paymentReference?: string;
@@ -171,17 +190,29 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
                   <span className="font-medium text-slate-700">{sheet.sessionName}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-slate-500">Disbursed Role:</span>
+                  <span className="font-bold text-slate-800">{sheet.disbursedByRole || "FRONTDESK"}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-slate-500">Payment Date:</span>
                   <span className="font-bold text-emerald-800">{formattedPaymentDate}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Payment Method:</span>
-                  <span className="font-bold text-slate-800">{sheet.paymentMethod?.replace("_", " ") || "BANK TRANSFER"}</span>
+                  <span className="font-bold text-slate-800">{sheet.paymentMethod?.replace("_", " ") || "CASH / BANK"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Reference:</span>
+                  <span className="text-slate-500">Payment Ref / Voucher:</span>
                   <span className="font-mono font-bold text-slate-800">{sheet.paymentReference || "N/A"}</span>
                 </div>
+                {(sheet.bankDetails?.bankAccountNumber || sheet.doctor?.bankAccountNumber) && (
+                  <div className="flex justify-between pt-1 border-t border-slate-200 text-[11px]">
+                    <span className="text-slate-500">Bank Details:</span>
+                    <span className="font-semibold text-slate-700">
+                      {sheet.bankDetails?.bankName || sheet.doctor?.bankName} - {sheet.bankDetails?.bankAccountNumber || sheet.doctor?.bankAccountNumber}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -195,7 +226,7 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
               <thead className="bg-slate-100 text-slate-700 border-b border-slate-300">
                 <tr>
                   <th className="py-2.5 px-3 text-left font-semibold">Description</th>
-                  <th className="py-2.5 px-3 text-center font-semibold">Quantity / Rate</th>
+                  <th className="py-2.5 px-3 text-center font-semibold">Quantity / Breakdown</th>
                   <th className="py-2.5 px-3 text-right font-semibold">Amount (LKR)</th>
                 </tr>
               </thead>
@@ -203,25 +234,42 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
                 <tr>
                   <td className="py-2.5 px-3">
                     <span className="font-semibold text-slate-800">Total Patients Treated</span>
-                    <p className="text-[11px] text-slate-500">Base consultation consultations during clinic</p>
+                    <p className="text-[11px] text-slate-500">Base consultations during clinic session</p>
                   </td>
                   <td className="py-2.5 px-3 text-center font-medium text-slate-700">
-                    {sheet.totalPatients} Patients @ LKR {sheet.consultationFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    {sheet.totalPatients} Patients
                   </td>
                   <td className="py-2.5 px-3 text-right font-bold text-slate-800">
                     {sheet.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
 
-                <tr className="bg-slate-50/50">
-                  <td className="py-2.5 px-3">
-                    <span className="font-medium text-slate-800">Gross Consultation Revenue</span>
-                  </td>
-                  <td className="py-2.5 px-3 text-center text-slate-500">-</td>
-                  <td className="py-2.5 px-3 text-right font-bold text-slate-800">
-                    LKR {sheet.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </td>
-                </tr>
+                {(sheet.cashRevenue !== undefined && sheet.cardRevenue !== undefined && (sheet.cashRevenue > 0 || sheet.cardRevenue > 0)) && (
+                  <>
+                    <tr className="bg-emerald-50/40 text-[11px]">
+                      <td className="py-1.5 px-3 text-emerald-900 font-medium">
+                        💵 Cash Collections (Desk Drawer)
+                      </td>
+                      <td className="py-1.5 px-3 text-center text-emerald-700">
+                        Doctor Cash Share: LKR {(sheet.cashDoctorShare || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-1.5 px-3 text-right font-semibold text-emerald-900">
+                        LKR {(sheet.cashRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    <tr className="bg-blue-50/40 text-[11px]">
+                      <td className="py-1.5 px-3 text-blue-900 font-medium">
+                        💳 Card / Bank Collections
+                      </td>
+                      <td className="py-1.5 px-3 text-center text-blue-700">
+                        Doctor Bank Share: LKR {(sheet.bankDoctorShare || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-1.5 px-3 text-right font-semibold text-blue-900">
+                        LKR {(sheet.cardRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </>
+                )}
 
                 <tr>
                   <td className="py-2.5 px-3">
@@ -253,7 +301,9 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
                     NET DOCTOR DISBURSEMENT AMOUNT
                   </td>
                   <td className="py-3 px-3 text-center text-xs text-emerald-800 font-semibold">
-                    Payable to Doctor
+                    {sheet.cashDisbursed || sheet.bankDisbursed
+                      ? `Paid: Cash LKR ${(sheet.cashDisbursed || 0).toLocaleString()} | Bank LKR ${(sheet.bankDisbursed || 0).toLocaleString()}`
+                      : "Payable to Doctor"}
                   </td>
                   <td className="py-3 px-3 text-right font-black text-emerald-900 text-base">
                     LKR {(sheet.netDoctorPayment || sheet.doctorPayment || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -275,27 +325,38 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
                     <th className="py-1 px-2 text-left">#</th>
                     <th className="py-1 px-2 text-left">Patient Name</th>
                     <th className="py-1 px-2 text-left">Token / Ref</th>
+                    <th className="py-1 px-2 text-center">Collection</th>
                     <th className="py-1 px-2 text-right">Fee (LKR)</th>
                     <th className="py-1 px-2 text-right">Doc Share (LKR)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {sheet.patientItems.slice(0, 25).map((item, idx) => (
-                    <tr key={item.id || idx}>
-                      <td className="py-1 px-2 text-slate-400">{idx + 1}</td>
-                      <td className="py-1 px-2 font-medium text-slate-800">{item.patientName}</td>
-                      <td className="py-1 px-2 text-slate-500 font-mono text-[10px]">{item.tokenNumber || item.appointmentId || item.patientId || "-"}</td>
-                      <td className="py-1 px-2 text-right font-medium text-slate-700">
-                        {item.consultationFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-1 px-2 text-right text-[11px] font-semibold text-emerald-700">
-                        {(item.doctorShare || (item.consultationFee * (1 - sheet.commissionRate / 100))).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))}
+                  {sheet.patientItems.slice(0, 25).map((item, idx) => {
+                    const isCard = (item.collectionMethod || "CASH") !== "CASH";
+                    return (
+                      <tr key={item.id || idx}>
+                        <td className="py-1 px-2 text-slate-400">{idx + 1}</td>
+                        <td className="py-1 px-2 font-medium text-slate-800">{item.patientName}</td>
+                        <td className="py-1 px-2 text-slate-500 font-mono text-[10px]">{item.tokenNumber || item.appointmentId || item.patientId || "-"}</td>
+                        <td className="py-1 px-2 text-center">
+                          <span className={`inline-block px-1.5 py-0.2 text-[9px] font-bold rounded ${
+                            isCard ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"
+                          }`}>
+                            {item.collectionMethod || "CASH"}
+                          </span>
+                        </td>
+                        <td className="py-1 px-2 text-right font-medium text-slate-700">
+                          {item.consultationFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-1 px-2 text-right text-[11px] font-semibold text-emerald-700">
+                          {(item.doctorShare || (item.consultationFee * (1 - sheet.commissionRate / 100))).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {sheet.patientItems.length > 25 && (
                     <tr>
-                      <td colSpan={5} className="py-1 px-2 text-center text-slate-400 italic">
+                      <td colSpan={6} className="py-1 px-2 text-center text-slate-400 italic">
                         ... and {sheet.patientItems.length - 25} more patient records
                       </td>
                     </tr>

@@ -43,6 +43,7 @@ import {
   Clock,
   CheckCheck,
   CreditCard,
+  Banknote,
   Building,
   TrendingUp,
   FileText,
@@ -67,7 +68,7 @@ export default function FundOfficePage() {
   const { token, user } = useAuth();
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-  const [activeTab, setActiveTab] = useState<"sheets" | "reports">("sheets");
+  const [activeTab, setActiveTab] = useState<"sheets" | "reports" | "history">("sheets");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -99,6 +100,13 @@ export default function FundOfficePage() {
   const [reportStartDate, setReportStartDate] = useState("");
   const [reportEndDate, setReportEndDate] = useState("");
   const [reportDoctorId, setReportDoctorId] = useState("ALL");
+
+  // Synchronized Payment History Ledger state
+  const [paymentHistory, setPaymentHistory] = useState<DoctorDailySheetData[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyMethod, setHistoryMethod] = useState("ALL");
+  const [historyDoctor, setHistoryDoctor] = useState("ALL");
+  const [historySearch, setHistorySearch] = useState("");
 
   // Create / Record Daily Sheet Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -239,6 +247,33 @@ export default function FundOfficePage() {
       console.error("Error fetching doctor reports:", err);
     }
   };
+
+  const fetchPaymentHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (historyDoctor && historyDoctor !== "ALL") params.append("doctorId", historyDoctor);
+      if (historyMethod && historyMethod !== "ALL") params.append("paymentMethod", historyMethod);
+
+      const res = await fetch(`${API}/fund-office/payment-history?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPaymentHistory(data.data || []);
+      }
+    } catch (err) {
+      console.error("fetchPaymentHistory error:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "history" && token) {
+      fetchPaymentHistory();
+    }
+  }, [activeTab, token, historyDoctor, historyMethod]);
 
   // Re-fetch sheets when filters change
   useEffect(() => {
@@ -674,9 +709,9 @@ export default function FundOfficePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b space-x-4">
+      <div className="flex border-b space-x-6 text-sm font-semibold">
         <button
-          className={`pb-3 font-semibold text-sm border-b-2 transition-colors ${
+          className={`pb-3 border-b-2 transition-colors ${
             activeTab === "sheets"
               ? "border-emerald-600 text-emerald-700"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -686,7 +721,7 @@ export default function FundOfficePage() {
           Daily Doctor Patient Records & Payments
         </button>
         <button
-          className={`pb-3 font-semibold text-sm border-b-2 transition-colors ${
+          className={`pb-3 border-b-2 transition-colors ${
             activeTab === "reports"
               ? "border-emerald-600 text-emerald-700"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -694,6 +729,17 @@ export default function FundOfficePage() {
           onClick={() => setActiveTab("reports")}
         >
           Doctor-Wise Financial Reports
+        </button>
+        <button
+          className={`pb-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+            activeTab === "history"
+              ? "border-emerald-600 text-emerald-700"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab("history")}
+        >
+          <Clock className="h-4 w-4" />
+          Synchronized Payment History Ledger
         </button>
       </div>
 
@@ -838,6 +884,13 @@ export default function FundOfficePage() {
 
                         <TableCell className="text-right font-black text-emerald-800 text-sm">
                           LKR {sheet.netDoctorPayment.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          {(sheet.cashDoctorShare !== undefined || sheet.bankDoctorShare !== undefined) && (
+                            <div className="text-[10px] font-normal text-slate-500 mt-0.5">
+                              <span className="text-emerald-700 font-semibold">Cash: LKR {(sheet.cashDoctorShare || 0).toLocaleString()}</span>
+                              {" • "}
+                              <span className="text-blue-700 font-semibold">Bank: LKR {(sheet.bankDoctorShare || 0).toLocaleString()}</span>
+                            </div>
+                          )}
                         </TableCell>
 
                         <TableCell className="text-center">
@@ -1048,6 +1101,202 @@ export default function FundOfficePage() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 3: SHARED PAYMENT HISTORY LEDGER */}
+      {activeTab === "history" && (
+        <div className="space-y-4">
+          <Card className="shadow-sm">
+            <CardHeader className="py-4 px-6 border-b bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg">Synchronized Payment History Ledger</CardTitle>
+                <CardDescription>
+                  Real-time ledger of all doctor share disbursements issued across Front Desk and Fund Office / Super Admin
+                </CardDescription>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search receipt #, doctor..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="pl-8 bg-white h-9"
+                  />
+                </div>
+
+                <Select value={historyMethod} onValueChange={(val) => val && setHistoryMethod(val)}>
+                  <SelectTrigger className="w-36 bg-white h-9">
+                    <SelectValue placeholder="Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Methods</SelectItem>
+                    <SelectItem value="CASH">Cash Drawer</SelectItem>
+                    <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                    <SelectItem value="SPLIT">Split Payout</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchPaymentHistory}
+                  disabled={historyLoading}
+                  className="h-9 flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`h-4 w-4 ${historyLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {historyLoading ? (
+                <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                  <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
+                  <p>Loading payment ledger...</p>
+                </div>
+              ) : paymentHistory.length === 0 ? (
+                <div className="py-16 text-center text-slate-500">
+                  <CheckCircle className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                  <p className="font-semibold text-slate-700">No payment records found</p>
+                  <p className="text-xs text-slate-500 mt-1">Disbursements made at Front Desk or Fund Office will appear here.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Receipt / Voucher #</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>Doctor</TableHead>
+                        <TableHead className="text-center">Patients</TableHead>
+                        <TableHead className="text-right">Consultation Revenue</TableHead>
+                        <TableHead className="text-right font-bold">Disbursed Amount</TableHead>
+                        <TableHead className="text-center">Method</TableHead>
+                        <TableHead className="text-center">Disbursed By</TableHead>
+                        <TableHead>Reference / Bank Info</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y">
+                      {paymentHistory
+                        .filter((item) => {
+                          if (historySearch) {
+                            const term = historySearch.toLowerCase();
+                            const docName = item.doctor?.fullName?.toLowerCase() || "";
+                            const rcp = item.receiptNumber?.toLowerCase() || "";
+                            const ref = item.paymentReference?.toLowerCase() || "";
+                            if (!docName.includes(term) && !rcp.includes(term) && !ref.includes(term)) {
+                              return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map((item) => {
+                          const isCash = (item.cashDisbursed || 0) > 0;
+                          const isBank = (item.bankDisbursed || 0) > 0;
+                          const roleBadgeColor = item.disbursedByRole === "SUPERADMIN" ? "bg-purple-100 text-purple-800 border-purple-300" : "bg-emerald-100 text-emerald-800 border-emerald-300";
+
+                          return (
+                            <TableRow key={item.id} className="hover:bg-slate-50/60">
+                              <TableCell className="font-mono font-bold text-slate-900 text-xs">
+                                {item.receiptNumber || `DOC-RCP-${item.id.slice(0, 8).toUpperCase()}`}
+                              </TableCell>
+
+                              <TableCell className="text-xs text-slate-600">
+                                {item.paidAt ? new Date(item.paidAt).toLocaleString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit"
+                                }) : new Date(item.date).toLocaleDateString()}
+                              </TableCell>
+
+                              <TableCell>
+                                <p className="font-semibold text-slate-900 text-sm">Dr. {item.doctor?.fullName || "Doctor"}</p>
+                                <p className="text-xs text-muted-foreground">{item.doctor?.specialty || "Doctor"}</p>
+                              </TableCell>
+
+                              <TableCell className="text-center font-semibold text-slate-700">
+                                {item.totalPatients}
+                              </TableCell>
+
+                              <TableCell className="text-right text-slate-700 font-medium">
+                                LKR {item.totalRevenue.toLocaleString()}
+                              </TableCell>
+
+                              <TableCell className="text-right font-black text-slate-900 text-sm">
+                                LKR {((item.cashDisbursed || 0) + (item.bankDisbursed || 0) || item.netDoctorPayment).toLocaleString()}
+                              </TableCell>
+
+                              <TableCell className="text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  {isCash && isBank ? (
+                                    <Badge className="bg-amber-600 text-white text-[10px]">SPLIT</Badge>
+                                  ) : isCash ? (
+                                    <Badge className="bg-emerald-600 text-white text-[10px] flex items-center gap-1">
+                                      <Banknote className="h-2.5 w-2.5" /> CASH
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-blue-600 text-white text-[10px] flex items-center gap-1">
+                                      <CreditCard className="h-2.5 w-2.5" /> BANK
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className={`text-[10px] font-semibold ${roleBadgeColor}`}>
+                                  {item.disbursedByRole || "FRONTDESK"}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell className="text-xs">
+                                {item.paymentReference && (
+                                  <p className="font-mono text-slate-800 font-semibold">{item.paymentReference}</p>
+                                )}
+                                {(item.doctor?.bankAccountNumber || (item.bankDetails as any)?.bankAccountNumber) && (
+                                  <p className="text-slate-500 text-[11px] mt-0.5">
+                                    {(item.bankDetails as any)?.bankName || item.doctor?.bankName} • {(item.bankDetails as any)?.bankAccountNumber || item.doctor?.bankAccountNumber}
+                                  </p>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => triggerPrintReceipt(item)}
+                                    className="h-8 w-8 p-0 text-slate-600 hover:text-emerald-700"
+                                    title="Print Official Voucher"
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setSelectedSheet(item)}
+                                    className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900"
+                                    title="View Details"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1413,6 +1662,18 @@ export default function FundOfficePage() {
                     LKR {payingSheet.netDoctorPayment.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
+                {(payingSheet.cashDoctorShare !== undefined || payingSheet.bankDoctorShare !== undefined) && (
+                  <div className="flex justify-between text-[11px] text-slate-600 pt-1 border-t border-emerald-200/60">
+                    <span>💵 Cash Share (Drawer): LKR {(payingSheet.cashDoctorShare || 0).toLocaleString()}</span>
+                    <span>💳 Bank Share: LKR {(payingSheet.bankDoctorShare || 0).toLocaleString()}</span>
+                  </div>
+                )}
+                {payingSheet.doctor?.bankAccountNumber && (
+                  <div className="pt-1 text-[11px] text-blue-800 font-semibold border-t border-emerald-200/60 flex items-center gap-1">
+                    <Building className="h-3 w-3" />
+                    Doctor Bank: {payingSheet.doctor.bankName} • {payingSheet.doctor.bankAccountNumber}
+                  </div>
+                )}
               </div>
 
               {/* Payment Method */}
