@@ -55,10 +55,12 @@ export interface DoctorDailySheetData {
     bankBranch?: string;
     bankAccountNumber?: string;
     bankAccountName?: string;
+    slipUrl?: string;
   };
   status: "DRAFT" | "VERIFIED" | "APPROVED" | "PAID" | "CANCELLED";
   paymentMethod?: string;
   paymentReference?: string;
+  paymentSlipUrl?: string;
   paidAt?: string;
   receiptNumber?: string;
   verifiedAt?: string;
