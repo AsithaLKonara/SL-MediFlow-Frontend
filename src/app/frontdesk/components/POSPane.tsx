@@ -207,13 +207,17 @@ export function POSPane() {
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const tokenTotal = pendingTokenPayload ? pendingTokenPayload.expectedTotal : 0;
   
+  const isAppointmentConsultUpfront = pendingAppointmentPayload?.isUpfront ?? (
+    pendingAppointmentPayload?.allAppointments?.find((a: any) => a.department === "CONSULTATION")?.User?.feeType === "UPFRONT"
+  );
+
   const hasConsultInInvoice = pendingAppointmentPayload?.invoice?.lineItems?.some(
     (li: any) => li.department === "CONSULTATION"
   );
   const appointmentTotal = pendingAppointmentPayload 
     ? (
         (pendingAppointmentPayload.invoice ? pendingAppointmentPayload.invoice.totalAmount : 0) +
-        ((!hasConsultInInvoice && !pendingAppointmentPayload.consultationPaid) ? (pendingAppointmentPayload.fee || 0) : 0)
+        ((!hasConsultInInvoice && !pendingAppointmentPayload.consultationPaid && isAppointmentConsultUpfront) ? (pendingAppointmentPayload.fee || 0) : 0)
       )
     : 0;
     
@@ -315,9 +319,9 @@ export function POSPane() {
       if (!alreadyInInvoice && (pendingAppointmentPayload.doctorName || pendingAppointmentPayload.fee)) {
         displayCart.push({
           id: 'appt-consult',
-          name: `Consultation - Dr. ${consultDocName}`,
+          name: `Consultation${isAppointmentConsultUpfront ? ' (Upfront)' : ' (Post Pay)'} - Dr. ${consultDocName}`,
           qty: 1,
-          price: isPaid ? 0 : fee
+          price: isPaid || !isAppointmentConsultUpfront ? 0 : fee
         });
       }
     }
@@ -913,9 +917,9 @@ export function POSPane() {
                 
                 {/* Render Consultations (Upfront or Post Pay) */}
                 {pendingAppointmentPayload.allAppointments?.filter((appt: any) => appt.department === "CONSULTATION").map((appt: any, idx: number) => {
-                  const isUpfront = appt.User?.feeType === "UPFRONT";
-                  const fee = appt.User?.consultationFee || 2500;
-                  const docName = appt.User?.fullName || appt.doctorName || "Doctor";
+                  const isUpfront = appt.User?.feeType === "UPFRONT" || pendingAppointmentPayload.isUpfront;
+                  const fee = appt.User?.consultationFee || pendingAppointmentPayload.fee || 2500;
+                  const docName = appt.User?.fullName || appt.doctorName || pendingAppointmentPayload.doctorName || "Doctor";
                   const isPaid = !!pendingAppointmentPayload.consultationPaid;
                   
                   // If we have an invoice with a CONSULTATION line item, do not render a duplicate consultation row
@@ -929,15 +933,15 @@ export function POSPane() {
                         Consultation - Dr. {docName}
                         <div className="text-xs text-muted-foreground font-normal">
                           Patient: {pendingAppointmentPayload.patientName || "Walk-in"}
-                          {isPaid ? " | Paid" : (!isUpfront ? " | Post Pay" : "")}
+                          {isPaid ? " | Paid" : (!isUpfront ? " | Post Pay" : " | Upfront Pay")}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">1</TableCell>
                       <TableCell className="text-right">
-                        LKR {fee.toFixed(2)}
+                        {isPaid ? "Paid" : (!isUpfront ? "Post Pay" : `LKR ${fee.toFixed(2)}`)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {isPaid ? "PAID" : `LKR ${fee.toFixed(2)}`}
+                        {isPaid ? "PAID" : (!isUpfront ? "LKR 0.00" : `LKR ${fee.toFixed(2)}`)}
                       </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
@@ -951,15 +955,15 @@ export function POSPane() {
                       Consultation - Dr. {pendingAppointmentPayload.doctorName || "Doctor"}
                       <div className="text-xs text-muted-foreground font-normal">
                         Patient: {pendingAppointmentPayload.patientName || "Walk-in"}
-                        {pendingAppointmentPayload.consultationPaid ? " | Paid" : (!pendingAppointmentPayload.isUpfront ? " | Post Pay" : "")}
+                        {pendingAppointmentPayload.consultationPaid ? " | Paid" : (!isAppointmentConsultUpfront ? " | Post Pay" : " | Upfront Pay")}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">1</TableCell>
                     <TableCell className="text-right">
-                      LKR {(pendingAppointmentPayload.fee || 2500).toFixed(2)}
+                      {pendingAppointmentPayload.consultationPaid ? "Paid" : (!isAppointmentConsultUpfront ? "Post Pay" : `LKR ${(pendingAppointmentPayload.fee || 2500).toFixed(2)}`)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {pendingAppointmentPayload.consultationPaid ? "PAID" : `LKR ${(pendingAppointmentPayload.fee || 2500).toFixed(2)}`}
+                      {pendingAppointmentPayload.consultationPaid ? "PAID" : (!isAppointmentConsultUpfront ? "LKR 0.00" : `LKR ${(pendingAppointmentPayload.fee || 2500).toFixed(2)}`)}
                     </TableCell>
                     <TableCell></TableCell>
                   </TableRow>
@@ -1290,8 +1294,8 @@ export function POSPane() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ 
                           appointmentId: pendingAppointmentPayload.appointmentId,
-                          fee: pendingAppointmentPayload.consultationPaid ? 0 : pendingAppointmentPayload.fee,
-                          isUpfront: pendingAppointmentPayload.isUpfront,
+                          fee: (!isAppointmentConsultUpfront || pendingAppointmentPayload.consultationPaid) ? 0 : (pendingAppointmentPayload.fee || 0),
+                          isUpfront: isAppointmentConsultUpfront,
                           paymentMethod: activePaymentMethod,
                           discount: discountPayload
                         })
@@ -1395,8 +1399,8 @@ export function POSPane() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ 
                           appointmentId: pendingAppointmentPayload.appointmentId,
-                          fee: pendingAppointmentPayload.fee || 2500,
-                          isUpfront: pendingAppointmentPayload.isUpfront,
+                          fee: (!isAppointmentConsultUpfront || pendingAppointmentPayload.consultationPaid) ? 0 : (pendingAppointmentPayload.fee || 2500),
+                          isUpfront: isAppointmentConsultUpfront,
                           paymentMethod: activePaymentMethod,
                           discount: discountPayload
                         })
@@ -1414,7 +1418,7 @@ export function POSPane() {
                               });
                             }
                           });
-                        } else {
+                        } else if (isAppointmentConsultUpfront) {
                           combinedItems.push({
                             name: `Consultation - Dr. ${pendingAppointmentPayload.doctorName || 'Doctor'}`,
                             qty: 1,

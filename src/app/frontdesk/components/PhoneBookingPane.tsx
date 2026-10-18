@@ -11,6 +11,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnhancedCalendar } from "@/app/frontdesk/arrivals/components/workspace/left-panel/EnhancedCalendar";
+import { Badge } from "@/components/ui/badge";
 
 interface Doctor {
   id: string;
@@ -1025,6 +1026,8 @@ export function PhoneBookingPane() {
                               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Selected Items</h4>
                               {appt.groupedTokens?.map((t: any) => {
                                 if (t.department === "CONSULTATION") {
+                                  const docInfo = doctors.find(d => d.id === t.doctorId || d.fullName === t.User?.fullName);
+                                  const isUpfront = t.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT";
                                   return (
                                     <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
                                       <div className="flex items-center gap-3">
@@ -1036,6 +1039,9 @@ export function PhoneBookingPane() {
                                           <span className="text-xs text-muted-foreground">Doctor Consultation</span>
                                         </div>
                                       </div>
+                                      <Badge variant="outline" className={`text-xs ${isUpfront ? "bg-amber-500/10 text-amber-600 border-amber-300" : "bg-blue-500/10 text-blue-600 border-blue-300"}`}>
+                                        {isUpfront ? "Upfront Pay" : "Post Pay"}
+                                      </Badge>
                                     </div>
                                   );
                                 }
@@ -1107,13 +1113,16 @@ export function PhoneBookingPane() {
                           if (res.ok) {
                             const data = await res.json();
                             if (data.type === "APPOINTMENT") {
+                              const consultAppt = data.data.allAppointments?.find((a: any) => a.department === "CONSULTATION") || data.data.appointment;
+                              const docInfo = doctors.find(d => d.id === consultAppt?.doctorId || d.fullName === consultAppt?.User?.fullName);
+                              const isUpfront = consultAppt?.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT" || false;
                               sendAppointmentToPOS({
                                 appointmentId: data.data.appointment.id,
                                 tokenNumber: data.data.appointment.tokenNumber,
-                                patientName: data.data.appointment.Patient?.fullName,
-                                doctorName: data.data.appointment.User?.fullName,
-                                fee: data.data.appointment.User?.consultationFee || 2500,
-                                isUpfront: data.data.appointment.User?.feeType === "UPFRONT",
+                                patientName: data.data.appointment.Patient?.fullName || selectedAppt.Patient?.fullName,
+                                doctorName: consultAppt?.User?.fullName || data.data.appointment.User?.fullName,
+                                fee: consultAppt?.User?.consultationFee || data.data.appointment.User?.consultationFee || docInfo?.consultationFee || 2500,
+                                isUpfront: isUpfront,
                                 invoice: data.data.invoice,
                                 allAppointments: data.data.allAppointments || []
                               });
@@ -1125,14 +1134,17 @@ export function PhoneBookingPane() {
                            console.error(e);
                         }
                         // Fallback if barcode API fails
-                        const docInfo = doctors.find(d => d.fullName === selectedAppt.doctorName);
+                        const docConsultAppt = selectedAppt.groupedTokens?.find((a: any) => a.department === "CONSULTATION") || selectedAppt;
+                        const docName = docConsultAppt.User?.fullName || docConsultAppt.doctorName;
+                        const docInfo = doctors.find(d => d.fullName === docName || d.id === docConsultAppt.doctorId);
+                        const isUpfront = docConsultAppt.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT" || false;
                         sendAppointmentToPOS({
                           appointmentId: selectedAppt.id,
                           tokenNumber: selectedAppt.tokenNumber,
-                          patientName: selectedAppt.patientName,
-                          doctorName: selectedAppt.doctorName,
-                          fee: docInfo?.consultationFee || 2500,
-                          isUpfront: docInfo?.feeType === "UPFRONT",
+                          patientName: selectedAppt.Patient?.fullName || selectedAppt.patientName,
+                          doctorName: docName,
+                          fee: docConsultAppt.User?.consultationFee || docInfo?.consultationFee || 2500,
+                          isUpfront: isUpfront,
                           allAppointments: selectedAppt.groupedTokens || []
                         });
                         toast.success("Sent to POS for checkout.");

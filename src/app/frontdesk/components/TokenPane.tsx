@@ -1528,10 +1528,10 @@ export function TokenPane() {
                         </span>
                       </div>
 
-                      <div className="pt-3 border-t border-border">
+                      <div className="pt-3 border-t border-border flex items-center gap-2">
                         <Button
                           size="sm"
-                          className="w-full bg-primary hover:bg-primary/90 h-8 text-xs font-semibold gap-1.5 shadow-sm"
+                          className="flex-1 bg-primary hover:bg-primary/90 h-8 text-xs font-semibold gap-1.5 shadow-sm"
                           onClick={() => handleOpenEditRx(rx)}
                           disabled={isLocked}
                           data-testid={`send-rx-to-pos-${rx.id}`}
@@ -1547,6 +1547,21 @@ export function TokenPane() {
                               Send to POS
                             </>
                           )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground shrink-0 border-border"
+                          title="Edit Consultation & Prescription"
+                          data-testid={`edit-rx-${rx.id}`}
+                          onClick={() => {
+                            const pId = rx.patientId || (rx as any).Patient?.id;
+                            if (pId) {
+                              router.push(`/doctor/consultation/${pId}?editPrescriptionId=${rx.id}&visitId=${rx.visitId || ''}`);
+                            }
+                          }}
+                        >
+                          <Edit className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>

@@ -98,8 +98,8 @@ export default function LoginPage() {
   ];
 
   const handleQuickLogin = (email: string) => {
-    setValue("email", email);
-    setValue("password", "password123");
+    setValue("email", email, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    setValue("password", "password123", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
   };
 
   return (

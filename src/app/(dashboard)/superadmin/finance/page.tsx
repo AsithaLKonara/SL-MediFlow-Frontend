@@ -45,7 +45,8 @@ interface Expense {
 
 interface Shift {
   id: string; cashier: string; openedAt: string; closedAt: string | null;
-  startingFloat: number; expectedCash: number; actualCash: number | null;
+  startingFloat: number; cashTotal?: number; cardTotal?: number; totalSales?: number;
+  cashRefunds?: number; expectedCash: number; actualCash: number | null;
   variance: number | null; status: string;
 }
 
@@ -601,38 +602,57 @@ export default function FinancePage() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="hover:bg-transparent bg-muted/30">
+                      <TableRow className="hover:bg-transparent bg-muted/30 text-xs">
                         <TableHead className="pl-6">Cashier</TableHead>
-                        <TableHead>Opened At</TableHead>
-                        <TableHead>Closed At</TableHead>
+                        <TableHead>Time Window</TableHead>
                         <TableHead className="text-right">Starting Float</TableHead>
-                        <TableHead className="text-right">System Balance</TableHead>
+                        <TableHead className="text-right">Cash Sales</TableHead>
+                        <TableHead className="text-right">Card / Digital</TableHead>
+                        <TableHead className="text-right">Total Sales</TableHead>
+                        <TableHead className="text-right">Expected in Drawer</TableHead>
                         <TableHead className="text-right">Declared Cash</TableHead>
                         <TableHead className="text-right">Variance</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="pr-6 text-center">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {shifts.length === 0 ? (
-                        <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No shifts recorded yet.</TableCell></TableRow>
-                      ) : shifts.map((s) => (
-                        <TableRow key={s.id}>
-                          <TableCell className="pl-6 font-medium">{s.cashier}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">{new Date(s.openedAt).toLocaleString()}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">{s.closedAt ? new Date(s.closedAt).toLocaleString() : "—"}</TableCell>
-                          <TableCell className="text-right font-medium">LKR {s.startingFloat.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-medium">LKR {s.expectedCash.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-medium">{s.actualCash !== null ? `LKR ${s.actualCash.toLocaleString()}` : "—"}</TableCell>
-                          <TableCell className="text-right font-bold">
-                            {s.variance !== null ? (
-                              <span className={s.variance < 0 ? "text-red-500" : s.variance > 0 ? "text-green-500" : "text-muted-foreground"}>
-                                LKR {s.variance.toLocaleString()}
-                              </span>
-                            ) : "—"}
-                          </TableCell>
-                          <TableCell><StatusBadge status={s.status} /></TableCell>
-                        </TableRow>
-                      ))}
+                        <TableRow><TableCell colSpan={10} className="text-center py-12 text-muted-foreground">No shifts recorded yet.</TableCell></TableRow>
+                      ) : shifts.map((s) => {
+                        const cashSales = s.cashTotal ?? 0;
+                        const cardSales = s.cardTotal ?? 0;
+                        const totalSales = s.totalSales ?? (cashSales + cardSales);
+                        const isClosed = s.status === "CLOSED";
+
+                        return (
+                          <TableRow key={s.id} className="text-sm hover:bg-muted/20">
+                            <TableCell className="pl-6 font-semibold">{s.cashier}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs">
+                              <div>{new Date(s.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({new Date(s.openedAt).toLocaleDateString()})</div>
+                              <div className="text-[11px] opacity-75">{s.closedAt ? `Closed: ${new Date(s.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Currently Open"}</div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">LKR {s.startingFloat.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">LKR {cashSales.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">LKR {cardSales.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-bold text-foreground">LKR {totalSales.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-medium text-amber-600 dark:text-amber-400">
+                              LKR {s.expectedCash.toLocaleString()}
+                              <span className="block text-[10px] text-muted-foreground font-normal">(Float + Cash)</span>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {s.actualCash !== null ? `LKR ${s.actualCash.toLocaleString()}` : <span className="text-muted-foreground italic text-xs">Active Shift</span>}
+                            </TableCell>
+                            <TableCell className="text-right font-bold">
+                              {s.variance !== null ? (
+                                <span className={s.variance < 0 ? "text-red-500 font-semibold" : s.variance > 0 ? "text-green-500 font-semibold" : "text-muted-foreground"}>
+                                  {s.variance > 0 ? `+LKR ${s.variance.toLocaleString()}` : `LKR ${s.variance.toLocaleString()}`}
+                                </span>
+                              ) : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="pr-6 text-center"><StatusBadge status={s.status} /></TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

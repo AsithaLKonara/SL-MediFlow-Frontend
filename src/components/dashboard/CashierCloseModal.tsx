@@ -53,16 +53,30 @@ const ShiftSummaryPrint = React.forwardRef<HTMLDivElement, { summary: any, user:
           <div className="mb-4 border-t border-dashed border-black pt-2">
             <h4 className="font-bold border-b border-dashed border-black mb-1">Reconciliation</h4>
             <div className="flex justify-between text-xs">
-              <span>System Cash:</span>
+              <span>Opening Float:</span>
+              <span>LKR {(summary.startingFloat || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs mt-1">
+              <span>Cash Sales:</span>
               <span>LKR {summary.systemCashTotal.toFixed(2)}</span>
+            </div>
+            {summary.cashRefundsTotal > 0 && (
+              <div className="flex justify-between text-xs mt-1">
+                <span>Cash Refunds:</span>
+                <span>- LKR {summary.cashRefundsTotal.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-xs mt-1 font-semibold border-t border-dashed border-gray-400 pt-1">
+              <span>Expected in Drawer:</span>
+              <span>LKR {summary.expectedCash.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs mt-1">
               <span>Declared Cash:</span>
               <span>LKR {summary.declaredCash.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-xs font-bold mt-2">
-              <span>Difference:</span>
-              <span>LKR {(summary.declaredCash - summary.systemCashTotal).toFixed(2)}</span>
+            <div className="flex justify-between text-xs font-bold mt-2 border-t border-black pt-1">
+              <span>Variance:</span>
+              <span>LKR {(summary.variance ?? (summary.declaredCash - summary.expectedCash)).toFixed(2)}</span>
             </div>
           </div>
           
