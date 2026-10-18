@@ -39,6 +39,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin", label: "Overview", icon: LayoutDashboard, category: "Dashboard" },
     
     { href: "/superadmin/finance", label: "Finance", icon: Banknote, category: "Operations", permission: "Finance" },
+    { href: "/superadmin/fund-office", label: "Fund Office (Doctors)", icon: Receipt, category: "Operations", permission: "Finance" },
     { href: "/superadmin/finance/doctor-statements", label: "Doctor Settlements", icon: Stethoscope, category: "Operations", permission: "Finance" },
     { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations", permission: "Inventory" },
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
@@ -109,6 +110,11 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
+  fundoffice: [
+    { href: "/superadmin/fund-office", label: "Fund Office Dashboard", icon: LayoutDashboard },
+    { href: "/superadmin/finance", label: "Finance Overview", icon: Banknote },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
 };
 
 const roleLabelMap: Record<string, string> = {
@@ -120,6 +126,7 @@ const roleLabelMap: Record<string, string> = {
   pharmacist: "Pharmacist",
   receptionist: "Receptionist",
   cashier: "Cashier",
+  fundoffice: "Fund Office",
 };
 
 export function Sidebar() {
