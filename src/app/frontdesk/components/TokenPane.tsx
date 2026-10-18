@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon, Edit, Trash2, Plus, ShoppingBag } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon, Trash2, Plus, ShoppingBag } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -1528,10 +1528,10 @@ export function TokenPane() {
                         </span>
                       </div>
 
-                      <div className="pt-3 border-t border-border flex items-center gap-2">
+                      <div className="pt-3 border-t border-border flex items-center">
                         <Button
                           size="sm"
-                          className="flex-1 bg-primary hover:bg-primary/90 h-8 text-xs font-semibold gap-1.5 shadow-sm"
+                          className="w-full bg-primary hover:bg-primary/90 h-8 text-xs font-semibold gap-1.5 shadow-sm"
                           onClick={() => handleOpenEditRx(rx)}
                           disabled={isLocked}
                           data-testid={`send-rx-to-pos-${rx.id}`}
@@ -1547,21 +1547,6 @@ export function TokenPane() {
                               Send to POS
                             </>
                           )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground shrink-0 border-border"
-                          title="Edit Consultation & Prescription"
-                          data-testid={`edit-rx-${rx.id}`}
-                          onClick={() => {
-                            const pId = rx.patientId || (rx as any).Patient?.id;
-                            if (pId) {
-                              router.push(`/doctor/consultation/${pId}?editPrescriptionId=${rx.id}&visitId=${rx.visitId || ''}`);
-                            }
-                          }}
-                        >
-                          <Edit className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>

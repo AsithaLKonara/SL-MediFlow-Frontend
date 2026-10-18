@@ -39,23 +39,33 @@ export default function LabTestBiomarkersPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const getAuthToken = () => token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+
   useEffect(() => {
+    const activeToken = getAuthToken();
+
     // 1. Fetch test details
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${activeToken}` }
     })
       .then(r => r.json())
-      .then((data: any[]) => {
-        const test = data.find(t => t.id === testId);
+      .then((res: any) => {
+        const list = Array.isArray(res) ? res : (res.data || []);
+        const test = list.find((t: any) => t.id === testId);
         if (test) setTestDetails(test);
-      });
+      })
+      .catch(console.error);
 
     // 2. Fetch biomarkers and group them
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${testId}/biomarkers`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${activeToken}` }
     })
       .then(r => r.json())
-      .then((data: any[]) => {
+      .then((res: any) => {
+        const data: any[] = res.success && Array.isArray(res.data) 
+          ? res.data 
+          : (Array.isArray(res) ? res : (res.data || []));
+
         // Group by category
         const groupedMap = new Map<string, CategoryGroup>();
         
@@ -70,7 +80,7 @@ export default function LabTestBiomarkersPage({
           }
           groupedMap.get(catName)!.rows.push({
             id: b.id || crypto.randomUUID(),
-            name: b.name,
+            name: b.name || "",
             unit: b.unit || "",
             referenceRange: b.referenceRange || ""
           });
@@ -84,11 +94,12 @@ export default function LabTestBiomarkersPage({
         setGroups(Array.from(groupedMap.values()));
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("Failed to load template rows:", err);
         toast.error("Failed to load template rows");
         setLoading(false);
       });
-  }, [testId]);
+  }, [testId, token]);
 
   // --- Handlers ---
 
@@ -143,19 +154,23 @@ export default function LabTestBiomarkersPage({
   const handleSave = async () => {
     setSaving(true);
     try {
+      const activeToken = getAuthToken();
+
       // Flatten groups into biomarkers array with orderIndex
       let globalIndex = 1;
       const flatBiomarkers: any[] = [];
       
       groups.forEach(group => {
         group.rows.forEach(row => {
-          flatBiomarkers.push({
-            name: row.name,
-            category: group.categoryName.trim() === "" ? null : group.categoryName.trim(),
-            unit: row.unit || null,
-            referenceRange: row.referenceRange || null,
-            orderIndex: globalIndex++
-          });
+          if (row.name && row.name.trim() !== "") {
+            flatBiomarkers.push({
+              name: row.name.trim(),
+              category: group.categoryName.trim() === "" ? null : group.categoryName.trim(),
+              unit: row.unit?.trim() || null,
+              referenceRange: row.referenceRange?.trim() || null,
+              orderIndex: globalIndex++
+            });
+          }
         });
       });
 
@@ -165,7 +180,7 @@ export default function LabTestBiomarkersPage({
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${activeToken}`
         },
         body: JSON.stringify(payload)
       });

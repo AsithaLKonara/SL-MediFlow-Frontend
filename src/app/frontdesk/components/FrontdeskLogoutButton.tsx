@@ -13,10 +13,10 @@ export function FrontdeskLogoutButton() {
       size="sm"
       onClick={logout}
       className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive h-9 ml-2 gap-2"
-      title="Logout & Close Shift"
+      title="Log Out"
     >
       <LogOut className="h-4 w-4" />
-      <span className="hidden md:inline">Logout & Close Shift</span>
+      <span className="hidden md:inline">Log Out</span>
     </Button>
   );
 }

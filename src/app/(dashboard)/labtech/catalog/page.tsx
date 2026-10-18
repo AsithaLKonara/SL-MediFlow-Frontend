@@ -45,26 +45,28 @@ export default function LabCatalogManager() {
       .catch(e => { console.error(e); setLoading(false); });
   }, [token]);
 
+  const getAuthToken = () => token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+
   const loadBiomarkers = async (test: LabTest) => {
     setSelectedTest(test);
     try {
-      if (!token) return;
+      const activeToken = getAuthToken();
+      if (!activeToken) return;
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${test.id}/biomarkers`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${activeToken}` }
       });
       const data = await res.json();
-      if (data.success) {
-        setBiomarkers(data.data);
-      } else {
-        setBiomarkers([]);
-      }
+      const rows = data.success && Array.isArray(data.data) 
+        ? data.data 
+        : (Array.isArray(data) ? data : []);
+      setBiomarkers(rows);
     } catch (error) {
       toast.error("Failed to load template");
     }
   };
 
   const handleAddRow = () => {
-    setBiomarkers([...biomarkers, { name: "", category: "NONE", unit: "", referenceRange: "", orderIndex: biomarkers.length }]);
+    setBiomarkers([...biomarkers, { name: "", category: "NONE", unit: "", referenceRange: "", orderIndex: biomarkers.length + 1 }]);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -83,14 +85,26 @@ export default function LabCatalogManager() {
     if (!selectedTest) return;
     setSaving(true);
     try {
-      if (!token) return;
+      const activeToken = getAuthToken();
+      if (!activeToken) return;
+
+      const cleanBiomarkers = biomarkers
+        .filter(b => b.name && b.name.trim() !== "")
+        .map((b, idx) => ({
+          name: b.name.trim(),
+          category: b.category && b.category !== "NONE" && b.category.trim() !== "" ? b.category.trim() : null,
+          unit: b.unit?.trim() || null,
+          referenceRange: b.referenceRange?.trim() || null,
+          orderIndex: typeof b.orderIndex === "number" ? b.orderIndex : idx + 1
+        }));
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${selectedTest.id}/biomarkers`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${activeToken}` 
         },
-        body: JSON.stringify({ biomarkers })
+        body: JSON.stringify({ biomarkers: cleanBiomarkers })
       });
       if (!res.ok) throw new Error("Failed to save");
       toast.success("Template saved successfully");

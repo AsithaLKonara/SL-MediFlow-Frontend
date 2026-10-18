@@ -162,11 +162,12 @@ export default function LabTestTemplatesPage() {
     
     setSaving(true);
     try {
+      const activeToken = getAuthToken();
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${activeToken}`
         },
         body: JSON.stringify(newTest)
       });
@@ -192,11 +193,12 @@ export default function LabTestTemplatesPage() {
     }
     setSaving(true);
     try {
+      const activeToken = getAuthToken();
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${editingTest.id}`, {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${activeToken}`
         },
         body: JSON.stringify({
           name: editingTest.name,
@@ -223,9 +225,10 @@ export default function LabTestTemplatesPage() {
     if (!deletingTest) return;
     setSaving(true);
     try {
+      const activeToken = getAuthToken();
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/tests/${deletingTest.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${activeToken}` }
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete");
