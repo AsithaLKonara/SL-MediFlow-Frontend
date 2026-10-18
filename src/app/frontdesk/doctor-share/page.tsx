@@ -56,8 +56,10 @@ import {
   FileText,
   ExternalLink,
   Paperclip,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useReactToPrint } from "react-to-print";
@@ -67,6 +69,7 @@ import {
 } from "@/components/printing/DoctorPaymentReceiptTemplate";
 
 export default function FrontDeskDoctorSharePage() {
+  const router = useRouter();
   const { token, user } = useAuth();
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -454,26 +457,38 @@ export default function FrontDeskDoctorSharePage() {
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Hidden printable receipt template */}
-      <DoctorPaymentReceiptTemplate ref={printRef} sheet={printSheet} />
+    <div className="flex-1 p-6 h-[calc(100vh-56px)] overflow-y-auto bg-background animate-in fade-in">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Hidden printable receipt template */}
+        <DoctorPaymentReceiptTemplate ref={printRef} sheet={printSheet} />
 
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <Stethoscope className="h-7 w-7 text-emerald-600" />
-              Doctor Share Payouts Desk
-            </h1>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300">
-              Front Desk & Cashier
-            </Badge>
+        {/* Page Header with Back Button */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
+          <div className="flex items-start gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push("/frontdesk")}
+              className="shrink-0 mt-0.5"
+              title="Back to Front Desk Dashboard"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                  <Stethoscope className="h-7 w-7 text-emerald-600" />
+                  Doctor Share Payouts Desk
+                </h1>
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
+                  Front Desk & Cashier
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Issue doctor shares from patient consultations. Cash collections are issued as cash vouchers; card/bank collections are routed to bank transfer.
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Issue doctor shares from patient consultations. Cash collections are issued as cash vouchers; card/bank collections are routed to bank transfer.
-          </p>
-        </div>
 
         <div className="flex items-center gap-2">
           <Input
@@ -1492,6 +1507,7 @@ export default function FrontDeskDoctorSharePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
