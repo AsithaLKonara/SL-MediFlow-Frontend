@@ -54,7 +54,10 @@ import {
   Filter,
   Eye,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  UploadCloud,
+  ExternalLink,
+  Paperclip
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -133,6 +136,9 @@ export default function FundOfficePage() {
     paymentReference: "",
     paymentDate: new Date().toISOString().split("T")[0] || ""
   });
+  const [disbursementSlipFile, setDisbursementSlipFile] = useState<File | null>(null);
+  const [disbursementSlipUrl, setDisbursementSlipUrl] = useState<string>("");
+  const [uploadingDisbursementSlip, setUploadingDisbursementSlip] = useState(false);
   const [disbursing, setDisbursing] = useState(false);
 
   // View Details Modal
@@ -442,15 +448,48 @@ export default function FundOfficePage() {
     }
   };
 
+  // Upload Payment Slip to S3
+  const handleDisbursementSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("File size exceeds 15MB limit");
+      return;
+    }
+
+    setDisbursementSlipFile(file);
+    setUploadingDisbursementSlip(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API}/fund-office/upload-slip`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.success && data.fileUrl) {
+        setDisbursementSlipUrl(data.fileUrl);
+        toast.success("Payment slip uploaded successfully!");
+      } else {
+        toast.error(data.error || "Failed to upload payment slip");
+      }
+    } catch (err: any) {
+      toast.error("Network error uploading payment slip");
+    } finally {
+      setUploadingDisbursementSlip(false);
+    }
+  };
+
   // Disburse Payment (APPROVED -> PAID)
   const handleDisbursePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payingSheet) return;
-
-    if (!disbursementForm.paymentReference.trim()) {
-      toast.error("Please enter a Payment Reference Number (e.g. Bank Transfer ID or Cheque #)");
-      return;
-    }
 
     setDisbursing(true);
     try {
@@ -462,7 +501,8 @@ export default function FundOfficePage() {
         },
         body: JSON.stringify({
           paymentMethod: disbursementForm.paymentMethod,
-          paymentReference: disbursementForm.paymentReference,
+          paymentReference: disbursementForm.paymentReference.trim() || undefined,
+          paymentSlipUrl: disbursementSlipUrl.trim() || undefined,
           paymentDate: disbursementForm.paymentDate
         })
       });
@@ -910,6 +950,19 @@ export default function FundOfficePage() {
                               Ref: {sheet.paymentReference}
                             </span>
                           )}
+                          {(sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl) && (
+                            <a
+                              href={sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-0.5 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200"
+                              title="Open Payment Slip"
+                            >
+                              <Paperclip className="h-2.5 w-2.5" />
+                              Slip
+                              <ExternalLink className="h-2 w-2 ml-0.5" />
+                            </a>
+                          )}
                         </TableCell>
 
                         <TableCell className="text-right">
@@ -956,9 +1009,11 @@ export default function FundOfficePage() {
                                 className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                                 onClick={() => {
                                   setPayingSheet(sheet);
+                                  setDisbursementSlipFile(null);
+                                  setDisbursementSlipUrl(sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl || "");
                                   setDisbursementForm({
                                     paymentMethod: "BANK_TRANSFER",
-                                    paymentReference: "",
+                                    paymentReference: sheet.paymentReference || "",
                                     paymentDate: new Date().toISOString().split("T")[0] || ""
                                   });
                                 }}
@@ -1265,6 +1320,19 @@ export default function FundOfficePage() {
                                   <p className="text-slate-500 text-[11px] mt-0.5">
                                     {(item.bankDetails as any)?.bankName || item.doctor?.bankName} • {(item.bankDetails as any)?.bankAccountNumber || item.doctor?.bankAccountNumber}
                                   </p>
+                                )}
+                                {(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl) && (
+                                  <a
+                                    href={item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                                    title="Open Payment Slip"
+                                  >
+                                    <Paperclip className="h-3 w-3" />
+                                    Payment Slip
+                                    <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                                  </a>
                                 )}
                               </TableCell>
 
@@ -1701,19 +1769,78 @@ export default function FundOfficePage() {
               {/* Payment Reference Number */}
               <div>
                 <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Payment Reference Number <span className="text-red-500">*</span>
+                  Payment Reference Number <span className="text-muted-foreground font-normal">(Optional)</span>
                 </label>
                 <Input
-                  placeholder="e.g. BT-99881122 or CHQ-00445"
+                  placeholder="e.g. BT-99881122 or CHQ-00445 (optional)"
                   value={disbursementForm.paymentReference}
                   onChange={(e) =>
                     setDisbursementForm({ ...disbursementForm, paymentReference: e.target.value })
                   }
-                  required
                 />
                 <span className="text-[11px] text-muted-foreground">
-                  Saved with the disbursement record and printed on the official receipt.
+                  Transaction ID or reference number (optional). Saved with the disbursement record.
                 </span>
+              </div>
+
+              {/* Payment Slip Upload Box */}
+              <div className="border border-dashed border-emerald-300 rounded-lg p-3 bg-emerald-50/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <UploadCloud className="h-4 w-4 text-emerald-600" />
+                    Upload Payment Slip (Image or PDF)
+                  </label>
+                  {uploadingDisbursementSlip && (
+                    <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                      <RefreshCw className="h-3 w-3 animate-spin" /> Uploading to S3...
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleDisbursementSlipUpload}
+                    disabled={uploadingDisbursementSlip}
+                    className="bg-white text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer"
+                  />
+                  {disbursementSlipUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setDisbursementSlipFile(null);
+                        setDisbursementSlipUrl("");
+                      }}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      title="Remove slip"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {disbursementSlipUrl && (
+                  <div className="flex items-center justify-between bg-white border border-emerald-200 rounded p-2 text-xs">
+                    <span className="text-emerald-900 font-medium truncate max-w-[280px] flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      {disbursementSlipFile?.name || "Payment Slip Attached"}
+                    </span>
+                    <a
+                      href={disbursementSlipUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-600 hover:text-emerald-800 font-semibold inline-flex items-center gap-1 hover:underline text-[11px]"
+                    >
+                      <ExternalLink className="h-3 w-3" /> View Slip
+                    </a>
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Optional or required by hospital policy. Stored securely on AWS S3 and linked to this payout.
+                </p>
               </div>
 
               {/* Payment Date */}
@@ -1736,14 +1863,14 @@ export default function FundOfficePage() {
                   type="button"
                   variant="outline"
                   onClick={() => setPayingSheet(null)}
-                  disabled={disbursing}
+                  disabled={disbursing || uploadingDisbursementSlip}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  disabled={disbursing}
+                  disabled={disbursing || uploadingDisbursementSlip}
                 >
                   {disbursing ? "Disbursing..." : "Confirm Payment & Issue Receipt"}
                 </Button>
@@ -1822,6 +1949,19 @@ export default function FundOfficePage() {
                       {selectedSheet.paidAt ? new Date(selectedSheet.paidAt).toLocaleString() : "-"}
                     </span>
                   </div>
+                  {(selectedSheet.paymentSlipUrl || (selectedSheet.bankDetails as any)?.slipUrl) && (
+                    <div className="flex justify-between items-center pt-1 border-t border-emerald-200">
+                      <span className="text-slate-600">Payment Slip:</span>
+                      <a
+                        href={selectedSheet.paymentSlipUrl || (selectedSheet.bankDetails as any)?.slipUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900 hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" /> View Uploaded Slip
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 
