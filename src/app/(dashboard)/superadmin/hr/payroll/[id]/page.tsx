@@ -77,11 +77,80 @@ export default function PayrollRunDetailsPage() {
             {new Date(run.periodStart).toLocaleDateString()} to {new Date(run.periodEnd).toLocaleDateString()}
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2">
+          {run.status === "DRAFT" && (
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={async () => {
+                const res = await fetch(`${API}/hr/payroll/${id}/status`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ status: "PENDING_APPROVAL" }),
+                });
+                if (res.ok) { toast.success("Submitted for approval"); fetchRunDetails(); }
+              }}
+            >
+              Submit for Approval
+            </Button>
+          )}
+
+          {run.status === "PENDING_APPROVAL" && (
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={async () => {
+                const res = await fetch(`${API}/hr/payroll/${id}/status`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ status: "APPROVED" }),
+                });
+                if (res.ok) { toast.success("Payroll approved"); fetchRunDetails(); }
+              }}
+            >
+              Approve Payroll
+            </Button>
+          )}
+
+          {run.status === "APPROVED" && (
+            <Button
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={async () => {
+                const res = await fetch(`${API}/hr/payroll/${id}/status`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ status: "PROCESSING" }),
+                });
+                if (res.ok) { toast.success("Marked as Processing"); fetchRunDetails(); }
+              }}
+            >
+              Process Payment
+            </Button>
+          )}
+
+          {run.status === "PROCESSING" && (
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={async () => {
+                const res = await fetch(`${API}/hr/payroll/${id}/status`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ status: "PAID", paymentMethod: "BANK_TRANSFER" }),
+                });
+                if (res.ok) { toast.success("All salaries marked as Paid"); fetchRunDetails(); }
+              }}
+            >
+              Confirm All Paid
+            </Button>
+          )}
+
           <Button variant="outline" className="gap-2" onClick={() => triggerPrint(run.records || [])}>
             <Printer className="w-4 h-4" /> Print All Payslips
           </Button>
-          <Badge className={run.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+          <Badge className={
+            run.status === 'PAID' ? 'bg-green-100 text-green-800' :
+            run.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' :
+            run.status === 'PROCESSING' ? 'bg-purple-100 text-purple-800' :
+            'bg-amber-100 text-amber-800'
+          }>
             {run.status}
           </Badge>
         </div>
