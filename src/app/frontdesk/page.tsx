@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2 } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2, Stethoscope, Banknote } from "lucide-react";
 import { NodePrintClient } from "@asithakonara/node-print-client";
 import { EscPosBuilder } from "@asithakonara/escpos";
 import {
@@ -133,7 +133,16 @@ export default function FrontDeskDashboard() {
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            {!isNurse && (
+              <Button
+                variant="outline"
+                onClick={() => router.push('/frontdesk/doctor-share')}
+                className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950 font-semibold"
+              >
+                <Stethoscope className="w-4 h-4 mr-2 text-emerald-600" /> Release Doctor Fund
+              </Button>
+            )}
             {isNurse ? (
               <Button variant="outline" onClick={logout}>
                 <LogOut className="w-4 h-4 mr-2" /> Log Out
@@ -172,6 +181,19 @@ export default function FrontDeskDashboard() {
               <div>
                 <h2 className="text-lg font-bold">POS & Tokens</h2>
                 <p className="opacity-80 text-xs mt-1">Access the main workspace</p>
+              </div>
+            </button>
+          )}
+
+          {!isNurse && (
+            <button 
+              onClick={() => router.push('/frontdesk/doctor-share')}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-emerald-500 hover:text-emerald-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            >
+              <Stethoscope className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-emerald-600 text-emerald-600" />
+              <div>
+                <h2 className="text-lg font-bold">Release Doctor Fund</h2>
+                <p className="text-muted-foreground text-xs mt-1">Cash & bank payouts</p>
               </div>
             </button>
           )}
