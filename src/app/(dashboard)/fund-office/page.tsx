@@ -448,6 +448,13 @@ export default function FundOfficePage() {
     }
   };
 
+  // Helper to ensure private S3 slips open via secure pre-signed redirect
+  const getSlipViewUrl = (url?: string) => {
+    if (!url) return "#";
+    if (url.includes("X-Amz-Signature") || url.includes("Signature=")) return url;
+    return `${API}/fund-office/view-slip?url=${encodeURIComponent(url)}`;
+  };
+
   // Upload Payment Slip to S3
   const handleDisbursementSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -474,7 +481,7 @@ export default function FundOfficePage() {
 
       const data = await res.json();
       if (data.success && data.fileUrl) {
-        setDisbursementSlipUrl(data.fileUrl);
+        setDisbursementSlipUrl(data.presignedUrl || data.fileUrl);
         toast.success("Payment slip uploaded successfully!");
       } else {
         toast.error(data.error || "Failed to upload payment slip");
@@ -952,7 +959,7 @@ export default function FundOfficePage() {
                           )}
                           {(sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl) && (
                             <a
-                              href={sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl}
+                              href={getSlipViewUrl(sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-0.5 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200"
@@ -1323,7 +1330,7 @@ export default function FundOfficePage() {
                                 )}
                                 {(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl) && (
                                   <a
-                                    href={item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl}
+                                    href={getSlipViewUrl(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
@@ -1829,7 +1836,7 @@ export default function FundOfficePage() {
                       {disbursementSlipFile?.name || "Payment Slip Attached"}
                     </span>
                     <a
-                      href={disbursementSlipUrl}
+                      href={getSlipViewUrl(disbursementSlipUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-emerald-600 hover:text-emerald-800 font-semibold inline-flex items-center gap-1 hover:underline text-[11px]"
@@ -1953,7 +1960,7 @@ export default function FundOfficePage() {
                     <div className="flex justify-between items-center pt-1 border-t border-emerald-200">
                       <span className="text-slate-600">Payment Slip:</span>
                       <a
-                        href={selectedSheet.paymentSlipUrl || (selectedSheet.bankDetails as any)?.slipUrl}
+                        href={getSlipViewUrl(selectedSheet.paymentSlipUrl || (selectedSheet.bankDetails as any)?.slipUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900 hover:underline"

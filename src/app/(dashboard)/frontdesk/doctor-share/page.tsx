@@ -301,6 +301,13 @@ export default function FrontDeskDoctorSharePage() {
     setBankModalOpen(true);
   };
 
+  // Helper to ensure private S3 slips open via secure pre-signed redirect
+  const getSlipViewUrl = (url?: string) => {
+    if (!url) return "#";
+    if (url.includes("X-Amz-Signature") || url.includes("Signature=")) return url;
+    return `${API}/fund-office/view-slip?url=${encodeURIComponent(url)}`;
+  };
+
   // Upload Payment Slip to S3
   const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -327,7 +334,7 @@ export default function FrontDeskDoctorSharePage() {
 
       const data = await res.json();
       if (data.success && data.fileUrl) {
-        setBankSlipUrl(data.fileUrl);
+        setBankSlipUrl(data.presignedUrl || data.fileUrl);
         toast.success("Payment slip uploaded successfully!");
       } else {
         toast.error(data.error || "Failed to upload payment slip");
@@ -962,7 +969,7 @@ export default function FrontDeskDoctorSharePage() {
                             )}
                             {(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl) && (
                               <a
-                                href={item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl}
+                                href={getSlipViewUrl(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
@@ -1255,7 +1262,7 @@ export default function FrontDeskDoctorSharePage() {
                       {bankSlipFile?.name || "Payment Slip Attached"}
                     </span>
                     <a
-                      href={bankSlipUrl}
+                      href={getSlipViewUrl(bankSlipUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1 hover:underline text-[11px]"
@@ -1456,7 +1463,7 @@ export default function FrontDeskDoctorSharePage() {
                     </div>
                   </div>
                   <a
-                    href={viewSheet.paymentSlipUrl || (viewSheet.bankDetails as any)?.slipUrl}
+                    href={getSlipViewUrl(viewSheet.paymentSlipUrl || (viewSheet.bankDetails as any)?.slipUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs shadow-sm"
