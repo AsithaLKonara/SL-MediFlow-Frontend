@@ -31,13 +31,12 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "admin@amaz.com",
-      password: "password123",
+      email: "",
+      password: "",
     },
   });
 
@@ -89,19 +88,6 @@ export default function LoginPage() {
     }
   };
 
-  const MOCK_USERS = [
-    { label: "Super Admin", email: "admin@amaz.com" },
-    { label: "Frontdesk", email: "reception@amaz.com" },
-    { label: "Doctor", email: "dr1@amaz.com" },
-    { label: "Nurse", email: "nurse@amaz.com" },
-    { label: "Lab", email: "labtech@amaz.com" },
-  ];
-
-  const handleQuickLogin = (email: string) => {
-    setValue("email", email, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-    setValue("password", "password123", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-  };
-
   return (
     <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 text-white">
       {/* Back to home link */}
@@ -121,25 +107,6 @@ export default function LoginPage() {
           <p>{error}</p>
         </div>
       )}
-
-      {/* QUICK LOGIN FOR DEVELOPMENT */}
-      <div className="p-4 bg-white/5 backdrop-blur-md rounded-xl border border-white/10 text-sm shadow-xl">
-        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Quick Login (Dev)</p>
-        <div className="flex flex-wrap gap-2">
-          {MOCK_USERS.map(u => (
-            <Button 
-              key={u.email} 
-              type="button" 
-              variant="outline" 
-              size="sm" 
-              className="text-xs h-7 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white text-white/70"
-              onClick={() => handleQuickLogin(u.email)}
-            >
-              {u.label}
-            </Button>
-          ))}
-        </div>
-      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-2">
