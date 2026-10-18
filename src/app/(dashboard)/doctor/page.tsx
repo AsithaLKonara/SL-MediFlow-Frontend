@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, FileText, FlaskConical, Users, ScanBarcode, Search, Loader2 } from "lucide-react";
+import { Clock, FileText, FlaskConical, Users, ScanBarcode, Search, Loader2, DollarSign, Receipt, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,6 +31,15 @@ export default function DoctorOverview() {
   const [loading, setLoading] = useState(true);
   const [tokenInput, setTokenInput] = useState("");
   const [searching, setSearching] = useState(false);
+  const [earnings, setEarnings] = useState<{
+    todayDoctorShare: number;
+    todayRevenue: number;
+    todayCommission: number;
+    todayPatientsCount: number;
+    todaySheetStatus: string;
+    commissionRate: number;
+    patientItems: any[];
+  } | null>(null);
 
   const handleBarcodeSearch = async (code: string) => {
     const raw = code.trim();
@@ -176,6 +185,18 @@ export default function DoctorOverview() {
          console.error(err);
          setLoading(false);
       });
+
+    // Fetch doctor's earnings summary from fund office
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/fund-office/doctor-summary?doctorId=${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setEarnings(data.data);
+        }
+      })
+      .catch((err) => console.error("Error loading doctor earnings:", err));
   }, [user, token]);
 
   if (loading || !metrics) {
@@ -202,6 +223,13 @@ export default function DoctorOverview() {
           <div className="text-center">
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Completed</p>
             <p className="text-xl font-bold text-green-600 dark:text-green-400">{metrics.completedConsultations}</p>
+          </div>
+          <div className="w-px h-8 bg-border"></div>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">My Share Today</p>
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+              LKR {(earnings?.todayDoctorShare || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </p>
           </div>
         </div>
       </div>
@@ -296,6 +324,107 @@ export default function DoctorOverview() {
           </Card>
         </Link>
       </div>
+
+      {/* Today's Doctor Share & Earnings Summary */}
+      <Card className="shadow-sm border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 via-card to-card">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                Today's Consultation Earnings & Doctor Share
+                {earnings?.todaySheetStatus && (
+                  <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                    {earnings.todaySheetStatus}
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Calculated from completed patient consultations, clinic fees, and hospital commission.
+              </CardDescription>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-xs text-muted-foreground block">Net Doctor Share Today</span>
+            <span className="text-2xl font-black text-emerald-600">
+              LKR {(earnings?.todayDoctorShare || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </CardHeader>
+
+        <CardContent className="pt-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-muted/40 p-3 rounded-lg border">
+            <div>
+              <span className="text-muted-foreground block">Total Patients Consulted</span>
+              <span className="text-base font-bold text-foreground">
+                {earnings?.todayPatientsCount ?? metrics.completedConsultations} Patients
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">Gross Consultation Revenue</span>
+              <span className="text-base font-bold text-foreground">
+                LKR {(earnings?.todayRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">
+                Hospital Commission ({earnings?.commissionRate || 20}%)
+              </span>
+              <span className="text-base font-bold text-rose-600">
+                - LKR {(earnings?.todayCommission || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          {earnings?.patientItems && earnings.patientItems.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Completed Patient Consultations ({earnings.patientItems.length})
+              </p>
+              <div className="rounded-md border overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/50 text-muted-foreground font-semibold">
+                    <tr>
+                      <th className="py-2 px-3 text-left">#</th>
+                      <th className="py-2 px-3 text-left">Patient Name</th>
+                      <th className="py-2 px-3 text-left">Token #</th>
+                      <th className="py-2 px-3 text-right">Consultation Fee</th>
+                      <th className="py-2 px-3 text-right">Hospital Share</th>
+                      <th className="py-2 px-3 text-right font-bold text-emerald-700">Doctor Share</th>
+                      <th className="py-2 px-3 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {earnings.patientItems.map((item, idx) => (
+                      <tr key={item.id || idx} className="hover:bg-muted/30">
+                        <td className="py-2 px-3 text-muted-foreground">{idx + 1}</td>
+                        <td className="py-2 px-3 font-semibold text-foreground">{item.patientName}</td>
+                        <td className="py-2 px-3 font-mono text-muted-foreground">{item.tokenNumber || "-"}</td>
+                        <td className="py-2 px-3 text-right">LKR {item.consultationFee.toLocaleString()}</td>
+                        <td className="py-2 px-3 text-right text-rose-600">LKR {item.hospitalShare.toLocaleString()}</td>
+                        <td className="py-2 px-3 text-right font-bold text-emerald-600">
+                          LKR {item.doctorShare.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                            Completed
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground text-center py-2">
+              No consultations completed yet today. As soon as you complete a patient in consultation, their fee and your doctor share will appear here instantly.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Simplified Upcoming patients */}
       <Card className="shadow-sm border-border">

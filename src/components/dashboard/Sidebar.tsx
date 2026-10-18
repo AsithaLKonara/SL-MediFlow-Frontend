@@ -25,6 +25,7 @@ import {
   Shield,
   Hospital,
   ActivitySquare,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -38,12 +39,17 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin", label: "Overview", icon: LayoutDashboard, category: "Dashboard" },
     
     { href: "/superadmin/finance", label: "Finance", icon: Banknote, category: "Operations", permission: "Finance" },
+    { href: "/superadmin/fund-office", label: "Fund Office (Doctors)", icon: Receipt, category: "Operations", permission: "Finance" },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, category: "Operations", permission: "Finance" },
+    { href: "/superadmin/finance/doctor-statements", label: "Doctor Settlements", icon: Stethoscope, category: "Operations", permission: "Finance" },
     { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations", permission: "Inventory" },
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
     { href: "/superadmin/extra-services", label: "Extra Services", icon: FilePlus2, category: "Operations", permission: "Extra Services" },
 
     { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management", permission: "Staff" },
     { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management", permission: "HR" },
+    { href: "/superadmin/hr/overtime", label: "Overtime (OT)", icon: Clock, category: "Management", permission: "HR" },
+    { href: "/superadmin/hr/salary-structures", label: "Salary & Allowances", icon: Receipt, category: "Management", permission: "HR" },
     { href: "/superadmin/hr/components", label: "Role Templates", icon: ClipboardList, category: "Management", permission: "HR" },
     { href: "/superadmin/hr/payroll", label: "Payroll Engine", icon: Banknote, category: "Management", permission: "HR" },
     { href: "/superadmin/departments", label: "Departments", icon: Building2, category: "Management", permission: "Departments" },
@@ -57,6 +63,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
     { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users },
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
     { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch },
     { href: "/frontdesk/rooms", label: "Room Management", icon: Building2 },
     { href: "/frontdesk/hr", label: "My HR & Leaves", icon: CalendarClock },
@@ -95,6 +102,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/receptionist", label: "Overview", icon: LayoutDashboard },
     { href: "/receptionist/queue", label: "Patient Queue", icon: ClipboardList },
     { href: "/receptionist/patients", label: "Patient Directory", icon: Users },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
@@ -102,7 +110,14 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/cashier", label: "Overview", icon: LayoutDashboard },
     { href: "/cashier/payments", label: "Payments List", icon: CreditCard },
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
+  fundoffice: [
+    { href: "/superadmin/fund-office", label: "Fund Office Dashboard", icon: LayoutDashboard },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
+    { href: "/superadmin/finance", label: "Finance Overview", icon: Banknote },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
 };
@@ -116,6 +131,7 @@ const roleLabelMap: Record<string, string> = {
   pharmacist: "Pharmacist",
   receptionist: "Receptionist",
   cashier: "Cashier",
+  fundoffice: "Fund Office",
 };
 
 export function Sidebar() {

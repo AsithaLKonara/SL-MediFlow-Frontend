@@ -20,34 +20,36 @@ export const PayslipPrintTemplate = React.forwardRef(({ records, runPeriod }: { 
           </div>
 
           {/* Employee Info */}
-          <div className="grid grid-cols-2 gap-6 mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div>
-              <p className="text-sm text-gray-500">Employee Name</p>
-              <p className="text-lg font-bold text-gray-800">{record.user?.fullName || "Unknown"}</p>
+              <p className="text-xs text-gray-500">Employee Name / ID</p>
+              <p className="text-base font-bold text-gray-800">{record.user?.fullName || "Staff Member"} <span className="text-xs text-gray-500 font-mono">({record.user?.id?.slice(0, 8)})</span></p>
+              <p className="text-xs text-gray-600 mt-1">Department: <span className="font-semibold">{record.user?.Department?.name || "General Hospital Operations"}</span></p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">Designation / Role</p>
-              <p className="text-lg font-bold text-gray-800">{record.user?.Role?.name || "Staff"}</p>
+              <p className="text-xs text-gray-500">Designation / Role</p>
+              <p className="text-base font-bold text-gray-800">{record.user?.Role?.name || record.user?.role || "Staff"}</p>
+              <p className="text-xs text-gray-600 mt-1">Payment Method: <span className="font-semibold">{record.paymentMethod || "Bank Transfer"}</span></p>
             </div>
           </div>
 
           {/* Salary Details Table */}
-          <div className="mb-12">
+          <div className="mb-8">
             <table className="w-full text-left border-collapse border border-gray-300">
               <thead>
                 <tr className="bg-gray-100 border-b border-gray-300">
-                  <th className="py-3 px-4 text-sm font-bold text-gray-700">Category</th>
-                  <th className="py-3 px-4 text-sm font-bold text-gray-700">Description</th>
-                  <th className="py-3 px-4 text-sm font-bold text-gray-700 text-right">Amount (LKR)</th>
+                  <th className="py-2.5 px-3 text-xs font-bold text-gray-700">Category</th>
+                  <th className="py-2.5 px-3 text-xs font-bold text-gray-700">Description</th>
+                  <th className="py-2.5 px-3 text-xs font-bold text-gray-700 text-right">Amount (LKR)</th>
                 </tr>
               </thead>
               <tbody>
                 {record.lineItems?.map((li: any) => (
                   <tr key={li.id} className="border-b border-gray-200 last:border-b-0">
-                    <td className="py-3 px-4 text-sm font-medium text-gray-600 uppercase">{li.category}</td>
-                    <td className="py-3 px-4 text-sm text-gray-800">{li.description}</td>
-                    <td className={`py-3 px-4 text-sm font-medium text-right ${li.category === 'DEDUCTION' ? 'text-red-600' : 'text-gray-900'}`}>
-                      {li.category === 'DEDUCTION' ? '- ' : ''}{li.amount?.toFixed(2)}
+                    <td className="py-2.5 px-3 text-xs font-semibold text-gray-600 uppercase">{li.category}</td>
+                    <td className="py-2.5 px-3 text-xs text-gray-800">{li.description}</td>
+                    <td className={`py-2.5 px-3 text-xs font-semibold text-right ${li.category === 'DEDUCTION' || li.category === 'STATUTORY' ? 'text-red-600' : 'text-gray-900'}`}>
+                      {li.category === 'DEDUCTION' || li.category === 'STATUTORY' ? '- ' : ''}{li.amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   </tr>
                 ))}
@@ -56,19 +58,28 @@ export const PayslipPrintTemplate = React.forwardRef(({ records, runPeriod }: { 
           </div>
 
           {/* Totals Section */}
-          <div className="flex justify-end mb-16">
-            <div className="w-1/2">
-              <div className="flex justify-between py-2 border-b border-gray-200">
-                <span className="text-gray-600 font-medium">Total Earnings</span>
-                <span className="font-bold text-gray-900">{record.totalEarnings?.toFixed(2)}</span>
+          <div className="flex justify-between items-start mb-10">
+            <div className="text-xs text-gray-500 space-y-1">
+              {record.paymentReference && (
+                <p>Transaction Reference: <span className="font-mono font-medium text-gray-800">{record.paymentReference}</span></p>
+              )}
+              {record.paidAt && (
+                <p>Paid Date: <span className="font-medium text-gray-800">{new Date(record.paidAt).toLocaleDateString()}</span></p>
+              )}
+              <p>Currency: <span className="font-medium text-gray-800">Sri Lankan Rupees (LKR)</span></p>
+            </div>
+            <div className="w-80">
+              <div className="flex justify-between py-1.5 border-b border-gray-200 text-sm">
+                <span className="text-gray-600">Gross Earnings:</span>
+                <span className="font-bold text-gray-900">LKR {record.totalEarnings?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-200">
-                <span className="text-gray-600 font-medium">Total Deductions</span>
-                <span className="font-bold text-red-600">- {record.totalDeductions?.toFixed(2)}</span>
+              <div className="flex justify-between py-1.5 border-b border-gray-200 text-sm">
+                <span className="text-gray-600">Total Deductions:</span>
+                <span className="font-bold text-red-600">- LKR {record.totalDeductions?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between py-4 border-b-2 border-black bg-gray-50 px-2 rounded-t mt-2">
-                <span className="text-lg font-bold text-gray-800">NET SALARY</span>
-                <span className="text-xl font-extrabold text-gray-900">LKR {record.netSalary?.toFixed(2)}</span>
+              <div className="flex justify-between py-3 border-b-2 border-black bg-gray-50 px-2 rounded-t mt-2">
+                <span className="text-base font-bold text-gray-800">NET SALARY:</span>
+                <span className="text-lg font-extrabold text-gray-900">LKR {record.netSalary?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
