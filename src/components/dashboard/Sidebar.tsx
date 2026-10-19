@@ -64,68 +64,68 @@ const roleNavConfig: Record<string, NavItem[]> = {
   ],
   frontdesk: [
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users },
-    { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
-    { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw },
-    { href: "/extra-services", label: "Extra Services Orders", icon: FilePlus2 },
-    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
-    { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch },
-    { href: "/frontdesk/rooms", label: "Room Management", icon: Building2 },
+    { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users, permission: "Frontdesk" },
+    { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt, permission: "Billing" },
+    { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw, permission: "Refunds" },
+    { href: "/extra-services", label: "Extra Services Orders", icon: FilePlus2, permission: "Extra Services" },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, permission: "Doctor Share" },
+    { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch, permission: "Inventory" },
+    { href: "/frontdesk/rooms", label: "Room Management", icon: Building2, permission: "Rooms" },
     { href: "/frontdesk/hr", label: "My HR & Leaves", icon: CalendarClock },
   ],
   doctor: [
     { href: "/doctor", label: "My Dashboard", icon: LayoutDashboard },
-    { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList },
-    { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
-    { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
-    { href: "/extra-services", label: "Extra Services Orders", icon: FilePlus2 },
+    { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList, permission: "Consultations" },
+    { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText, permission: "Consultations" },
+    { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical, permission: "Lab Operations" },
+    { href: "/extra-services", label: "Extra Services Orders", icon: FilePlus2, permission: "Extra Services" },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   labtech: [
     { href: "/labtech", label: "Overview", icon: LayoutDashboard },
-    { href: "/labtech/requests", label: "Test Requests", icon: Microscope },
-    { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2 },
-    { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical },
+    { href: "/labtech/requests", label: "Test Requests", icon: Microscope, permission: "Lab Operations" },
+    { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2, permission: "Lab Operations" },
+    { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical, permission: "Lab Tests" },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   nurse: [
-    { href: "/extra-services", label: "Extra Services Station", icon: ActivitySquare },
+    { href: "/extra-services", label: "Extra Services Station", icon: ActivitySquare, permission: "Extra Services" },
     { href: "/nurse", label: "Nurse Dashboard", icon: LayoutDashboard },
-    { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users },
+    { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users, permission: "Frontdesk" },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   pharmacist: [
     { href: "/pharmacist", label: "Overview", icon: LayoutDashboard },
-    { href: "/pharmacist/prescriptions", label: "Prescriptions", icon: FileText },
-    { href: "/pharmacist/billing", label: "POS Billing", icon: Receipt },
-    { href: "/pharmacist/inventory", label: "Pharmacy Stock", icon: PackageSearch },
+    { href: "/pharmacist/prescriptions", label: "Prescriptions", icon: FileText, permission: "Consultations" },
+    { href: "/pharmacist/billing", label: "POS Billing", icon: Receipt, permission: "Billing" },
+    { href: "/pharmacist/inventory", label: "Pharmacy Stock", icon: PackageSearch, permission: "Inventory" },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   receptionist: [
     { href: "/receptionist", label: "Overview", icon: LayoutDashboard },
-    { href: "/receptionist/queue", label: "Patient Queue", icon: ClipboardList },
-    { href: "/receptionist/patients", label: "Patient Directory", icon: Users },
-    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
+    { href: "/receptionist/queue", label: "Patient Queue", icon: ClipboardList, permission: "Frontdesk" },
+    { href: "/receptionist/patients", label: "Patient Directory", icon: Users, permission: "Frontdesk" },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, permission: "Doctor Share" },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   cashier: [
     { href: "/cashier", label: "Overview", icon: LayoutDashboard },
-    { href: "/cashier/payments", label: "Payments List", icon: CreditCard },
-    { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
-    { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw },
-    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
+    { href: "/cashier/payments", label: "Payments List", icon: CreditCard, permission: "Billing" },
+    { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt, permission: "Billing" },
+    { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw, permission: "Refunds" },
+    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, permission: "Doctor Share" },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   fundoffice: [
     { href: "/superadmin/fund-office", label: "Fund Office Dashboard", icon: LayoutDashboard },
-    { href: "/superadmin/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
-    { href: "/superadmin/finance", label: "Finance Overview", icon: Banknote },
+    { href: "/superadmin/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, permission: "Doctor Share" },
+    { href: "/superadmin/finance", label: "Finance Overview", icon: Banknote, permission: "Finance" },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
 };
@@ -154,12 +154,14 @@ export function Sidebar() {
 
   let navItems = roleNavConfig[roleKey] || roleNavConfig["superadmin"];
   
-  // Filter for Custom Roles
-  if (user && roleKey === "superadmin" && user.role?.toLowerCase() !== "superadmin" && user.role?.toLowerCase() !== "admin") {
-    navItems = navItems.filter(item => {
-      if (!item.permission) return true;
-      return user.permissions?.includes(item.permission) || user.permissions?.includes("ALL");
-    });
+  // Filter items by Granular Role Permissions if user has specific permissions assigned
+  if (user && user.role?.toLowerCase() !== "superadmin") {
+    if (user.permissions && user.permissions.length > 0 && !user.permissions.includes("ALL")) {
+      navItems = navItems.filter(item => {
+        if (!item.permission) return true;
+        return user.permissions?.includes(item.permission);
+      });
+    }
   }
 
   const roleLabel = user?.role ? user.role : (roleLabelMap[roleKey] || "Staff");
