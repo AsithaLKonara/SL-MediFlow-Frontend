@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { WalkInForm } from "../forms/WalkInForm";
+import { CancelAppointmentModal } from "@/components/frontdesk/CancelAppointmentModal";
 
 export function TokenBoardMatrix({ 
   doctor, 
@@ -23,6 +24,8 @@ export function TokenBoardMatrix({
   const [selectedToken, setSelectedToken] = useState<any | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null);
 
   const getTokenIcon = (status: string) => {
     switch (status) {
@@ -240,7 +243,20 @@ export function TokenBoardMatrix({
                   <Button disabled={isUpdating || selectedToken.status === 'COMPLETED'} variant="outline" onClick={() => handleAction("NO_SHOW", selectedToken)} className="border-amber-200 text-amber-700 hover:bg-amber-50">
                     No Show
                   </Button>
-                  <Button disabled={isUpdating || selectedToken.status === 'COMPLETED'} variant="outline" onClick={() => handleAction("CANCELLED", selectedToken)} className="border-red-200 text-red-700 hover:bg-red-50">
+                  <Button 
+                    disabled={isUpdating || selectedToken.status === 'COMPLETED'} 
+                    variant="outline" 
+                    onClick={() => {
+                      setAppointmentToCancel({
+                        id: selectedToken.appointment?.id || selectedToken.id,
+                        tokenNumber: selectedToken.tokenNumber,
+                        patientName: selectedToken.appointment?.Patient?.fullName || selectedToken.patient?.fullName,
+                        doctorName: doctor.fullName
+                      });
+                      setIsCancelModalOpen(true);
+                    }} 
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                  >
                     Cancel Token
                   </Button>
                 </div>
@@ -249,6 +265,19 @@ export function TokenBoardMatrix({
           )}
         </DialogContent>
       </Dialog>
+
+      <CancelAppointmentModal
+        isOpen={isCancelModalOpen}
+        onClose={() => {
+          setIsCancelModalOpen(false);
+          setAppointmentToCancel(null);
+        }}
+        appointment={appointmentToCancel}
+        onSuccess={() => {
+          setSelectedToken(null);
+          onTokenUpdate();
+        }}
+      />
 
       {isWalkInOpen && (
         <WalkInForm 

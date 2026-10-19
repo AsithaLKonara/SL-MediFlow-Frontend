@@ -21,6 +21,7 @@ interface User {
   consultationFee: number;
   feeType: string;
   departmentId: string | null;
+  commissionRate?: number;
 }
 
 interface Department {
@@ -28,6 +29,7 @@ interface Department {
   name: string;
   description: string | null;
   isActive: boolean;
+  commissionRate?: number;
   Users: User[];
   _count: { Users: number };
 }
@@ -41,11 +43,11 @@ export default function DepartmentsPage() {
 
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
-  const [deptForm, setDeptForm] = useState({ name: "", description: "", isActive: true });
+  const [deptForm, setDeptForm] = useState({ name: "", description: "", isActive: true, commissionRate: 20 });
 
   const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<User | null>(null);
-  const [doctorForm, setDoctorForm] = useState({ consultationFee: 2500, feeType: "POST" });
+  const [doctorForm, setDoctorForm] = useState({ consultationFee: 2500, feeType: "POST", commissionRate: 20 });
   const [activeDeptId, setActiveDeptId] = useState<string | null>(null);
 
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -156,7 +158,8 @@ export default function DepartmentsPage() {
         },
         body: JSON.stringify({ 
           consultationFee: doctorForm.consultationFee,
-          feeType: doctorForm.feeType
+          feeType: doctorForm.feeType,
+          commissionRate: doctorForm.commissionRate
         })
       });
       const data = await res.json().catch(() => ({}));
@@ -221,13 +224,18 @@ export default function DepartmentsPage() {
 
   const openNewDept = () => {
     setEditingDept(null);
-    setDeptForm({ name: "", description: "", isActive: true });
+    setDeptForm({ name: "", description: "", isActive: true, commissionRate: 20 });
     setIsDeptModalOpen(true);
   };
 
   const openEditDept = (dept: Department) => {
     setEditingDept(dept);
-    setDeptForm({ name: dept.name, description: dept.description || "", isActive: dept.isActive });
+    setDeptForm({ 
+      name: dept.name, 
+      description: dept.description || "", 
+      isActive: dept.isActive,
+      commissionRate: dept.commissionRate !== undefined ? dept.commissionRate : 20
+    });
     setIsDeptModalOpen(true);
   };
 
@@ -349,6 +357,9 @@ export default function DepartmentsPage() {
                   <div>
                     <CardTitle className="text-xl flex items-center gap-2 text-slate-900 dark:text-white">
                       {dept.name}
+                      <Badge variant="outline" className="text-xs border-primary/40 text-primary font-normal">
+                        Hospital Comm: {dept.commissionRate !== undefined ? dept.commissionRate : 20}%
+                      </Badge>
                       {!dept.isActive && <Badge variant="destructive" className="text-xs">Inactive</Badge>}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">{dept.description || "No description provided"}</p>
@@ -389,6 +400,7 @@ export default function DepartmentsPage() {
                             <TableHead className="text-slate-700 dark:text-slate-300">Doctor Name</TableHead>
                             <TableHead className="text-slate-700 dark:text-slate-300">Specialty</TableHead>
                             <TableHead className="text-slate-700 dark:text-slate-300">Consultation Fee</TableHead>
+                            <TableHead className="text-slate-700 dark:text-slate-300">Hospital Comm %</TableHead>
                             <TableHead className="text-right text-slate-700 dark:text-slate-300">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -398,10 +410,15 @@ export default function DepartmentsPage() {
                               <TableCell className="font-medium text-slate-900 dark:text-white">{doc.fullName}</TableCell>
                               <TableCell className="text-slate-600 dark:text-slate-400">{doc.specialty || "General"}</TableCell>
                               <TableCell className="text-slate-600 dark:text-slate-400">Rs. {doc.consultationFee} <span className="text-xs text-muted-foreground ml-1">({doc.feeType === 'UPFRONT' ? 'Upfront' : 'After Consult'})</span></TableCell>
+                              <TableCell className="text-slate-600 dark:text-slate-400 font-semibold">{doc.commissionRate !== undefined ? doc.commissionRate : (dept.commissionRate || 20)}%</TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="sm" className="dark:hover:bg-slate-800" onClick={() => {
                                   setSelectedDoctor(doc);
-                                  setDoctorForm({ consultationFee: doc.consultationFee, feeType: doc.feeType || "POST" });
+                                  setDoctorForm({ 
+                                    consultationFee: doc.consultationFee, 
+                                    feeType: doc.feeType || "POST",
+                                    commissionRate: doc.commissionRate !== undefined ? doc.commissionRate : (dept.commissionRate || 20)
+                                  });
                                   setActiveDeptId(dept.id);
                                   setIsDoctorModalOpen(true);
                                 }}>
@@ -446,6 +463,18 @@ export default function DepartmentsPage() {
                 placeholder="Brief description..." 
               />
             </div>
+            <div className="space-y-2">
+              <Label>Hospital Doctor Commission (%)</Label>
+              <Input 
+                type="number" 
+                min="0"
+                max="100"
+                value={deptForm.commissionRate} 
+                onChange={e => setDeptForm({...deptForm, commissionRate: parseFloat(e.target.value) || 0})}
+                placeholder="20" 
+              />
+              <p className="text-xs text-muted-foreground">Percentage hospital retains from consultation fee (Default: 20%)</p>
+            </div>
             <div className="flex items-center justify-between mt-2">
               <Label>Active Status</Label>
               <Switch 
@@ -464,7 +493,7 @@ export default function DepartmentsPage() {
       <Dialog open={isDoctorModalOpen} onOpenChange={setIsDoctorModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Update Doctor Fee</DialogTitle>
+            <DialogTitle>Update Doctor Fee & Commission</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="bg-muted/30 p-3 rounded-lg mb-2">
@@ -478,6 +507,17 @@ export default function DepartmentsPage() {
                 value={doctorForm.consultationFee} 
                 onChange={e => setDoctorForm({ ...doctorForm, consultationFee: parseFloat(e.target.value) || 0 })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Hospital Commission Override (%)</Label>
+              <Input 
+                type="number" 
+                min="0"
+                max="100"
+                value={doctorForm.commissionRate} 
+                onChange={e => setDoctorForm({ ...doctorForm, commissionRate: parseFloat(e.target.value) || 0 })}
+              />
+              <p className="text-xs text-muted-foreground">Doctor Payout = Consultation Fee - Hospital Commission %</p>
             </div>
             <div className="space-y-2">
               <Label>Payment Type</Label>

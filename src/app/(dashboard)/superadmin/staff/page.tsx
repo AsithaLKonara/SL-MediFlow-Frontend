@@ -50,6 +50,7 @@ interface Staff {
   consultationFee?: number;
   feeType?: string;
   deviceUserId?: string;
+  commissionRate?: number;
 }
 
 export default function StaffManagementPage() {
@@ -81,7 +82,8 @@ export default function StaffManagementPage() {
     departmentId: "",
     consultationFee: 2500,
     feeType: "POST",
-    deviceUserId: ""
+    deviceUserId: "",
+    commissionRate: 20
   });
 
   const API = process.env.NEXT_PUBLIC_API_URL;
@@ -148,7 +150,8 @@ export default function StaffManagementPage() {
     setFormData({ 
       name: "", email: "", password: "", roleName: "", 
       specialty: "", roomId: "", title: "Dr.", departmentId: "", 
-      consultationFee: 2500, feeType: "POST", deviceUserId: ""
+      consultationFee: 2500, feeType: "POST", deviceUserId: "",
+      commissionRate: 20
     });
     setIsModalOpen(true);
   };
@@ -166,7 +169,8 @@ export default function StaffManagementPage() {
       departmentId: member.departmentId || "",
       consultationFee: member.consultationFee || 2500,
       feeType: member.feeType || "POST",
-      deviceUserId: member.deviceUserId || ""
+      deviceUserId: member.deviceUserId || "",
+      commissionRate: member.commissionRate !== undefined ? member.commissionRate : 20
     });
     setIsModalOpen(true);
   };
@@ -582,6 +586,18 @@ export default function StaffManagementPage() {
                         <option value="UPFRONT">UPFRONT (Before checkup)</option>
                       </select>
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Hospital Doctor Commission (%)</label>
+                    <Input 
+                      type="number" 
+                      min="0"
+                      max="100"
+                      value={formData.commissionRate} 
+                      onChange={e => setFormData({...formData, commissionRate: parseFloat(e.target.value) || 0})} 
+                      placeholder="20" 
+                    />
+                    <p className="text-xs text-muted-foreground">Percentage hospital retains (Doctor Payout = Consultation Fee - Hospital Commission %)</p>
                   </div>
                 </>
               )}
