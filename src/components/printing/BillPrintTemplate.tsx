@@ -33,12 +33,12 @@ export const BillPrintTemplate = React.forwardRef<HTMLDivElement, PrintProps>(
     return (
       <div className="hidden">
         {/* The printable area that react-to-print targets */}
-        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-mono text-sm print:w-[290px] print:px-3.5 print:py-2 leading-tight">
+        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 pt-1.5 pb-3 font-mono text-sm print:w-[290px] print:px-3.5 print:pt-1 print:pb-3 leading-tight">
           <style dangerouslySetInnerHTML={{ __html: `
             @media print {
               @page {
                 size: auto;
-                margin: 3mm 2mm;
+                margin: 1.5mm 2mm 3mm 2mm;
               }
               body {
                 -webkit-print-color-adjust: exact;
