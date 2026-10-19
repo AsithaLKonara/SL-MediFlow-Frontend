@@ -15,6 +15,7 @@ import {
   ShiftSummaryData 
 } from "@/app/frontdesk/components/PrintTemplates/ShiftSummaryReceipt";
 import { buildShiftSummaryEscPos } from "@/app/frontdesk/utils/shiftSummaryEscpos";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 export function CashierCloseModal({ 
   open, 
@@ -35,6 +36,9 @@ export function CashierCloseModal({
   const handleBrowserPrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `AMAZ_Shift_Summary_${new Date().toISOString().slice(0, 10)}`,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut();
+    }
   });
 
   const printThermalHardware = async (summaryData: ShiftSummaryData) => {

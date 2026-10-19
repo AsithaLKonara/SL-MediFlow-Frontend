@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { User, KeyRound, Loader2, Save, Settings as SettingsIcon, Bell, Sun, Printer, HardDrive, CheckCircle2, AlertCircle, RefreshCw, Banknote } from "lucide-react";
+import { User, KeyRound, Loader2, Save, Settings as SettingsIcon, Bell, Sun, Printer, HardDrive, CheckCircle2, AlertCircle, RefreshCw, Banknote, Scissors } from "lucide-react";
 import { openCashDrawer, getBridgeUrl } from "@/lib/cashDrawer";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 import { NodePrintClient } from "@asithakonara/node-print-client";
 import { cn } from "@/lib/utils";
 
@@ -27,9 +28,11 @@ export default function SettingsPage() {
   // Hardware Print & Cash Drawer state
   const [bridgeUrl, setBridgeUrl] = useState("http://127.0.0.1:18181");
   const [printerName, setPrinterName] = useState("");
+  const [lanIp, setLanIp] = useState("");
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "checking" | "online" | "offline">("idle");
   const [detectedPrinters, setDetectedPrinters] = useState<any[]>([]);
   const [isTestingDrawer, setIsTestingDrawer] = useState(false);
+  const [isTestingCut, setIsTestingCut] = useState(false);
 
   const [profile, setProfile] = useState({
     fullName: "",
@@ -70,6 +73,7 @@ export default function SettingsPage() {
     if (typeof window !== "undefined") {
       setBridgeUrl(getBridgeUrl());
       setPrinterName(localStorage.getItem("node_print_printer") || localStorage.getItem("pos_printer") || "");
+      setLanIp(localStorage.getItem("printer_lan_ip") || "");
     }
   }, [token]);
 
@@ -106,6 +110,26 @@ export default function SettingsPage() {
     }
   };
 
+  const handleTestCut = async () => {
+    setIsTestingCut(true);
+    try {
+      const res = await triggerPrinterAutoCut({
+        printer: printerName.trim() || undefined,
+        ip: lanIp.trim() || undefined,
+        feedLines: 3
+      });
+      if (res.success) {
+        toast.success(`Auto-cut triggered successfully via ${res.method === "lan" ? "LAN TCP Socket" : res.method === "webusb" ? "WebUSB" : "Bridge"}.`);
+      } else {
+        toast.error(`Auto-cut failed: ${res.message}`);
+      }
+    } catch (err: any) {
+      toast.error(`Auto-cut test error: ${err?.message || err}`);
+    } finally {
+      setIsTestingCut(false);
+    }
+  };
+
   const handleSaveHardware = () => {
     if (typeof window !== "undefined") {
       localStorage.setItem("node_print_url", bridgeUrl.trim());
@@ -113,6 +137,11 @@ export default function SettingsPage() {
         localStorage.setItem("node_print_printer", printerName.trim());
       } else {
         localStorage.removeItem("node_print_printer");
+      }
+      if (lanIp.trim()) {
+        localStorage.setItem("printer_lan_ip", lanIp.trim());
+      } else {
+        localStorage.removeItem("printer_lan_ip");
       }
       toast.success("Hardware configuration saved locally.");
     }
@@ -468,7 +497,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="printerName">Assigned Receipt / Cash Drawer Printer (Optional)</Label>
+                  <Label htmlFor="printerName">Assigned Receipt / Cash Drawer Printer (USB / Local)</Label>
                   <Input 
                     id="printerName" 
                     value={printerName} 
@@ -480,25 +509,63 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-semibold flex items-center gap-1.5">
-                        <Banknote className="w-4 h-4 text-primary" /> Test Cash Drawer
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Send an ESC/POS pulse to test if the cash drawer kick solenoid triggers.
-                      </p>
+                <div className="space-y-2">
+                  <Label htmlFor="lanIp">Network / LAN Printer IP (Optional — Xprinter XP-80T LAN)</Label>
+                  <Input 
+                    id="lanIp" 
+                    value={lanIp} 
+                    onChange={e => setLanIp(e.target.value)} 
+                    placeholder="e.g. 192.168.1.100 (port 9100)" 
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Direct socket TCP connection on port 9100 using Node.js default <code>net</code> module.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                          <Banknote className="w-4 h-4 text-primary" /> Test Cash Drawer
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Send ESC/POS kick pulse to open cash drawer.
+                        </p>
+                      </div>
+                      <Button 
+                        type="button"
+                        onClick={handleTestCashDrawer}
+                        disabled={isTestingDrawer}
+                        className="gap-2 shrink-0"
+                      >
+                        {isTestingDrawer ? <Loader2 className="w-4 h-4 animate-spin" /> : <Banknote className="w-4 h-4" />}
+                        Open Drawer
+                      </Button>
                     </div>
-                    <Button 
-                      type="button"
-                      onClick={handleTestCashDrawer}
-                      disabled={isTestingDrawer}
-                      className="gap-2 shrink-0"
-                    >
-                      {isTestingDrawer ? <Loader2 className="w-4 h-4 animate-spin" /> : <Banknote className="w-4 h-4" />}
-                      Test Open Drawer
-                    </Button>
+                  </div>
+
+                  <div className="p-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                          <Scissors className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Test Auto-Cut
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Send GS V 66 0 ESC/POS auto-cut sequence.
+                        </p>
+                      </div>
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={handleTestCut}
+                        disabled={isTestingCut}
+                        className="gap-2 shrink-0 border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      >
+                        {isTestingCut ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scissors className="w-4 h-4" />}
+                        Cut Paper
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

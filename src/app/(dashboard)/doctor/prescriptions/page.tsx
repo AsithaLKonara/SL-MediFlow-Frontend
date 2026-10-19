@@ -6,6 +6,7 @@ import { FileText, Printer, Search, Loader2, Edit, Trash2, Calendar, Filter } fr
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useReactToPrint } from "react-to-print";
 import { PrescriptionPrintTemplate } from "@/components/printing/PrescriptionPrintTemplate";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,7 +58,10 @@ export default function PrescriptionHistoryPage() {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef as any,
-    documentTitle: `Prescription_${selectedRxForPrint?.patientName || 'History'}`
+    documentTitle: `Prescription_${selectedRxForPrint?.patientName || 'History'}`,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut();
+    }
   });
 
   const handlePrintClick = (rx: any) => {

@@ -21,6 +21,7 @@ import { POSHistoryModal } from "./POSHistoryModal";
 import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 import { useCallback } from "react";
 import { openCashDrawer } from "@/lib/cashDrawer";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 interface Medicine {
   id: string;
@@ -65,6 +66,9 @@ export function POSPane() {
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: "Receipt",
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+    }
   });
 
   useEffect(() => {

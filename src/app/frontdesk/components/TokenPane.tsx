@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnhancedCalendar } from "@/app/frontdesk/arrivals/components/workspace/left-panel/EnhancedCalendar";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 import { TokenReceipt } from "./PrintTemplates/TokenReceipt";
 import { BillReceipt } from "./PrintTemplates/BillReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
@@ -317,16 +318,27 @@ export function TokenPane() {
 
   const handlePrintToken = useReactToPrint({
     contentRef: tokenPrintRef,
-    onAfterPrint: resetForm
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+      resetForm();
+    }
   });
 
   const handlePrintBill = useReactToPrint({
     contentRef: billPrintRef,
-    onAfterPrint: resetForm
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+      resetForm();
+    }
   });
 
   const prescriptionPrintRef = useRef<HTMLDivElement>(null);
-  const handlePrintPrescription = useReactToPrint({ contentRef: prescriptionPrintRef });
+  const handlePrintPrescription = useReactToPrint({
+    contentRef: prescriptionPrintRef,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+    }
+  });
 
 
 

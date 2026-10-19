@@ -9,6 +9,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { MergedReceiptTemplate } from "../../../components/printing/MergedReceiptTemplate";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 export function POSHistoryModal() {
   const { token, user } = useAuth();
@@ -23,6 +24,9 @@ export function POSHistoryModal() {
   const performPrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: "Receipt",
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+    }
   });
 
   const fetchHistory = async () => {

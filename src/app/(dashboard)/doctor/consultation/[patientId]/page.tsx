@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 const formatSafeDate = (dateStr: string) => {
   if (!dateStr) return "N/A";
@@ -83,7 +84,10 @@ export default function ConsultationPage() {
   const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: printRef as any,
-    documentTitle: `Prescription_${patientId}`
+    documentTitle: `Prescription_${patientId}`,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut();
+    }
   });
 
   // Prescription state

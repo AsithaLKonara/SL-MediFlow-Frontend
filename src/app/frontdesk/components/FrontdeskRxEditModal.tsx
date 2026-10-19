@@ -31,6 +31,7 @@ import { CartItem, RxMetaPayload } from "../hooks/useCartSync";
 import { ExternalPrescriptionReceipt, ExternalPrescriptionMed } from "./PrintTemplates/ExternalPrescriptionReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
 import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 export interface PrescriptionItem {
   id: string;
@@ -103,17 +104,26 @@ export function FrontdeskRxEditModal({
 
   const printExternal = useReactToPrint({
     contentRef: externalPrintRef,
-    documentTitle: `External_Rx_${prescription?.patientName || "Patient"}`
+    documentTitle: `External_Rx_${prescription?.patientName || "Patient"}`,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+    }
   });
 
   const printHospital = useReactToPrint({
     contentRef: hospitalPrintRef,
-    documentTitle: `Hospital_Rx_${prescription?.patientName || "Patient"}`
+    documentTitle: `Hospital_Rx_${prescription?.patientName || "Patient"}`,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+    }
   });
 
   const printFull = useReactToPrint({
     contentRef: fullPrintRef,
-    documentTitle: `Full_Rx_${prescription?.patientName || "Patient"}`
+    documentTitle: `Full_Rx_${prescription?.patientName || "Patient"}`,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+    }
   });
 
   // Fetch visit draft invoice (for lab tests and extra services under the master barcode)

@@ -8,6 +8,7 @@ import { History, Search, Printer, Calendar, RefreshCw, FileText, X } from "luci
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useReactToPrint } from "react-to-print";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 interface RxHistoryModalProps {
   trigger?: React.ReactNode;
@@ -28,6 +29,9 @@ export function RxHistoryModal({ trigger }: RxHistoryModalProps) {
   const performPrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: "Prescription",
+    onAfterPrint: () => {
+      triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
+    }
   });
 
   const fetchHistory = useCallback(async () => {
