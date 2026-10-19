@@ -15,6 +15,15 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
+import {
+  PRESCRIPTION_FREQUENCIES,
+  PRESCRIPTION_ROUTES,
+  DOSE_UNITS,
+  getFrequencyLabel,
+  getRouteLabel,
+  getFrequencyBadgeClass,
+  getRouteBadgeClass
+} from "@/lib/prescriptionConstants";
 
 const formatSafeDate = (dateStr: string) => {
   if (!dateStr) return "N/A";
@@ -95,7 +104,25 @@ export default function ConsultationPage() {
   const [rxVisitId, setRxVisitId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   
-  const initialDrugState = { drug: "", dosage: "", timesPerDay: "", tabletsPerTime: "", duration: "", instructions: "", timing: "", medicineId: null as string | null, dispenseQty: null as number | null };
+  const initialDrugState = {
+    drug: "",
+    strength: "",
+    dosageAmount: "1",
+    doseUnit: "tablet(s)",
+    dosage: "",
+    frequency: "OD",
+    route: "ORAL",
+    duration: "3 days",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: "",
+    instructions: "",
+    timing: "",
+    medicineId: null as string | null,
+    dispenseQty: null as number | null,
+    quantity: null as number | null,
+    timesPerDay: "",
+    tabletsPerTime: ""
+  };
   const [addedDrugs, setAddedDrugs] = useState<typeof initialDrugState[]>([]);
   const [currentDrug, setCurrentDrug] = useState(initialDrugState);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -263,44 +290,37 @@ export default function ConsultationPage() {
             setNotes(rx.clinicalNotes || "");
             setCreatedPrescription(rx);
             const parsedDrugs = (rx.items || []).map((item: any) => {
-              const freq = item.frequency || "";
-              let tabletsPerTime = "";
-              let timesPerDay = "";
-              
-              if (freq.includes("x day")) {
-                 const match = freq.match(/^(\d+)x day(?: \((.*?)\s*tab\))?/);
-                 if (match) {
-                   timesPerDay = match[1] || "";
-                   tabletsPerTime = match[2] || "";
-                 } else {
-                   timesPerDay = freq;
-                 }
-              } else if (freq.includes("tablets") && freq.includes("times a day")) {
-                 const parts = freq.split("tablets,");
-                 tabletsPerTime = parts[0]?.trim() || "";
-                 timesPerDay = parts[1]?.split("times a day")[0]?.trim() || "";
-              } else {
-                 timesPerDay = freq;
-              }
+              const freq = (item.frequency || "OD").trim().toUpperCase();
+              const route = (item.route || "ORAL").trim().toUpperCase();
               
               const resolvedQty = calculateDispenseQuantity({
                 dispenseQty: item.dispenseQty,
+                quantity: item.quantity,
+                dosageAmount: item.dosageAmount,
                 frequency: freq,
                 duration: item.duration,
-                timesPerDay,
-                tabletsPerTime
+                timesPerDay: item.timesPerDay,
+                tabletsPerTime: item.tabletsPerTime
               });
 
               return {
                 drug: item.drugName || item.medicine?.name || "",
+                strength: item.strength || "",
+                dosageAmount: item.dosageAmount || "1",
+                doseUnit: item.doseUnit || "tablet(s)",
                 dosage: item.dosage || "",
-                timesPerDay,
-                tabletsPerTime,
-                duration: item.duration || "",
+                frequency: freq,
+                route: route,
+                duration: item.duration || "3 days",
+                startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+                endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "",
                 instructions: item.instructions || "",
                 timing: "",
                 medicineId: item.medicineId || item.medicine?.id || null,
-                dispenseQty: resolvedQty
+                dispenseQty: item.dispenseQty || item.quantity || resolvedQty,
+                quantity: item.quantity || null,
+                timesPerDay: "",
+                tabletsPerTime: ""
               };
             });
             setAddedDrugs(parsedDrugs);
@@ -316,7 +336,7 @@ export default function ConsultationPage() {
     const computedQty = calculateDispenseQuantity(currentDrug);
     const drugToSave = {
       ...currentDrug,
-      dispenseQty: computedQty
+      dispenseQty: currentDrug.quantity != null ? Number(currentDrug.quantity) : computedQty
     };
 
     if (editingIndex !== null) {
@@ -350,8 +370,14 @@ export default function ConsultationPage() {
   };
 
   const selectDrug = (medicine: any) => {
-    let parsedDosage = medicine.unit;
+    let parsedDosage = medicine.unit || "";
     let finalDrugName = medicine.name;
+    let strength = "";
+
+    const strengthMatch = medicine.name.match(/(\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|iu|%))/i);
+    if (strengthMatch) {
+      strength = strengthMatch[1];
+    }
 
     if (medicine.genericName && medicine.name.toLowerCase().includes(medicine.genericName.toLowerCase())) {
       const extracted = medicine.name.substring(medicine.genericName.length).trim();
@@ -361,7 +387,36 @@ export default function ConsultationPage() {
       }
     }
 
-    setCurrentDrug(prev => ({ ...prev, drug: finalDrugName, dosage: parsedDosage, medicineId: medicine.id }));
+    let defaultUnit = "tablet(s)";
+    const catOrUnit = `${medicine.category || ""} ${medicine.unit || ""} ${medicine.name || ""}`.toLowerCase();
+    if (catOrUnit.includes("syrup") || catOrUnit.includes("susp") || catOrUnit.includes("liquid") || catOrUnit.includes("ml")) {
+      defaultUnit = "ml";
+    } else if (catOrUnit.includes("cap")) {
+      defaultUnit = "capsule(s)";
+    } else if (catOrUnit.includes("inj")) {
+      defaultUnit = "ml";
+    } else if (catOrUnit.includes("drop")) {
+      defaultUnit = "drops";
+    }
+
+    let defaultRoute = "ORAL";
+    if (catOrUnit.includes("iv")) {
+      defaultRoute = "IV";
+    } else if (catOrUnit.includes("im") || catOrUnit.includes("inj")) {
+      defaultRoute = "IM";
+    } else if (catOrUnit.includes("supp")) {
+      defaultRoute = "SUPPOSITORY";
+    }
+
+    setCurrentDrug(prev => ({
+      ...prev,
+      drug: finalDrugName,
+      strength: strength || prev.strength,
+      dosage: parsedDosage || prev.dosage,
+      doseUnit: defaultUnit,
+      route: defaultRoute,
+      medicineId: medicine.id
+    }));
     setActiveDrugSearch(false);
     
     if (medicine.stock === 0) {
@@ -406,19 +461,23 @@ export default function ConsultationPage() {
           const dispenseQty = calculateDispenseQuantity(d);
           const resolvedMedId = d.medicineId || availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id || null;
 
-          const mealTiming = d.timing === "before" ? "Before Eat" : d.timing === "after" ? "After Eat" : "";
+          const mealTiming = d.timing === "before" ? "Before meals" : d.timing === "after" ? "After meals" : "";
           const combinedInstructions = [mealTiming, d.instructions?.trim()].filter(Boolean).join(" • ");
-          const combinedFrequency = d.timesPerDay 
-            ? `${d.timesPerDay}x day${d.tabletsPerTime ? ` (${d.tabletsPerTime} tab)` : ""}`
-            : (mealTiming || "");
 
           return {
             medicineId: resolvedMedId,
             drugName: d.drug,
-            dosage: d.dosage,
-            frequency: combinedFrequency,
-            duration: d.duration,
-            instructions: combinedInstructions,
+            strength: d.strength || null,
+            dosageAmount: d.dosageAmount || null,
+            doseUnit: d.doseUnit || null,
+            dosage: d.dosage || (d.dosageAmount && d.doseUnit ? `${d.dosageAmount} ${d.doseUnit}` : (d.dosageAmount || "")),
+            frequency: d.frequency || "OD",
+            route: d.route || "ORAL",
+            duration: d.duration || null,
+            startDate: d.startDate ? new Date(d.startDate).toISOString() : null,
+            endDate: d.endDate ? new Date(d.endDate).toISOString() : null,
+            instructions: combinedInstructions || null,
+            quantity: d.quantity != null ? Number(d.quantity) : dispenseQty,
             dispenseQty
           };
         })
@@ -922,55 +981,120 @@ export default function ConsultationPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Dosage</label>
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+                    <div className="md:col-span-3">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Strength</label>
                       <Input
-                        placeholder="e.g. 5mg"
-                        value={currentDrug.dosage}
-                        onChange={(e) => updateCurrentDrug("dosage", e.target.value)}
-                        className="bg-card text-card-foreground border-border"
+                        placeholder="e.g. 500mg, 10mg"
+                        value={currentDrug.strength}
+                        onChange={(e) => updateCurrentDrug("strength", e.target.value)}
+                        className="bg-card text-card-foreground border-border text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Times Per Day</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 2"
-                        value={currentDrug.timesPerDay}
-                        onChange={(e) => updateCurrentDrug("timesPerDay", e.target.value)}
-                        className="bg-card text-card-foreground border-border"
-                      />
+                    <div className="md:col-span-3">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Route of Admin</label>
+                      <select
+                        value={currentDrug.route}
+                        onChange={(e) => updateCurrentDrug("route", e.target.value)}
+                        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      >
+                        {PRESCRIPTION_ROUTES.map((r) => (
+                          <option key={r.code} value={r.code}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div>
-                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Tablets Per Time</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 1"
-                        value={currentDrug.tabletsPerTime}
-                        onChange={(e) => updateCurrentDrug("tabletsPerTime", e.target.value)}
-                        className="bg-card text-card-foreground border-border"
-                      />
+                    <div className="md:col-span-3">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Frequency</label>
+                      <select
+                        value={currentDrug.frequency}
+                        onChange={(e) => updateCurrentDrug("frequency", e.target.value)}
+                        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring font-medium"
+                      >
+                        {PRESCRIPTION_FREQUENCIES.map((f) => (
+                          <option key={f.code} value={f.code}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Dose Amount & Unit</label>
+                      <div className="flex gap-1.5">
+                        <Input
+                          placeholder="e.g. 1"
+                          value={currentDrug.dosageAmount}
+                          onChange={(e) => updateCurrentDrug("dosageAmount", e.target.value)}
+                          className="bg-card text-card-foreground border-border w-16 text-center text-sm font-semibold"
+                        />
+                        <select
+                          value={currentDrug.doseUnit}
+                          onChange={(e) => updateCurrentDrug("doseUnit", e.target.value)}
+                          className="flex h-9 flex-1 items-center justify-between rounded-md border border-input bg-card px-2 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          {DOSE_UNITS.map((unit) => (
+                            <option key={unit} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+                    <div className="md:col-span-3">
                       <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Duration</label>
                       <Input
-                        placeholder="e.g. 30 days"
+                        placeholder="e.g. 3 days, 1 month"
                         value={currentDrug.duration}
                         onChange={(e) => updateCurrentDrug("duration", e.target.value)}
-                        className="bg-card text-card-foreground border-border"
+                        className="bg-card text-card-foreground border-border text-sm"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Start Date</label>
+                      <Input
+                        type="date"
+                        value={currentDrug.startDate}
+                        onChange={(e) => updateCurrentDrug("startDate", e.target.value)}
+                        className="bg-card text-card-foreground border-border text-sm"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">
+                        Calculated Qty
+                        {currentDrug.frequency === "STAT" && (
+                          <span className="text-[10px] text-rose-500 ml-1 font-semibold">(Immediate dose)</span>
+                        )}
+                      </label>
+                      <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-input bg-muted/40">
+                        <span className="font-mono font-bold text-primary text-sm">
+                          {calculateDispenseQuantity(currentDrug)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">units</span>
+                      </div>
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Override Qty (Optional)</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Auto"
+                        value={currentDrug.quantity ?? ""}
+                        onChange={(e) => updateCurrentDrug("quantity", e.target.value ? e.target.value : "")}
+                        className="bg-card text-card-foreground border-border text-sm"
                       />
                     </div>
                   </div>
                   
-                  <div className="flex flex-col md:flex-row md:items-end gap-4 justify-between">
+                  <div className="flex flex-col md:flex-row md:items-end gap-4 justify-between pt-1">
                     <div className="flex-1 flex flex-col sm:flex-row sm:items-end gap-4">
                       <div className="flex-1">
                         <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Patient Instructions</label>
                         <Input
-                          placeholder="e.g. Take with plenty of water"
+                          placeholder="e.g. Take with plenty of water after food"
                           value={currentDrug.instructions}
                           onChange={(e) => updateCurrentDrug("instructions", e.target.value)}
                           className="bg-card text-card-foreground border-border text-sm italic"
@@ -985,7 +1109,7 @@ export default function ConsultationPage() {
                             currentDrug.timing === "before" ? "bg-primary text-white border-slate-800" : "bg-card text-card-foreground border-border text-muted-foreground hover:bg-muted/30"
                           )}
                         >
-                          Before Eat
+                          Before Meals
                         </button>
                         <button
                           type="button"
@@ -995,7 +1119,7 @@ export default function ConsultationPage() {
                             currentDrug.timing === "after" ? "bg-primary text-white border-slate-800" : "bg-card text-card-foreground border-border text-muted-foreground hover:bg-muted/30"
                           )}
                         >
-                          After Eat
+                          After Meals
                         </button>
                       </div>
                     </div>
@@ -1007,7 +1131,7 @@ export default function ConsultationPage() {
                         </Button>
                       )}
                       <Button type="button" onClick={handleAddOrUpdateDrug} className="h-10 min-w-[120px]">
-                        {editingIndex !== null ? "Update" : "Add to List"}
+                        {editingIndex !== null ? "Update Medicine" : "Add to Prescription"}
                       </Button>
                     </div>
                   </div>
@@ -1016,16 +1140,16 @@ export default function ConsultationPage() {
 
               {/* Data Table */}
               {addedDrugs.length > 0 && (
-                <div className="mt-6 border border-border rounded-lg overflow-hidden bg-card">
+                <div className="mt-6 border border-border rounded-lg overflow-hidden bg-card shadow-sm">
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead className="w-[40px] text-center">#</TableHead>
-                        <TableHead>Medication</TableHead>
-                        <TableHead className="text-center">Inventory Status</TableHead>
-                        <TableHead>Dosage</TableHead>
-                        <TableHead>Frequency</TableHead>
-                        <TableHead>Duration</TableHead>
+                        <TableHead>Medication & Strength</TableHead>
+                        <TableHead>Route</TableHead>
+                        <TableHead>Dose & Frequency</TableHead>
+                        <TableHead>Duration / Start</TableHead>
+                        <TableHead>Instructions</TableHead>
                         <TableHead className="text-center">Total Qty</TableHead>
                         <TableHead className="w-[60px] text-center">Action</TableHead>
                       </TableRow>
@@ -1038,51 +1162,83 @@ export default function ConsultationPage() {
                           onClick={() => handleEditDrug(i)}
                         >
                           <TableCell className="text-center font-medium text-muted-foreground">{i + 1}</TableCell>
-                          <TableCell className="font-semibold text-foreground">{d.drug}</TableCell>
-                          <TableCell className="text-center">
-                            {(() => {
-                              const medItem = availableMedicines.find(
-                                (m) => (d.medicineId && m.id === d.medicineId) ||
-                                       m.name.toLowerCase() === d.drug.trim().toLowerCase() ||
-                                       (m.genericName && m.genericName.toLowerCase() === d.drug.trim().toLowerCase())
-                              );
-                              if (!medItem) {
-                                return (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20 whitespace-nowrap">
-                                    External Item
-                                  </span>
-                                );
-                              }
-                              if (medItem.stock === 0) {
-                                return (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 inline-flex items-center gap-1 whitespace-nowrap">
-                                    <AlertTriangle className="w-3 h-3" /> Out of Stock
-                                  </span>
-                                );
-                              }
-                              if (medItem.stock <= (medItem.reorderLevel || 10)) {
-                                return (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap">
-                                    Low Stock ({medItem.stock})
-                                  </span>
-                                );
-                              }
-                              return (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 whitespace-nowrap">
-                                  In Stock ({medItem.stock})
+                          <TableCell>
+                            <div className="font-semibold text-foreground flex items-center gap-2">
+                              <span>{d.drug}</span>
+                              {d.strength && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted font-normal text-muted-foreground border">
+                                  {d.strength}
                                 </span>
-                              );
-                            })()}
+                              )}
+                            </div>
+                            <div className="mt-1">
+                              {(() => {
+                                const medItem = availableMedicines.find(
+                                  (m) => (d.medicineId && m.id === d.medicineId) ||
+                                         m.name.toLowerCase() === d.drug.trim().toLowerCase() ||
+                                         (m.genericName && m.genericName.toLowerCase() === d.drug.trim().toLowerCase())
+                                );
+                                if (!medItem) {
+                                  return (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20 whitespace-nowrap">
+                                      External Item
+                                    </span>
+                                  );
+                                }
+                                if (medItem.stock === 0) {
+                                  return (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 inline-flex items-center gap-1 whitespace-nowrap">
+                                      <AlertTriangle className="w-2.5 h-2.5" /> Out of Stock
+                                    </span>
+                                  );
+                                }
+                                if (medItem.stock <= (medItem.reorderLevel || 10)) {
+                                  return (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap">
+                                      Low Stock ({medItem.stock})
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 whitespace-nowrap">
+                                    In Stock ({medItem.stock})
+                                  </span>
+                                );
+                              })()}
+                            </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{d.dosage || "-"}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {d.timesPerDay ? `${d.timesPerDay}x day` : "-"}
-                            {d.tabletsPerTime ? ` (${d.tabletsPerTime} tab)` : ""}
+                          <TableCell>
+                            <span className={cn("px-2 py-0.5 rounded text-[11px] font-medium inline-block", getRouteBadgeClass(d.route))}>
+                              {getRouteLabel(d.route)}
+                            </span>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{d.duration || "-"}</TableCell>
+                          <TableCell>
+                            <div className="font-medium text-xs text-foreground">
+                              {d.dosageAmount} {d.doseUnit}
+                            </div>
+                            <span className={cn("px-2 py-0.5 rounded text-[10px] font-semibold mt-1 inline-block", getFrequencyBadgeClass(d.frequency))}>
+                              {getFrequencyLabel(d.frequency)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            <div>{d.duration || "-"}</div>
+                            {d.startDate && (
+                              <div className="text-[10px] text-muted-foreground/80 mt-0.5">
+                                From: {d.startDate}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
+                            {d.instructions || d.timing ? (
+                              <span>
+                                {d.timing ? `${d.timing === "before" ? "Before meals" : "After meals"} • ` : ""}
+                                {d.instructions}
+                              </span>
+                            ) : "-"}
+                          </TableCell>
                           <TableCell className="text-center font-bold text-foreground">
-                            <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-xs font-mono">
-                              {calculateDispenseQuantity(d)}
+                            <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-mono">
+                              {d.quantity != null ? d.quantity : calculateDispenseQuantity(d)}
                             </span>
                           </TableCell>
                           <TableCell className="text-center">

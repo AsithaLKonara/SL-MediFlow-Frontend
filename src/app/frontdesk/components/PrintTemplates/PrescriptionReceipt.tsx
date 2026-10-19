@@ -1,10 +1,15 @@
 import React from "react";
 import Barcode from "react-barcode";
+import { getFrequencyLabel, getRouteLabel } from "@/lib/prescriptionConstants";
 
 export interface PrescriptionReceiptMedItem {
   name: string;
+  strength?: string;
+  dosageAmount?: string;
+  doseUnit?: string;
   dosage?: string;
   frequency?: string;
+  route?: string;
   duration?: string;
   instructions?: string;
   dispenseQty?: number | null;
@@ -90,9 +95,14 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {medicines.map((med, idx) => {
+              const doseStr = med.dosageAmount && med.doseUnit 
+                ? `${med.dosageAmount} ${med.doseUnit}` 
+                : med.dosage;
               const clinicalParts = [
-                med.dosage,
-                med.frequency,
+                med.strength,
+                doseStr,
+                med.route ? getRouteLabel(med.route) : null,
+                med.frequency ? getFrequencyLabel(med.frequency) : null,
                 med.duration ? `for ${med.duration}` : null,
               ].filter(Boolean);
 
