@@ -68,6 +68,7 @@ export interface Prescription {
   bookingReference?: string | null;
   doctor?: any;
   consultationPaid?: boolean;
+  consultationFee?: number;
 }
 
 interface FrontdeskRxEditModalProps {
@@ -216,7 +217,7 @@ export function FrontdeskRxEditModal({
   };
 
   // Consultation and service totals
-  const doctorFee = prescription.doctor?.consultationFee ?? 2500;
+  const doctorFee = prescription.consultationFee ?? prescription.doctor?.consultationFee ?? 2500;
   const isConsultationPaid = Boolean(prescription.consultationPaid);
   const consultFeeAmount = isConsultationPaid ? 0 : doctorFee;
 
@@ -264,7 +265,7 @@ export function FrontdeskRxEditModal({
         doctorName: prescription.doctor?.fullName || prescription.doctorName || "Doctor",
         patientName: prescription.patientName || "Walk-in",
         bookingReference: prescription.bookingReference || undefined,
-        consultationFee: prescription.doctor?.consultationFee ?? 2500,
+        consultationFee: prescription.consultationFee ?? prescription.doctor?.consultationFee ?? 2500,
       }
     );
 

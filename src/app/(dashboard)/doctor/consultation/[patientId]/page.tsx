@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useRef } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2, ScanBarcode } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2, ScanBarcode, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { io } from "socket.io-client";
 import { useReactToPrint } from "react-to-print";
@@ -108,6 +108,47 @@ export default function ConsultationPage() {
   const [availableLabTests, setAvailableLabTests] = useState<any[]>([]);
   const [isUrgent, setIsUrgent] = useState(false);
   const [labNotes, setLabNotes] = useState("");
+
+  // OPD Doctor Fee State
+  const [selectedFee, setSelectedFee] = useState<number | null>(null);
+  const [doctorFeeOptions, setDoctorFeeOptions] = useState<number[]>([]);
+  const [isOpdDoctor, setIsOpdDoctor] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const isOpd = user.department?.toUpperCase() === "OPD" || 
+                    (Array.isArray(user.feeOptions) && user.feeOptions.length > 0);
+      setIsOpdDoctor(isOpd);
+      if (Array.isArray(user.feeOptions) && user.feeOptions.length > 0) {
+        setDoctorFeeOptions(user.feeOptions);
+      } else if (isOpd) {
+        setDoctorFeeOptions([850, 1000, 1200]);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+    if (!activeToken) return;
+    
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+      headers: { Authorization: `Bearer ${activeToken}` }
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.user) {
+          const isOpd = d.user.department?.toUpperCase() === "OPD" || 
+                        (Array.isArray(d.user.feeOptions) && d.user.feeOptions.length > 0);
+          setIsOpdDoctor(isOpd);
+          if (Array.isArray(d.user.feeOptions) && d.user.feeOptions.length > 0) {
+            setDoctorFeeOptions(d.user.feeOptions);
+          } else if (isOpd) {
+            setDoctorFeeOptions([850, 1000, 1200]);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   const [availableMedicines, setAvailableMedicines] = useState<any[]>([]);
 
@@ -375,6 +416,11 @@ export default function ConsultationPage() {
     );
 
   const savePrescription = async (navigateNext: boolean = false) => {
+    if (navigateNext && isOpdDoctor && selectedFee === null) {
+      toast.error("Please select a consultation fee before completing the consultation.");
+      return;
+    }
+
     const finalVisitId = urlVisitId || patient?.activeVisitId || rxVisitId || createdPrescription?.visitId;
     if (!finalVisitId) {
       toast.error("No active visit found for this patient.");
@@ -400,6 +446,7 @@ export default function ConsultationPage() {
         visitId: finalVisitId,
         doctorId: user.id,
         doctorName: user.fullName || "Doctor",
+        consultationFee: selectedFee !== null ? selectedFee : (user.consultationFee ?? 2500),
         diagnosis,
         clinicalNotes: notes,
         items: addedDrugs.map(d => {
@@ -1148,13 +1195,49 @@ export default function ConsultationPage() {
       {/* ========================================================= */}
       {/* STICKY BOTTOM ACTION BAR                                  */}
       {/* ========================================================= */}
-      <div className={cn("fixed bottom-0 right-0 border-t border-border/40 bg-background/80 backdrop-blur-md z-40 p-4 transition-all duration-300 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]", leftMargin)}>
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <div className={cn("fixed bottom-0 right-0 border-t border-border/40 bg-background/90 backdrop-blur-md z-40 p-3 sm:p-4 transition-all duration-300 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]", leftMargin)}>
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
-            <span className="text-sm font-medium text-muted-foreground">Consultation in progress...</span>
+            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Consultation in progress...</span>
           </div>
-          <div className="flex items-center gap-4">
+
+          {/* OPD Doctor Fee Selector */}
+          {isOpdDoctor && doctorFeeOptions.length > 0 && (
+            <div className="flex items-center gap-2 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl animate-in fade-in">
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                <DollarSign className="w-3.5 h-3.5" /> Consultation Fee:
+              </span>
+              <div className="flex items-center gap-1.5">
+                {doctorFeeOptions.map((fee) => {
+                  const isSelected = selectedFee === fee;
+                  return (
+                    <button
+                      key={fee}
+                      type="button"
+                      onClick={() => setSelectedFee(fee)}
+                      className={cn(
+                        "px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer",
+                        isSelected 
+                          ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30 scale-105" 
+                          : "bg-background hover:bg-muted text-foreground border border-border"
+                      )}
+                    >
+                      {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                      Rs. {fee.toLocaleString()}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedFee === null && (
+                <span className="text-[11px] text-amber-500 dark:text-amber-400 font-semibold animate-pulse pl-1 hidden md:inline">
+                  (Required)
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
             {createdPrescription && (
               <Button 
                 variant="outline"
@@ -1169,20 +1252,32 @@ export default function ConsultationPage() {
               variant="outline" 
               onClick={() => savePrescription(false)}
               disabled={savingDraft || isCompleting}
-              className="bg-card text-card-foreground min-w-[120px]"
+              className="bg-card text-card-foreground min-w-[100px]"
               data-testid="save-prescription-btn"
             >
               {savingDraft ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><Save className="w-4 h-4 mr-2" /> Save</>}
             </Button>
-            <Button 
-              size="lg" 
-              onClick={() => savePrescription(true)}
-              disabled={isCompleting || savingDraft}
-              className="bg-primary hover:bg-primary text-white min-w-[180px]"
-              data-testid="next-patient-btn"
-            >
-              {isCompleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Next Patient</>}
-            </Button>
+            <div className="relative group">
+              <Button 
+                size="lg" 
+                onClick={() => savePrescription(true)}
+                disabled={isCompleting || savingDraft || (isOpdDoctor && selectedFee === null)}
+                className={cn(
+                  "min-w-[170px] font-semibold transition-all",
+                  isOpdDoctor && selectedFee === null 
+                    ? "opacity-50 cursor-not-allowed bg-slate-400 dark:bg-slate-700 text-white" 
+                    : "bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg"
+                )}
+                data-testid="next-patient-btn"
+              >
+                {isCompleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Next Patient</>}
+              </Button>
+              {isOpdDoctor && selectedFee === null && (
+                <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  Select a consultation fee to enable Next Patient
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

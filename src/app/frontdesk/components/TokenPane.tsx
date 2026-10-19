@@ -75,6 +75,7 @@ interface Prescription {
   bookingReference?: string | null;
   doctor?: any;
   consultationPaid?: boolean;
+  consultationFee?: number;
 }
 
 interface GeneratedToken {
@@ -574,7 +575,7 @@ export function TokenPane() {
         doctorName: (rx as any).doctor?.fullName || rx.doctorName || "Doctor",
         patientName: rx.patientName || "Walk-in",
         bookingReference: rx.bookingReference || undefined,
-        consultationFee: (rx as any).doctor?.consultationFee ?? 2500,
+        consultationFee: rx.consultationFee ?? (rx as any).doctor?.consultationFee ?? 2500,
       }
     );
     toast.success(`${cartItems.length} medicine(s) sent to POS — complete checkout to dispense.`);

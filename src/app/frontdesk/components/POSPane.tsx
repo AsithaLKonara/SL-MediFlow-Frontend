@@ -158,7 +158,7 @@ export function POSPane() {
           }
         }
 
-        const fee = doctor?.consultationFee ?? meta?.consultationFee ?? 2500;
+        const fee = meta?.consultationFee ?? doctor?.consultationFee ?? 2500;
         const doctorName = doctor?.fullName ?? meta?.doctorName ?? "Doctor";
         const patientName = meta?.patientName ?? "Walk-in";
         const bookingReference = meta?.bookingReference ?? null;

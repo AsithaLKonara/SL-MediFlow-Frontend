@@ -8,6 +8,11 @@ export interface User {
   fullName: string;
   email: string;
   role: string;
+  departmentId?: string | null;
+  department?: string | null;
+  feeOptions?: number[];
+  consultationFee?: number;
+  feeType?: string;
   permissions?: string[];
 }
 
