@@ -47,9 +47,9 @@ interface Staff {
   title?: string;
   departmentId?: string;
   departmentName?: string;
-  consultationFee?: number;
-  feeType?: string;
-  deviceUserId?: string;
+  consultationFee?: number | null;
+  feeType?: string | null;
+  deviceUserId?: string | null;
 }
 
 export default function StaffManagementPage() {
@@ -349,22 +349,22 @@ export default function StaffManagementPage() {
                           <Badge 
                             variant="outline" 
                             className={`font-semibold border text-xs capitalize ${
-                              member.role.toUpperCase() === 'DOCTOR'
+                              (member.role || '').toUpperCase() === 'DOCTOR'
                                 ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200/50 dark:border-purple-800/50"
-                                : member.role.toUpperCase() === 'NURSE'
+                                : (member.role || '').toUpperCase() === 'NURSE'
                                 ? "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200/50 dark:border-teal-800/50"
-                                : member.role.toUpperCase() === 'ADMIN' || member.role.toUpperCase() === 'SUPERADMIN'
+                                : (member.role || '').toUpperCase() === 'ADMIN' || (member.role || '').toUpperCase() === 'SUPERADMIN'
                                 ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200/50 dark:border-rose-800/50"
-                                : member.role.toUpperCase() === 'RECEPTIONIST'
+                                : (member.role || '').toUpperCase() === 'RECEPTIONIST'
                                 ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200/50 dark:border-blue-800/50"
-                                : member.role.toUpperCase().includes('LAB')
+                                : (member.role || '').toUpperCase().includes('LAB')
                                 ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200/50 dark:border-amber-800/50"
-                                : member.role.toUpperCase() === 'PHARMACIST'
+                                : (member.role || '').toUpperCase() === 'PHARMACIST'
                                 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/50"
                                 : "bg-muted/50 text-foreground/80 border-border"
                             }`}
                           >
-                            {member.role.replace('_', ' ').toLowerCase()}
+                            {(member.role || '').replace('_', ' ').toLowerCase()}
                           </Badge>
                         </TableCell>
                         <TableCell className="w-[260px]">
@@ -384,8 +384,8 @@ export default function StaffManagementPage() {
                                     {member.roomNumber}
                                   </Badge>
                                 )}
-                                {member.consultationFee !== undefined && (
-                                  <span className="text-[11px]">Rs. {member.consultationFee.toLocaleString()} ({member.feeType})</span>
+                                {member.consultationFee != null && !isNaN(Number(member.consultationFee)) && (
+                                  <span className="text-[11px]">Rs. {Number(member.consultationFee).toLocaleString()} {member.feeType ? `(${member.feeType})` : ''}</span>
                                 )}
                               </div>
                             </div>
@@ -413,7 +413,7 @@ export default function StaffManagementPage() {
                           ) : (
                             <Badge variant="secondary" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-medium text-xs gap-1.5 py-0.5">
                               <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                              {member.status.replace('_', ' ')}
+                              {(member.status || 'INACTIVE').replace('_', ' ')}
                             </Badge>
                           )}
                         </TableCell>
