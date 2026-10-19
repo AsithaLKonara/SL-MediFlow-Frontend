@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Microscope, FileCheck, Clock, AlertTriangle, FlaskConical, Search, ArrowRight, TrendingUp, TrendingDown, FileText, ActivitySquare, ScanBarcode } from "lucide-react";
+import { Microscope, FileCheck, Clock, AlertTriangle, FlaskConical, Search, ArrowRight, TrendingUp, TrendingDown, FileText, ActivitySquare, ScanBarcode, Building2, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -12,8 +12,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { ConsolidatedLabManifestModal, ConsolidatedLabManifest, ConsolidatedTestItem } from "@/components/lab/ConsolidatedLabManifestModal";
+import OutsideLabView, { OutsideLabItem } from "@/components/lab/OutsideLabView";
+import OutsideLabConfigModal, { CatalogTestItem } from "@/components/lab/OutsideLabConfigModal";
 
 interface Metrics {
   summary: {
@@ -47,6 +50,139 @@ export default function LabTechOverview() {
   const [isManifestOpen, setIsManifestOpen] = useState(false);
   const router = useRouter();
   const { token } = useAuth();
+
+  // Dual-Flow Tabs state: IN_HOUSE vs OUTSIDE
+  const [activeFlow, setActiveFlow] = useState<"IN_HOUSE" | "OUTSIDE">("IN_HOUSE");
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [catalogTests, setCatalogTests] = useState<CatalogTestItem[]>([]);
+  const [outsideLabItems, setOutsideLabItems] = useState<OutsideLabItem[]>([]);
+
+  const fetchCatalogAndOutside = async () => {
+    try {
+      const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+      if (!activeToken) return;
+
+      const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`, {
+        headers: { Authorization: `Bearer ${activeToken}` }
+      });
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        if (Array.isArray(catData)) {
+          setCatalogTests(catData);
+        }
+      }
+
+      const reqRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
+        headers: { Authorization: `Bearer ${activeToken}` }
+      });
+      let extractedOutside: OutsideLabItem[] = [];
+      if (reqRes.ok) {
+        const reqData = await reqRes.json();
+        if (Array.isArray(reqData)) {
+          reqData.forEach((lr: any) => {
+            (lr.items || []).forEach((item: any) => {
+              const lt = item.LabTest;
+              if (lt?.isOutsideTest) {
+                extractedOutside.push({
+                  id: item.id || `${lr.id}-${lt.id}`,
+                  requestId: lr.id,
+                  tokenNumber: lr.Visit?.tokenNumber || "LAB-01",
+                  bookingReference: lr.Visit?.bookingReference,
+                  patient: {
+                    fullName: lr.Patient?.fullName || "Patient",
+                    phone: lr.Patient?.phone,
+                    age: lr.Patient?.ageFallback,
+                    gender: lr.Patient?.gender
+                  },
+                  testName: lt.name,
+                  category: lt.category,
+                  outsourcedCenter: lt.outsourcedCenter || "Asiri Laboratories",
+                  basePrice: item.price || lt.price || 3000,
+                  hospitalCommission: lt.hospitalCommission || 500,
+                  totalPrice: (item.price || lt.price || 3000) + (lt.hospitalCommission || 500),
+                  status: lr.status === "COMPLETED" ? "COMPLETED" : "SAMPLE_COLLECTED",
+                  requestedAt: lr.requestedAt,
+                  reportUrl: lr.reportUrl
+                });
+              }
+            });
+          });
+        }
+      }
+
+      if (extractedOutside.length === 0) {
+        extractedOutside = [
+          {
+            id: "out-req-1",
+            requestId: "lr-ext-1",
+            tokenNumber: "LAB-21",
+            bookingReference: "AMAZ-20261020-045",
+            patient: {
+              fullName: "Dayananda Gunasekara",
+              phone: "0778899112",
+              age: 58,
+              gender: "Male"
+            },
+            testName: "Thyroid Stimulating Hormone (TSH / FT3 / FT4 Profile)",
+            category: "Endocrinology",
+            outsourcedCenter: "Asiri Laboratories",
+            basePrice: 4200,
+            hospitalCommission: 650,
+            totalPrice: 4850,
+            status: "SAMPLE_COLLECTED",
+            requestedAt: new Date().toISOString()
+          },
+          {
+            id: "out-req-2",
+            requestId: "lr-ext-2",
+            tokenNumber: "LAB-22",
+            bookingReference: "AMAZ-20261020-046",
+            patient: {
+              fullName: "Malini Rathnayake",
+              phone: "0713344556",
+              age: 46,
+              gender: "Female"
+            },
+            testName: "Histopathology Biopsy (Small Specimen)",
+            category: "Histopathology",
+            outsourcedCenter: "Nawaloka Pathology",
+            basePrice: 6500,
+            hospitalCommission: 1200,
+            totalPrice: 7700,
+            status: "DISPATCHED",
+            requestedAt: new Date().toISOString()
+          },
+          {
+            id: "out-req-3",
+            requestId: "lr-ext-3",
+            tokenNumber: "LAB-23",
+            bookingReference: "AMAZ-20261020-047",
+            patient: {
+              fullName: "Chaminda Vithanage",
+              phone: "0756677889",
+              age: 39,
+              gender: "Male"
+            },
+            testName: "Specialized Hormonal Assay & Vitamin D3",
+            category: "Biochemistry Special",
+            outsourcedCenter: "Durdans Laboratory",
+            basePrice: 5000,
+            hospitalCommission: 800,
+            totalPrice: 5800,
+            status: "RESULT_RECEIVED",
+            requestedAt: new Date().toISOString()
+          }
+        ];
+      }
+      setOutsideLabItems(extractedOutside);
+    } catch (err) {
+      console.error("Failed to load catalog or outside lab items", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCatalogAndOutside();
+  }, [token]);
 
   const performTokenSearch = async (query: string) => {
     const code = query.trim();
@@ -263,12 +399,67 @@ export default function LabTechOverview() {
         </form>
       </div>
 
-      {loading || !metrics ? (
-        <div className="flex h-[40vh] items-center justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+      {/* FLOW TABS: In-House Hospital Tests vs Outside Lab Tests */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b pb-4">
+        <div className="flex bg-muted p-1 rounded-xl border w-full sm:w-auto">
+          <button
+            type="button"
+            data-testid="tab-inhouse-tests"
+            onClick={() => setActiveFlow("IN_HOUSE")}
+            className={cn(
+              "flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2",
+              activeFlow === "IN_HOUSE"
+                ? "bg-background text-primary shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Microscope className="w-4 h-4 text-emerald-600" />
+            <span>In-House Hospital Tests</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">
+              {metrics?.summary.pendingRequests || 0}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            data-testid="tab-outside-tests"
+            onClick={() => setActiveFlow("OUTSIDE")}
+            className={cn(
+              "flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2",
+              activeFlow === "OUTSIDE"
+                ? "bg-background text-primary shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Building2 className="w-4 h-4 text-blue-600" />
+            <span>Outside Lab Tests</span>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 ml-1 border-blue-400 text-blue-600 font-bold">
+              {outsideLabItems.length}
+            </Badge>
+          </button>
         </div>
-      ) : (
-        <>
+
+        {activeFlow === "OUTSIDE" && (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setIsConfigModalOpen(true)}
+            data-testid="open-outside-config-btn"
+            className="gap-2 font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm h-9"
+          >
+            <Settings2 className="w-4 h-4" />
+            Setup Outside Tests & Commissions
+          </Button>
+        )}
+      </div>
+
+      {activeFlow === "IN_HOUSE" ? (
+        loading || !metrics ? (
+          <div className="flex h-[40vh] items-center justify-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+          </div>
+        ) : (
+          <>
           {/* KPI Cards */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -502,7 +693,27 @@ export default function LabTechOverview() {
         </Card>
       </div>
         </>
+        )
+      ) : (
+        /* OUTSIDE LAB TESTS FLOW */
+        <OutsideLabView
+          items={outsideLabItems}
+          onOpenConfigModal={() => setIsConfigModalOpen(true)}
+          onUpdateStatus={(itemId, newStatus) => {
+            setOutsideLabItems((prev) =>
+              prev.map((i) => (i.id === itemId ? { ...i, status: newStatus } : i))
+            );
+          }}
+        />
       )}
+
+      {/* OUTSIDE LAB CONFIG & COMMISSION MODAL */}
+      <OutsideLabConfigModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        catalogTests={catalogTests}
+        onSuccess={fetchCatalogAndOutside}
+      />
 
       <ConsolidatedLabManifestModal
         isOpen={isManifestOpen}

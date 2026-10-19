@@ -2,11 +2,13 @@
 
 import { useEffect, useState, use, useRef } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2, ScanBarcode, DollarSign } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2, ScanBarcode, DollarSign, Edit3, X } from "lucide-react";
 import Link from "next/link";
 import { io } from "socket.io-client";
 import { useReactToPrint } from "react-to-print";
 import { PrescriptionPrintTemplate } from "@/components/printing/PrescriptionPrintTemplate";
+import { LabOrderModal, LabTestItem } from "@/components/doctor/LabOrderModal";
+import { ExtraServiceOrderModal, ExtraServiceItem } from "@/components/doctor/ExtraServiceOrderModal";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/dashboard/SidebarProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -130,16 +132,50 @@ export default function ConsultationPage() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [activeDrugSearch, setActiveDrugSearch] = useState(false);
 
-  // Lab request state
-  const [selectedTests, setSelectedTests] = useState<any[]>([]);
+  // Lab & Extra Service order state
+  const [isLabModalOpen, setIsLabModalOpen] = useState(false);
+  const [isExtraServiceModalOpen, setIsExtraServiceModalOpen] = useState(false);
+  const [selectedTests, setSelectedTests] = useState<LabTestItem[]>([]);
+  const [selectedExtraServices, setSelectedExtraServices] = useState<ExtraServiceItem[]>([]);
   const [availableLabTests, setAvailableLabTests] = useState<any[]>([]);
   const [isUrgent, setIsUrgent] = useState(false);
   const [labNotes, setLabNotes] = useState("");
 
+  const handleUpdateExtraServicePrice = (id: string, newPrice: number) => {
+    setSelectedExtraServices(prev => prev.map(s => s.id === id ? { ...s, customPrice: newPrice } : s));
+  };
+
+  const handleRemoveExtraService = (id: string) => {
+    setSelectedExtraServices(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleRemoveLabTest = (id: string) => {
+    setSelectedTests(prev => prev.filter(t => t.id !== id));
+  };
+
   // OPD Doctor Fee State
   const [selectedFee, setSelectedFee] = useState<number | null>(null);
+  const [isCustomFee, setIsCustomFee] = useState<boolean>(false);
+  const [customFeeInput, setCustomFeeInput] = useState<string>("");
   const [doctorFeeOptions, setDoctorFeeOptions] = useState<number[]>([]);
   const [isOpdDoctor, setIsOpdDoctor] = useState(false);
+
+  const handleSelectPreset = (fee: number) => {
+    setSelectedFee(fee);
+    setIsCustomFee(false);
+    setCustomFeeInput("");
+  };
+
+  const handleCustomFeeChange = (val: string) => {
+    setCustomFeeInput(val);
+    setIsCustomFee(true);
+    const num = parseFloat(val);
+    if (!isNaN(num) && num > 0) {
+      setSelectedFee(num);
+    } else {
+      setSelectedFee(null);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -471,8 +507,8 @@ export default function ConsultationPage() {
     );
 
   const savePrescription = async (navigateNext: boolean = false) => {
-    if (navigateNext && isOpdDoctor && selectedFee === null) {
-      toast.error("Please select a consultation fee before completing the consultation.");
+    if (navigateNext && isOpdDoctor && (selectedFee === null || selectedFee <= 0)) {
+      toast.error("Please select or enter a valid consultation fee before completing the consultation.");
       return;
     }
 
@@ -504,6 +540,7 @@ export default function ConsultationPage() {
         consultationFee: selectedFee !== null ? selectedFee : (user.consultationFee ?? 2500),
         diagnosis,
         clinicalNotes: notes,
+        extraServices: selectedExtraServices,
         items: addedDrugs.map(d => {
           const dispenseQty = calculateDispenseQuantity(d);
           const resolvedMedId = d.medicineId || availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id || null;
@@ -779,57 +816,160 @@ export default function ConsultationPage() {
 
 
 
-          {/* LAB ORDERS */}
-          <div className="bg-card text-card-foreground border rounded-lg p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-              <FlaskConical className="w-3.5 h-3.5" /> Laboratory Orders
-            </h3>
-            
-            <div className="flex flex-col gap-2">
-              {availableLabTests.map((test) => {
-                const isSelected = selectedTests.some(t => t.id === test.id);
-                return (
-                  <label
-                    key={test.id}
-                    className={cn(
-                      "flex items-center justify-between p-2.5 rounded-md border cursor-pointer transition-all",
-                      isSelected ? "bg-blue-500/10 border-blue-500/20" : "bg-card text-card-foreground border-border/50 hover:bg-muted/30"
-                    )}
-                    onClick={(e) => { e.preventDefault(); toggleTest(test); }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
-                        isSelected ? "bg-primary border-blue-600 text-white" : "border-border bg-card text-card-foreground"
-                      )}>
-                        {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                      </div>
-                      <div>
-                        <span className={cn("text-xs font-bold block", isSelected ? "text-blue-600 dark:text-blue-400" : "text-foreground/80")}>
-                          {test.name}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase">{test.category}</span>
-                      </div>
-                    </div>
-                    <span className="text-xs font-semibold text-muted-foreground">LKR {test.price.toFixed(2)}</span>
-                  </label>
-                );
-              })}
+          {/* INVESTIGATIONS & PROCEDURES (LAB TESTS & EXTRA SERVICES) */}
+          <div className="bg-card text-card-foreground border rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <FlaskConical className="w-3.5 h-3.5 text-blue-500" /> Investigations & Procedures
+              </h3>
             </div>
 
-            {selectedTests.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-border/50">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={isUrgent} 
-                    onChange={e => setIsUrgent(e.target.checked)}
-                    className="w-4 h-4 rounded border-border text-red-600 focus:ring-red-600 focus:ring-offset-background"
-                  />
-                  <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                    Mark Lab Request as URGENT
+            {/* 2 Clean Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsLabModalOpen(true)}
+                data-testid="open-lab-modal-btn"
+                className="w-full flex items-center justify-center gap-2 border-blue-200 dark:border-blue-900/50 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold text-xs h-9 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Order Lab Test
+                {selectedTests.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px]">
+                    {selectedTests.length}
                   </span>
-                </label>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsExtraServiceModalOpen(true)}
+                data-testid="open-extra-service-modal-btn"
+                className="w-full flex items-center justify-center gap-2 border-emerald-200 dark:border-emerald-900/50 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-xs h-9 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Order Extra Service
+                {selectedExtraServices.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px]">
+                    {selectedExtraServices.length}
+                  </span>
+                )}
+              </Button>
+            </div>
+
+            {/* Selected Lab Tests Summary */}
+            {selectedTests.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-border/60">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                    <FlaskConical className="w-3.5 h-3.5 text-blue-600" />
+                    Lab Tests ({selectedTests.length})
+                  </span>
+                  {isUrgent && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20">
+                      URGENT
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {selectedTests.map((t) => (
+                    <div 
+                      key={t.id} 
+                      data-testid={`selected-lab-${t.id}`}
+                      className="flex items-center justify-between p-2 rounded-md bg-muted/40 border border-border/50 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium text-foreground truncate">{t.name}</span>
+                        {t.category && (
+                          <span className="text-[10px] uppercase text-muted-foreground bg-muted px-1 rounded shrink-0">
+                            {t.category}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-semibold text-muted-foreground text-[11px]">
+                          Rs. {Number(t.price).toLocaleString()}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLabTest(t.id)}
+                          data-testid={`remove-lab-${t.id}`}
+                          className="text-muted-foreground hover:text-red-500 p-0.5 rounded transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Selected Extra Services Summary (Task 1.3 Ready) */}
+            {selectedExtraServices.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-border/60">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                    Extra Services ({selectedExtraServices.length})
+                  </span>
+                  {isOpdDoctor && (
+                    <span className="text-[10px] text-blue-600 font-medium bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded">
+                      Editable Pricing
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {selectedExtraServices.map((svc) => (
+                    <div 
+                      key={svc.id} 
+                      data-testid={`selected-extra-service-${svc.id}`}
+                      className="flex items-center justify-between p-2 rounded-md bg-muted/40 border border-border/50 text-xs gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-foreground truncate">{svc.title}</span>
+                          {svc.room && (
+                            <span className="text-[9px] px-1 py-0.2 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 rounded font-medium shrink-0">
+                              {svc.room.roomNumber}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isOpdDoctor ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px] text-muted-foreground">Rs.</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={svc.customPrice !== undefined ? svc.customPrice : svc.price}
+                              onChange={(e) => handleUpdateExtraServicePrice(svc.id, parseFloat(e.target.value) || 0)}
+                              data-testid={`extra-service-price-${svc.id}`}
+                              className="h-7 w-20 px-1.5 py-0.5 text-xs text-right font-bold text-foreground bg-background"
+                            />
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-muted-foreground text-[11px]">
+                            Rs. {Number(svc.price).toLocaleString()}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExtraService(svc.id)}
+                          data-testid={`remove-extra-service-${svc.id}`}
+                          className="text-muted-foreground hover:text-red-500 p-0.5 rounded transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1359,33 +1499,78 @@ export default function ConsultationPage() {
           </div>
 
           {/* OPD Doctor Fee Selector */}
-          {isOpdDoctor && doctorFeeOptions.length > 0 && (
-            <div className="flex items-center gap-2 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl animate-in fade-in">
+          {isOpdDoctor && (
+            <div className="flex flex-wrap items-center gap-2 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl animate-in fade-in">
               <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5" /> Consultation Fee:
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {doctorFeeOptions.map((fee) => {
-                  const isSelected = selectedFee === fee;
+                  const isSelected = !isCustomFee && selectedFee === fee;
                   return (
                     <button
                       key={fee}
                       type="button"
-                      onClick={() => setSelectedFee(fee)}
+                      onClick={() => handleSelectPreset(fee)}
                       className={cn(
-                        "px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer",
+                        "px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer",
                         isSelected 
                           ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30 scale-105" 
                           : "bg-background hover:bg-muted text-foreground border border-border"
                       )}
+                      data-testid={`fee-preset-${fee}`}
                     >
                       {isSelected && <CheckCircle2 className="w-3 h-3" />}
                       Rs. {fee.toLocaleString()}
                     </button>
                   );
                 })}
+
+                {/* Custom Fee Toggle / Input */}
+                {isCustomFee ? (
+                  <div className="flex items-center gap-1 bg-background border-2 border-blue-600 rounded-lg px-2 py-0.5 shadow-sm animate-in fade-in zoom-in-95">
+                    <span className="text-xs font-bold text-muted-foreground">Rs.</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="50"
+                      autoFocus
+                      placeholder="Amount"
+                      value={customFeeInput}
+                      onChange={(e) => handleCustomFeeChange(e.target.value)}
+                      className="w-20 bg-transparent text-xs font-bold text-foreground focus:outline-none"
+                      data-testid="custom-fee-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomFee(false);
+                        setCustomFeeInput("");
+                        setSelectedFee(null);
+                      }}
+                      className="text-muted-foreground hover:text-foreground text-xs p-0.5"
+                      title="Clear custom fee"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomFee(true);
+                      setCustomFeeInput("");
+                      setSelectedFee(null);
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer bg-background hover:bg-muted text-foreground border border-border border-dashed hover:border-blue-500/50"
+                    data-testid="custom-fee-btn"
+                  >
+                    <Edit3 className="w-3 h-3 text-blue-500" />
+                    Custom
+                  </button>
+                )}
               </div>
-              {selectedFee === null && (
+              {(selectedFee === null || selectedFee <= 0) && (
                 <span className="text-[11px] text-amber-500 dark:text-amber-400 font-semibold animate-pulse pl-1 hidden md:inline">
                   (Required)
                 </span>
@@ -1417,10 +1602,10 @@ export default function ConsultationPage() {
               <Button 
                 size="lg" 
                 onClick={() => savePrescription(true)}
-                disabled={isCompleting || savingDraft || (isOpdDoctor && selectedFee === null)}
+                disabled={isCompleting || savingDraft || (isOpdDoctor && (selectedFee === null || selectedFee <= 0))}
                 className={cn(
                   "min-w-[170px] font-semibold transition-all",
-                  isOpdDoctor && selectedFee === null 
+                  isOpdDoctor && (selectedFee === null || selectedFee <= 0)
                     ? "opacity-50 cursor-not-allowed bg-slate-400 dark:bg-slate-700 text-white" 
                     : "bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg"
                 )}
@@ -1428,16 +1613,36 @@ export default function ConsultationPage() {
               >
                 {isCompleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Next Patient</>}
               </Button>
-              {isOpdDoctor && selectedFee === null && (
+              {isOpdDoctor && (selectedFee === null || selectedFee <= 0) && (
                 <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                  Select a consultation fee to enable Next Patient
+                  Select a preset or enter a custom fee to enable Next Patient
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
-      
+
+      <LabOrderModal
+        isOpen={isLabModalOpen}
+        onClose={() => setIsLabModalOpen(false)}
+        onConfirm={(tests, urgent) => {
+          setSelectedTests(tests);
+          setIsUrgent(urgent);
+        }}
+        initialSelectedTests={selectedTests}
+        initialIsUrgent={isUrgent}
+      />
+
+      <ExtraServiceOrderModal
+        isOpen={isExtraServiceModalOpen}
+        onClose={() => setIsExtraServiceModalOpen(false)}
+        onConfirm={(services) => {
+          setSelectedExtraServices(services);
+        }}
+        initialSelectedServices={selectedExtraServices}
+      />
+
       <PrescriptionPrintTemplate ref={printRef} prescription={createdPrescription} />
     </div>
   );

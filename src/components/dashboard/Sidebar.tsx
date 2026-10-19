@@ -44,7 +44,8 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/finance/doctor-statements", label: "Doctor Settlements", icon: Stethoscope, category: "Operations", permission: "Finance" },
     { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations", permission: "Inventory" },
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
-    { href: "/superadmin/extra-services", label: "Extra Services", icon: FilePlus2, category: "Operations", permission: "Extra Services" },
+    { href: "/superadmin/extra-services", label: "Extra Services (Config)", icon: FilePlus2, category: "Operations", permission: "Extra Services" },
+    { href: "/extra-services", label: "Extra Services Station", icon: ActivitySquare, category: "Operations", permission: "Extra Services" },
 
     { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management", permission: "Staff" },
     { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management", permission: "HR" },
@@ -85,7 +86,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   nurse: [
-    { href: "/nurse", label: "Extra Services Station", icon: ActivitySquare },
+    { href: "/extra-services", label: "Extra Services Station", icon: ActivitySquare },
     { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
