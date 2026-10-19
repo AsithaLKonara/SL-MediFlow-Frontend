@@ -40,7 +40,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     
     { href: "/superadmin/finance", label: "Finance", icon: Banknote, category: "Operations", permission: "Finance" },
     { href: "/superadmin/fund-office", label: "Fund Office (Doctors)", icon: Receipt, category: "Operations", permission: "Finance" },
-    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, category: "Operations", permission: "Finance" },
+    { href: "/superadmin/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, category: "Operations", permission: "Finance" },
     { href: "/superadmin/finance/doctor-statements", label: "Doctor Settlements", icon: Stethoscope, category: "Operations", permission: "Finance" },
     { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations", permission: "Inventory" },
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
@@ -116,7 +116,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
   ],
   fundoffice: [
     { href: "/superadmin/fund-office", label: "Fund Office Dashboard", icon: LayoutDashboard },
-    { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
+    { href: "/superadmin/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
     { href: "/superadmin/finance", label: "Finance Overview", icon: Banknote },
     { href: "/settings", label: "Settings", icon: Settings },
   ],

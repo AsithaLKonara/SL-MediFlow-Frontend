@@ -538,13 +538,13 @@ export default function FundOfficePage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return <Badge variant="outline" className="bg-slate-100 text-slate-700">DRAFT</Badge>;
+        return <Badge variant="outline" className="bg-muted text-muted-foreground border-border">DRAFT</Badge>;
       case "VERIFIED":
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">VERIFIED</Badge>;
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800">VERIFIED</Badge>;
       case "APPROVED":
-        return <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">APPROVED</Badge>;
+        return <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">APPROVED</Badge>;
       case "PAID":
-        return <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold">PAID</Badge>;
+        return <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 font-bold">PAID</Badge>;
       case "CANCELLED":
         return <Badge variant="destructive">CANCELLED</Badge>;
       default:
@@ -563,8 +563,8 @@ export default function FundOfficePage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Fund Office</h1>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Fund Office</h1>
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
               Doctor Payments
             </Badge>
           </div>
@@ -594,7 +594,7 @@ export default function FundOfficePage() {
               }
             }}
             disabled={refreshing}
-            className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+            className="text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-700 dark:hover:bg-emerald-950/50"
           >
             <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
             Sync Consultations
@@ -634,9 +634,9 @@ export default function FundOfficePage() {
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Today's Doctor Payments
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-slate-900 flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold text-foreground flex items-center justify-between">
               <span>LKR {metrics.todayDoctorPayments.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-              <DollarSign className="w-5 h-5 text-blue-600" />
+              <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
@@ -650,14 +650,14 @@ export default function FundOfficePage() {
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Pending Doctor Payments
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-amber-700 flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold text-amber-700 dark:text-amber-400 flex items-center justify-between">
               <span>LKR {metrics.pendingDoctorPayments.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               <Clock className="w-5 h-5 text-amber-500" />
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground flex justify-between items-center">
             <span>Awaiting verification & approval</span>
-            <Badge variant="outline" className="bg-amber-50 text-amber-700">{metrics.pendingCount} Sheets</Badge>
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800">{metrics.pendingCount} Sheets</Badge>
           </CardContent>
         </Card>
 
@@ -667,14 +667,14 @@ export default function FundOfficePage() {
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Approved Payments
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-indigo-700 flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold text-indigo-700 dark:text-indigo-400 flex items-center justify-between">
               <span>LKR {metrics.approvedPayments.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               <CheckCircle className="w-5 h-5 text-indigo-600" />
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground flex justify-between items-center">
             <span>Ready for payout disbursement</span>
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-700">{metrics.approvedCount} Ready</Badge>
+            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800">{metrics.approvedCount} Ready</Badge>
           </CardContent>
         </Card>
 
@@ -684,14 +684,14 @@ export default function FundOfficePage() {
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Paid Doctor Payments
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-emerald-700 flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
               <span>LKR {metrics.paidPayments.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               <CheckCheck className="w-5 h-5 text-emerald-600" />
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground flex justify-between items-center">
             <span>Disbursed & receipted</span>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700">{metrics.paidCount} Completed</Badge>
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">{metrics.paidCount} Completed</Badge>
           </CardContent>
         </Card>
 
@@ -701,7 +701,7 @@ export default function FundOfficePage() {
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Hospital Commission
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-rose-700 flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold text-rose-700 dark:text-rose-400 flex items-center justify-between">
               <span>LKR {metrics.hospitalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               <Building className="w-5 h-5 text-rose-600" />
             </CardTitle>
@@ -717,14 +717,14 @@ export default function FundOfficePage() {
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Total Daily Revenue
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-teal-800 flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold text-teal-800 dark:text-teal-300 flex items-center justify-between">
               <span>LKR {metrics.totalDailyRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               <TrendingUp className="w-5 h-5 text-teal-600" />
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground flex justify-between items-center">
             <span>Gross patient consultation revenue</span>
-            <Badge variant="outline" className="bg-teal-50 text-teal-700">{metrics.todayPatientsCount} Patients</Badge>
+            <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800">{metrics.todayPatientsCount} Patients</Badge>
           </CardContent>
         </Card>
 
@@ -734,7 +734,7 @@ export default function FundOfficePage() {
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Doctor-Wise Payment Reports
             </CardDescription>
-            <CardTitle className="text-xl font-bold text-purple-900 flex items-center justify-between">
+            <CardTitle className="text-xl font-bold text-purple-900 dark:text-purple-300 flex items-center justify-between">
               <span>Financial Statements & Breakdowns</span>
               <FileText className="w-5 h-5 text-purple-600" />
             </CardTitle>
@@ -746,7 +746,7 @@ export default function FundOfficePage() {
             <Button
               variant="outline"
               size="sm"
-              className="text-purple-700 border-purple-200 hover:bg-purple-50"
+              className="text-purple-700 border-purple-200 hover:bg-purple-50 dark:text-purple-300 dark:border-purple-800 dark:hover:bg-purple-950/50"
               onClick={() => setActiveTab(activeTab === "sheets" ? "reports" : "sheets")}
             >
               {activeTab === "sheets" ? "Switch to Reports" : "Back to Daily Sheets"}
@@ -760,7 +760,7 @@ export default function FundOfficePage() {
         <button
           className={`pb-3 border-b-2 transition-colors ${
             activeTab === "sheets"
-              ? "border-emerald-600 text-emerald-700"
+              ? "border-emerald-600 text-emerald-700 dark:text-emerald-400"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           onClick={() => setActiveTab("sheets")}
@@ -770,7 +770,7 @@ export default function FundOfficePage() {
         <button
           className={`pb-3 border-b-2 transition-colors ${
             activeTab === "reports"
-              ? "border-emerald-600 text-emerald-700"
+              ? "border-emerald-600 text-emerald-700 dark:text-emerald-400"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           onClick={() => setActiveTab("reports")}
@@ -780,7 +780,7 @@ export default function FundOfficePage() {
         <button
           className={`pb-3 border-b-2 transition-colors flex items-center gap-1.5 ${
             activeTab === "history"
-              ? "border-emerald-600 text-emerald-700"
+              ? "border-emerald-600 text-emerald-700 dark:text-emerald-400"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           onClick={() => setActiveTab("history")}
@@ -853,7 +853,7 @@ export default function FundOfficePage() {
             </div>
 
             <div className="text-xs text-muted-foreground">
-              Showing <span className="font-bold text-slate-800">{dailySheets.length}</span> daily sheets
+              Showing <span className="font-bold text-foreground">{dailySheets.length}</span> daily sheets
             </div>
           </div>
 
@@ -861,14 +861,14 @@ export default function FundOfficePage() {
           <Card className="shadow-sm overflow-hidden">
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>Date & Session</TableHead>
                     <TableHead>Doctor</TableHead>
                     <TableHead className="text-center">Patients & Fee</TableHead>
                     <TableHead className="text-right">Consultation Revenue</TableHead>
                     <TableHead className="text-right">Hospital Commission</TableHead>
-                    <TableHead className="text-right font-bold text-emerald-800">
+                    <TableHead className="text-right font-bold text-emerald-700 dark:text-emerald-400">
                       Doctor Net Payment
                     </TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -892,9 +892,9 @@ export default function FundOfficePage() {
                     </TableRow>
                   ) : (
                     dailySheets.map((sheet) => (
-                      <TableRow key={sheet.id} className="hover:bg-slate-50/80">
+                      <TableRow key={sheet.id} className="hover:bg-muted/50">
                         <TableCell>
-                          <div className="font-semibold text-slate-800">
+                          <div className="font-semibold text-foreground">
                             {new Date(sheet.date).toLocaleDateString("en-GB", {
                               day: "2-digit",
                               month: "short",
@@ -905,7 +905,7 @@ export default function FundOfficePage() {
                         </TableCell>
 
                         <TableCell>
-                          <div className="font-bold text-slate-900">
+                          <div className="font-bold text-foreground">
                             {sheet.doctor?.fullName || sheet.doctor?.name || "Doctor"}
                           </div>
                           <div className="text-xs text-muted-foreground">
@@ -914,7 +914,7 @@ export default function FundOfficePage() {
                         </TableCell>
 
                         <TableCell className="text-center">
-                          <span className="font-semibold text-slate-800">{sheet.totalPatients}</span>
+                          <span className="font-semibold text-foreground">{sheet.totalPatients}</span>
                           <span className="text-xs text-muted-foreground block">
                             @ LKR {sheet.consultationFee.toLocaleString()}
                           </span>
@@ -924,18 +924,18 @@ export default function FundOfficePage() {
                           LKR {sheet.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </TableCell>
 
-                        <TableCell className="text-right text-rose-700 font-medium">
+                        <TableCell className="text-right text-rose-600 dark:text-rose-400 font-medium">
                           - LKR {sheet.hospitalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                           <span className="text-xs text-muted-foreground block">({sheet.commissionRate}%)</span>
                         </TableCell>
 
-                        <TableCell className="text-right font-black text-emerald-800 text-sm">
+                        <TableCell className="text-right font-black text-emerald-700 dark:text-emerald-400 text-sm">
                           LKR {sheet.netDoctorPayment.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                           {(sheet.cashDoctorShare !== undefined || sheet.bankDoctorShare !== undefined) && (
-                            <div className="text-[10px] font-normal text-slate-500 mt-0.5">
-                              <span className="text-emerald-700 font-semibold">Cash: LKR {(sheet.cashDoctorShare || 0).toLocaleString()}</span>
+                            <div className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Cash: LKR {(sheet.cashDoctorShare || 0).toLocaleString()}</span>
                               {" • "}
-                              <span className="text-blue-700 font-semibold">Bank: LKR {(sheet.bankDoctorShare || 0).toLocaleString()}</span>
+                              <span className="text-blue-700 dark:text-blue-400 font-semibold">Bank: LKR {(sheet.bankDoctorShare || 0).toLocaleString()}</span>
                             </div>
                           )}
                         </TableCell>
@@ -946,11 +946,11 @@ export default function FundOfficePage() {
 
                         <TableCell>
                           {sheet.receiptNumber ? (
-                            <span className="font-mono text-xs font-bold text-slate-800 block">
+                            <span className="font-mono text-xs font-bold text-foreground block">
                               {sheet.receiptNumber}
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400">-</span>
+                            <span className="text-xs text-muted-foreground/60">-</span>
                           )}
                           {sheet.paymentReference && (
                             <span className="text-[11px] text-muted-foreground font-mono block">
@@ -962,7 +962,7 @@ export default function FundOfficePage() {
                               href={getSlipViewUrl(sheet.paymentSlipUrl || (sheet.bankDetails as any)?.slipUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-0.5 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200"
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300 hover:underline mt-0.5 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800"
                               title="Open Payment Slip"
                             >
                               <Paperclip className="h-2.5 w-2.5" />
@@ -982,7 +982,7 @@ export default function FundOfficePage() {
                               title="View Patient Breakdown"
                               onClick={() => setSelectedSheet(sheet)}
                             >
-                              <Eye className="w-4 h-4 text-slate-600" />
+                              <Eye className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                             </Button>
 
                             {/* Step 5: Verify (DRAFT -> VERIFIED) */}
@@ -990,7 +990,7 @@ export default function FundOfficePage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
+                                className="h-8 text-xs text-blue-700 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-950/40"
                                 onClick={() => handleVerify(sheet.id)}
                               >
                                 Verify
@@ -1002,7 +1002,7 @@ export default function FundOfficePage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 text-xs text-amber-700 border-amber-200 hover:bg-amber-50"
+                                className="h-8 text-xs text-amber-700 border-amber-200 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-800 dark:hover:bg-amber-950/40"
                                 onClick={() => handleApprove(sheet.id)}
                               >
                                 Approve
@@ -1035,7 +1035,7 @@ export default function FundOfficePage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 text-xs text-emerald-800 border-emerald-300 hover:bg-emerald-50"
+                                className="h-8 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-700 dark:hover:bg-emerald-950/40"
                                 onClick={() => triggerPrintReceipt(sheet)}
                               >
                                 <Printer className="w-3.5 h-3.5 mr-1" />
@@ -1106,8 +1106,8 @@ export default function FundOfficePage() {
 
           {/* Reports Table */}
           <Card className="shadow-sm overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b pb-3">
-              <CardTitle className="text-base font-bold text-slate-800">
+            <CardHeader className="bg-muted/50 border-b pb-3">
+              <CardTitle className="text-base font-bold text-foreground">
                 Doctor-Wise Financial Settlement Report
               </CardTitle>
               <CardDescription className="text-xs">
@@ -1116,7 +1116,7 @@ export default function FundOfficePage() {
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/30">
                   <TableRow>
                     <TableHead>Doctor Name</TableHead>
                     <TableHead>Specialty</TableHead>
@@ -1125,8 +1125,8 @@ export default function FundOfficePage() {
                     <TableHead className="text-right">Consultation Revenue</TableHead>
                     <TableHead className="text-right">Hospital Commission</TableHead>
                     <TableHead className="text-right font-bold">Doctor Total Earnings</TableHead>
-                    <TableHead className="text-right text-emerald-700">Paid Amount</TableHead>
-                    <TableHead className="text-right text-amber-700">Pending Amount</TableHead>
+                    <TableHead className="text-right text-emerald-700 dark:text-emerald-400">Paid Amount</TableHead>
+                    <TableHead className="text-right text-amber-700 dark:text-amber-400">Pending Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1138,24 +1138,24 @@ export default function FundOfficePage() {
                     </TableRow>
                   ) : (
                     reports.map((rep) => (
-                      <TableRow key={rep.doctorId} className="hover:bg-slate-50/80">
-                        <TableCell className="font-bold text-slate-900">{rep.doctorName}</TableCell>
-                        <TableCell className="text-slate-600 text-xs">{rep.specialty || "Consultant"}</TableCell>
+                      <TableRow key={rep.doctorId} className="hover:bg-muted/50">
+                        <TableCell className="font-bold text-foreground">{rep.doctorName}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{rep.specialty || "Consultant"}</TableCell>
                         <TableCell className="text-center font-medium">{rep.totalSheets}</TableCell>
                         <TableCell className="text-center font-semibold">{rep.totalPatients}</TableCell>
                         <TableCell className="text-right font-medium">
                           LKR {rep.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-right text-rose-700 font-medium">
+                        <TableCell className="text-right text-rose-600 dark:text-rose-400 font-medium">
                           LKR {rep.hospitalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-right font-black text-slate-900">
+                        <TableCell className="text-right font-black text-foreground">
                           LKR {rep.doctorEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-right font-bold text-emerald-700">
+                        <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">
                           LKR {rep.paidAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-right font-bold text-amber-700">
+                        <TableCell className="text-right font-bold text-amber-700 dark:text-amber-400">
                           LKR {rep.pendingAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </TableCell>
                       </TableRow>
@@ -1172,7 +1172,7 @@ export default function FundOfficePage() {
       {activeTab === "history" && (
         <div className="space-y-4">
           <Card className="shadow-sm">
-            <CardHeader className="py-4 px-6 border-b bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardHeader className="py-4 px-6 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-lg">Synchronized Payment History Ledger</CardTitle>
                 <CardDescription>
@@ -1182,17 +1182,17 @@ export default function FundOfficePage() {
 
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative w-64">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search receipt #, doctor..."
                     value={historySearch}
                     onChange={(e) => setHistorySearch(e.target.value)}
-                    className="pl-8 bg-white h-9"
+                    className="pl-8 bg-background dark:bg-card border-border text-foreground h-9"
                   />
                 </div>
 
                 <Select value={historyMethod} onValueChange={(val) => val && setHistoryMethod(val)}>
-                  <SelectTrigger className="w-36 bg-white h-9">
+                  <SelectTrigger className="w-36 bg-background dark:bg-card border-border text-foreground h-9">
                     <SelectValue placeholder="Method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1218,20 +1218,20 @@ export default function FundOfficePage() {
 
             <CardContent className="p-0">
               {historyLoading ? (
-                <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                <div className="py-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
                   <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
                   <p>Loading payment ledger...</p>
                 </div>
               ) : paymentHistory.length === 0 ? (
-                <div className="py-16 text-center text-slate-500">
-                  <CheckCircle className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                  <p className="font-semibold text-slate-700">No payment records found</p>
-                  <p className="text-xs text-slate-500 mt-1">Disbursements made at Front Desk or Fund Office will appear here.</p>
+                <div className="py-16 text-center text-muted-foreground">
+                  <CheckCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="font-semibold text-foreground">No payment records found</p>
+                  <p className="text-xs text-muted-foreground mt-1">Disbursements made at Front Desk or Fund Office will appear here.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead>Receipt / Voucher #</TableHead>
                         <TableHead>Date & Time</TableHead>
@@ -1262,15 +1262,17 @@ export default function FundOfficePage() {
                         .map((item) => {
                           const isCash = (item.cashDisbursed || 0) > 0;
                           const isBank = (item.bankDisbursed || 0) > 0;
-                          const roleBadgeColor = item.disbursedByRole === "SUPERADMIN" ? "bg-purple-100 text-purple-800 border-purple-300" : "bg-emerald-100 text-emerald-800 border-emerald-300";
+                          const roleBadgeColor = item.disbursedByRole === "SUPERADMIN"
+                            ? "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                            : "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
 
                           return (
-                            <TableRow key={item.id} className="hover:bg-slate-50/60">
-                              <TableCell className="font-mono font-bold text-slate-900 text-xs">
+                            <TableRow key={item.id} className="hover:bg-muted/50">
+                              <TableCell className="font-mono font-bold text-foreground text-xs">
                                 {item.receiptNumber || `DOC-RCP-${item.id.slice(0, 8).toUpperCase()}`}
                               </TableCell>
 
-                              <TableCell className="text-xs text-slate-600">
+                              <TableCell className="text-xs text-muted-foreground">
                                 {item.paidAt ? new Date(item.paidAt).toLocaleString("en-GB", {
                                   day: "2-digit",
                                   month: "short",
@@ -1281,19 +1283,19 @@ export default function FundOfficePage() {
                               </TableCell>
 
                               <TableCell>
-                                <p className="font-semibold text-slate-900 text-sm">Dr. {item.doctor?.fullName || "Doctor"}</p>
+                                <p className="font-semibold text-foreground text-sm">Dr. {item.doctor?.fullName || "Doctor"}</p>
                                 <p className="text-xs text-muted-foreground">{item.doctor?.specialty || "Doctor"}</p>
                               </TableCell>
 
-                              <TableCell className="text-center font-semibold text-slate-700">
+                              <TableCell className="text-center font-semibold text-foreground">
                                 {item.totalPatients}
                               </TableCell>
 
-                              <TableCell className="text-right text-slate-700 font-medium">
+                              <TableCell className="text-right text-foreground font-medium">
                                 LKR {item.totalRevenue.toLocaleString()}
                               </TableCell>
 
-                              <TableCell className="text-right font-black text-slate-900 text-sm">
+                              <TableCell className="text-right font-black text-foreground text-sm">
                                 LKR {((item.cashDisbursed || 0) + (item.bankDisbursed || 0) || item.netDoctorPayment).toLocaleString()}
                               </TableCell>
 
@@ -1321,10 +1323,10 @@ export default function FundOfficePage() {
 
                               <TableCell className="text-xs">
                                 {item.paymentReference && (
-                                  <p className="font-mono text-slate-800 font-semibold">{item.paymentReference}</p>
+                                  <p className="font-mono text-foreground font-semibold">{item.paymentReference}</p>
                                 )}
                                 {(item.doctor?.bankAccountNumber || (item.bankDetails as any)?.bankAccountNumber) && (
-                                  <p className="text-slate-500 text-[11px] mt-0.5">
+                                  <p className="text-muted-foreground text-[11px] mt-0.5">
                                     {(item.bankDetails as any)?.bankName || item.doctor?.bankName} • {(item.bankDetails as any)?.bankAccountNumber || item.doctor?.bankAccountNumber}
                                   </p>
                                 )}
@@ -1333,7 +1335,7 @@ export default function FundOfficePage() {
                                     href={getSlipViewUrl(item.paymentSlipUrl || (item.bankDetails as any)?.slipUrl)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300 hover:underline mt-1 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800"
                                     title="Open Payment Slip"
                                   >
                                     <Paperclip className="h-3 w-3" />
@@ -1349,7 +1351,7 @@ export default function FundOfficePage() {
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => triggerPrintReceipt(item)}
-                                    className="h-8 w-8 p-0 text-slate-600 hover:text-emerald-700"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-emerald-500"
                                     title="Print Official Voucher"
                                   >
                                     <Printer className="h-4 w-4" />
@@ -1358,7 +1360,7 @@ export default function FundOfficePage() {
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => setSelectedSheet(item)}
-                                    className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                                     title="View Details"
                                   >
                                     <Eye className="h-4 w-4" />
@@ -1394,11 +1396,11 @@ export default function FundOfficePage() {
             <div className="grid grid-cols-2 gap-4">
               {/* Doctor Select */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Doctor <span className="text-red-500">*</span>
                 </label>
                 <Select value={newSheet.doctorId} onValueChange={(val) => val && handleDoctorSelect(val)} required>
-                <SelectTrigger>
+                <SelectTrigger className="bg-background dark:bg-card border-border text-foreground">
                     <SelectValue placeholder="Select Doctor" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1413,13 +1415,14 @@ export default function FundOfficePage() {
 
               {/* Date */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Clinic Date <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="date"
                   value={newSheet.date}
                   onChange={(e) => setNewSheet({ ...newSheet, date: e.target.value })}
+                  className="bg-background dark:bg-card border-border text-foreground"
                   required
                 />
               </div>
@@ -1428,17 +1431,18 @@ export default function FundOfficePage() {
             <div className="grid grid-cols-3 gap-4">
               {/* Session Name */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Session</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">Session</label>
                 <Input
                   placeholder="e.g. Morning Clinic"
                   value={newSheet.sessionName}
                   onChange={(e) => setNewSheet({ ...newSheet, sessionName: e.target.value })}
+                  className="bg-background dark:bg-card border-border text-foreground"
                 />
               </div>
 
               {/* Consultation Fee per Patient */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Fee per Patient (LKR) <span className="text-red-500">*</span>
                 </label>
                 <Input
@@ -1449,13 +1453,14 @@ export default function FundOfficePage() {
                   onChange={(e) =>
                     setNewSheet({ ...newSheet, consultationFee: parseFloat(e.target.value) || 0 })
                   }
+                  className="bg-background dark:bg-card border-border text-foreground"
                   required
                 />
               </div>
 
               {/* Hospital Commission Rate % */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Hospital Commission % <span className="text-red-500">*</span>
                 </label>
                 <Input
@@ -1467,15 +1472,16 @@ export default function FundOfficePage() {
                   onChange={(e) =>
                     setNewSheet({ ...newSheet, commissionRate: parseFloat(e.target.value) || 0 })
                   }
+                  className="bg-background dark:bg-card border-border text-foreground"
                   required
                 />
               </div>
             </div>
 
             {/* Entry Mode Switcher */}
-            <div className="p-3 bg-slate-50 rounded-lg border flex items-center justify-between">
+            <div className="p-3 bg-muted/40 rounded-lg border border-border flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-800 block">Patient Entry Mode</span>
+                <span className="text-xs font-bold text-foreground block">Patient Entry Mode</span>
                 <span className="text-[11px] text-muted-foreground">
                   Choose quick batch calculation by patient count or itemize individual patients.
                 </span>
@@ -1485,7 +1491,7 @@ export default function FundOfficePage() {
                   type="button"
                   size="sm"
                   variant={newSheet.entryMode === "batch" ? "default" : "outline"}
-                  className={newSheet.entryMode === "batch" ? "bg-emerald-600" : ""}
+                  className={newSheet.entryMode === "batch" ? "bg-emerald-600 text-white" : ""}
                   onClick={() => setNewSheet({ ...newSheet, entryMode: "batch" })}
                 >
                   Quick Count
@@ -1494,7 +1500,7 @@ export default function FundOfficePage() {
                   type="button"
                   size="sm"
                   variant={newSheet.entryMode === "itemized" ? "default" : "outline"}
-                  className={newSheet.entryMode === "itemized" ? "bg-emerald-600" : ""}
+                  className={newSheet.entryMode === "itemized" ? "bg-emerald-600 text-white" : ""}
                   onClick={() => setNewSheet({ ...newSheet, entryMode: "itemized" })}
                 >
                   Itemized Roster
@@ -1504,8 +1510,8 @@ export default function FundOfficePage() {
 
             {/* Mode A: Batch Count */}
             {newSheet.entryMode === "batch" && (
-              <div className="p-4 bg-emerald-50/50 rounded-lg border border-emerald-100">
-                <label className="text-xs font-bold text-slate-800 block mb-1">
+              <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
+                <label className="text-xs font-bold text-foreground block mb-1">
                   Total Patients Treated <span className="text-red-500">*</span>
                 </label>
                 <Input
@@ -1520,7 +1526,7 @@ export default function FundOfficePage() {
                       batchPatientCount: parseInt(e.target.value, 10) || 0
                     })
                   }
-                  className="bg-white max-w-xs"
+                  className="bg-background dark:bg-card border-border text-foreground max-w-xs"
                   required
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
@@ -1534,9 +1540,9 @@ export default function FundOfficePage() {
 
             {/* Mode B: Itemized Roster */}
             {newSheet.entryMode === "itemized" && (
-              <div className="space-y-2 border p-3 rounded-lg max-h-56 overflow-y-auto">
+              <div className="space-y-2 border border-border p-3 rounded-lg max-h-56 overflow-y-auto bg-card">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-slate-800">Itemized Patients</span>
+                  <span className="text-xs font-bold text-foreground">Itemized Patients</span>
                   <Button
                     type="button"
                     variant="outline"
@@ -1571,7 +1577,7 @@ export default function FundOfficePage() {
                         updated[idx].patientName = e.target.value;
                         setNewSheet({ ...newSheet, patientItems: updated });
                       }}
-                      className="h-8 text-xs flex-1"
+                      className="h-8 text-xs flex-1 bg-background dark:bg-card border-border text-foreground"
                     />
                     <Input
                       placeholder="Token #"
@@ -1581,7 +1587,7 @@ export default function FundOfficePage() {
                         updated[idx].tokenNumber = e.target.value;
                         setNewSheet({ ...newSheet, patientItems: updated });
                       }}
-                      className="h-8 text-xs w-28"
+                      className="h-8 text-xs w-28 bg-background dark:bg-card border-border text-foreground"
                     />
                     <Input
                       type="number"
@@ -1592,14 +1598,14 @@ export default function FundOfficePage() {
                         updated[idx].consultationFee = parseFloat(e.target.value) || 0;
                         setNewSheet({ ...newSheet, patientItems: updated });
                       }}
-                      className="h-8 text-xs w-24"
+                      className="h-8 text-xs w-24 bg-background dark:bg-card border-border text-foreground"
                     />
                     {newSheet.patientItems.length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-red-500"
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40"
                         onClick={() => {
                           const updated = newSheet.patientItems.filter((_, i) => i !== idx);
                           setNewSheet({ ...newSheet, patientItems: updated });
@@ -1616,7 +1622,7 @@ export default function FundOfficePage() {
             {/* Other Adjustments & Remarks */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Other Deductions / Adjustments (LKR)
                 </label>
                 <Input
@@ -1627,25 +1633,27 @@ export default function FundOfficePage() {
                   onChange={(e) =>
                     setNewSheet({ ...newSheet, otherAdjustments: parseFloat(e.target.value) || 0 })
                   }
+                  className="bg-background dark:bg-card border-border text-foreground"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Remarks</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">Remarks</label>
                 <Input
                   placeholder="Optional clinic remarks"
                   value={newSheet.remarks}
                   onChange={(e) => setNewSheet({ ...newSheet, remarks: e.target.value })}
+                  className="bg-background dark:bg-card border-border text-foreground"
                 />
               </div>
             </div>
 
             {/* Live Calculation Preview Banner */}
-            <div className="bg-slate-900 text-white rounded-lg p-4 space-y-2">
+            <div className="bg-slate-900 dark:bg-slate-950 border border-slate-800 text-white rounded-lg p-4 space-y-2">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                 Automatic Payment Calculation
               </span>
-              <div className="grid grid-cols-3 gap-2 text-xs border-b border-slate-700 pb-2">
+              <div className="grid grid-cols-3 gap-2 text-xs border-b border-slate-700/80 pb-2">
                 <div>
                   <span className="text-slate-400 block">Total Patients</span>
                   <span className="text-sm font-bold">{liveSummary.patientCount}</span>
@@ -1714,37 +1722,37 @@ export default function FundOfficePage() {
 
           {payingSheet && (
             <form onSubmit={handleDisbursePayment} className="space-y-4">
-              <div className="bg-emerald-50 p-3.5 rounded-lg border border-emerald-200 space-y-1 text-xs">
+              <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-3.5 rounded-lg border border-emerald-200 dark:border-emerald-800 space-y-1 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Doctor:</span>
-                  <span className="font-bold text-slate-800">
+                  <span className="text-muted-foreground">Doctor:</span>
+                  <span className="font-bold text-foreground">
                     {payingSheet.doctor?.fullName || payingSheet.doctor?.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Clinic Date:</span>
-                  <span className="font-medium text-slate-800">
+                  <span className="text-muted-foreground">Clinic Date:</span>
+                  <span className="font-medium text-foreground">
                     {new Date(payingSheet.date).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Total Patients:</span>
-                  <span className="font-medium text-slate-800">{payingSheet.totalPatients}</span>
+                  <span className="text-muted-foreground">Total Patients:</span>
+                  <span className="font-medium text-foreground">{payingSheet.totalPatients}</span>
                 </div>
-                <div className="flex justify-between border-t border-emerald-200 pt-1 text-sm font-bold text-emerald-900">
+                <div className="flex justify-between border-t border-emerald-200 dark:border-emerald-800 pt-1 text-sm font-bold text-emerald-900 dark:text-emerald-300">
                   <span>Payable Amount:</span>
                   <span>
                     LKR {payingSheet.netDoctorPayment.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 {(payingSheet.cashDoctorShare !== undefined || payingSheet.bankDoctorShare !== undefined) && (
-                  <div className="flex justify-between text-[11px] text-slate-600 pt-1 border-t border-emerald-200/60">
+                  <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-emerald-200/60 dark:border-emerald-800/60">
                     <span>💵 Cash Share (Drawer): LKR {(payingSheet.cashDoctorShare || 0).toLocaleString()}</span>
                     <span>💳 Bank Share: LKR {(payingSheet.bankDoctorShare || 0).toLocaleString()}</span>
                   </div>
                 )}
                 {payingSheet.doctor?.bankAccountNumber && (
-                  <div className="pt-1 text-[11px] text-blue-800 font-semibold border-t border-emerald-200/60 flex items-center gap-1">
+                  <div className="pt-1 text-[11px] text-blue-800 dark:text-blue-300 font-semibold border-t border-emerald-200/60 dark:border-emerald-800/60 flex items-center gap-1">
                     <Building className="h-3 w-3" />
                     Doctor Bank: {payingSheet.doctor.bankName} • {payingSheet.doctor.bankAccountNumber}
                   </div>
@@ -1753,7 +1761,7 @@ export default function FundOfficePage() {
 
               {/* Payment Method */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Payment Method <span className="text-red-500">*</span>
                 </label>
                 <Select
@@ -1762,7 +1770,7 @@ export default function FundOfficePage() {
                     if (val) setDisbursementForm({ ...disbursementForm, paymentMethod: val });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background dark:bg-card border-border text-foreground">
                     <SelectValue placeholder="Select Payment Method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1775,7 +1783,7 @@ export default function FundOfficePage() {
 
               {/* Payment Reference Number */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Payment Reference Number <span className="text-muted-foreground font-normal">(Optional)</span>
                 </label>
                 <Input
@@ -1784,6 +1792,7 @@ export default function FundOfficePage() {
                   onChange={(e) =>
                     setDisbursementForm({ ...disbursementForm, paymentReference: e.target.value })
                   }
+                  className="bg-background dark:bg-card border-border text-foreground"
                 />
                 <span className="text-[11px] text-muted-foreground">
                   Transaction ID or reference number (optional). Saved with the disbursement record.
@@ -1791,14 +1800,14 @@ export default function FundOfficePage() {
               </div>
 
               {/* Payment Slip Upload Box */}
-              <div className="border border-dashed border-emerald-300 rounded-lg p-3 bg-emerald-50/50 space-y-2">
+              <div className="border border-dashed border-emerald-300 dark:border-emerald-700 rounded-lg p-3 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <UploadCloud className="h-4 w-4 text-emerald-600" />
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <UploadCloud className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     Upload Payment Slip (Image or PDF)
                   </label>
                   {uploadingDisbursementSlip && (
-                    <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                       <RefreshCw className="h-3 w-3 animate-spin" /> Uploading to S3...
                     </span>
                   )}
@@ -1810,7 +1819,7 @@ export default function FundOfficePage() {
                     accept="image/*,application/pdf"
                     onChange={handleDisbursementSlipUpload}
                     disabled={uploadingDisbursementSlip}
-                    className="bg-white text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer"
+                    className="bg-background dark:bg-card border-border text-foreground text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 dark:file:bg-emerald-900 dark:file:text-emerald-300 cursor-pointer"
                   />
                   {disbursementSlipUrl && (
                     <Button
@@ -1821,7 +1830,7 @@ export default function FundOfficePage() {
                         setDisbursementSlipFile(null);
                         setDisbursementSlipUrl("");
                       }}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40"
                       title="Remove slip"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1830,29 +1839,29 @@ export default function FundOfficePage() {
                 </div>
 
                 {disbursementSlipUrl && (
-                  <div className="flex items-center justify-between bg-white border border-emerald-200 rounded p-2 text-xs">
-                    <span className="text-emerald-900 font-medium truncate max-w-[280px] flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <div className="flex items-center justify-between bg-card border border-emerald-200 dark:border-emerald-800 rounded p-2 text-xs">
+                    <span className="text-foreground font-medium truncate max-w-[280px] flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       {disbursementSlipFile?.name || "Payment Slip Attached"}
                     </span>
                     <a
                       href={getSlipViewUrl(disbursementSlipUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-emerald-600 hover:text-emerald-800 font-semibold inline-flex items-center gap-1 hover:underline text-[11px]"
+                      className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold inline-flex items-center gap-1 text-[11px]"
                     >
                       <ExternalLink className="h-3 w-3" /> View Slip
                     </a>
                   </div>
                 )}
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-muted-foreground">
                   Optional or required by hospital policy. Stored securely on AWS S3 and linked to this payout.
                 </p>
               </div>
 
               {/* Payment Date */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Payment Date <span className="text-red-500">*</span>
                 </label>
                 <Input
@@ -1861,6 +1870,7 @@ export default function FundOfficePage() {
                   onChange={(e) =>
                     setDisbursementForm({ ...disbursementForm, paymentDate: e.target.value })
                   }
+                  className="bg-background dark:bg-card border-border text-foreground"
                   required
                 />
               </div>
@@ -1905,16 +1915,16 @@ export default function FundOfficePage() {
           {selectedSheet && (
             <div className="space-y-4">
               {/* Calculation Summary Grid */}
-              <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-lg border">
+              <div className="grid grid-cols-2 gap-3 text-xs bg-muted/40 p-3.5 rounded-lg border border-border">
                 <div>
                   <span className="text-muted-foreground block">Patients & Consultation Fee:</span>
-                  <span className="font-semibold text-slate-800">
+                  <span className="font-semibold text-foreground">
                     {selectedSheet.totalPatients} Patients @ LKR {selectedSheet.consultationFee.toLocaleString()}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Gross Revenue:</span>
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-foreground">
                     LKR {selectedSheet.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -1922,13 +1932,13 @@ export default function FundOfficePage() {
                   <span className="text-muted-foreground block">
                     Hospital Commission ({selectedSheet.commissionRate}%):
                   </span>
-                  <span className="font-bold text-rose-700">
+                  <span className="font-bold text-rose-600 dark:text-rose-400">
                     - LKR {selectedSheet.hospitalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Doctor Net Payment:</span>
-                  <span className="font-black text-emerald-800 text-sm">
+                  <span className="font-black text-emerald-700 dark:text-emerald-400 text-sm">
                     LKR {selectedSheet.netDoctorPayment.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -1936,34 +1946,34 @@ export default function FundOfficePage() {
 
               {/* Disbursement details if paid */}
               {selectedSheet.status === "PAID" && (
-                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200 text-xs space-y-1">
-                  <div className="font-bold text-emerald-900">Payment Disbursement Details</div>
+                <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
+                  <div className="font-bold text-emerald-900 dark:text-emerald-300">Payment Disbursement Details</div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Receipt Number:</span>
-                    <span className="font-mono font-bold text-slate-800">
+                    <span className="text-muted-foreground">Receipt Number:</span>
+                    <span className="font-mono font-bold text-foreground">
                       {selectedSheet.receiptNumber}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Method & Reference:</span>
-                    <span className="font-bold text-slate-800">
+                    <span className="text-muted-foreground">Method & Reference:</span>
+                    <span className="font-bold text-foreground">
                       {selectedSheet.paymentMethod} (Ref: {selectedSheet.paymentReference})
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Paid At:</span>
-                    <span className="text-slate-800">
+                    <span className="text-muted-foreground">Paid At:</span>
+                    <span className="text-foreground">
                       {selectedSheet.paidAt ? new Date(selectedSheet.paidAt).toLocaleString() : "-"}
                     </span>
                   </div>
                   {(selectedSheet.paymentSlipUrl || (selectedSheet.bankDetails as any)?.slipUrl) && (
-                    <div className="flex justify-between items-center pt-1 border-t border-emerald-200">
-                      <span className="text-slate-600">Payment Slip:</span>
+                    <div className="flex justify-between items-center pt-1 border-t border-emerald-200 dark:border-emerald-800">
+                      <span className="text-muted-foreground">Payment Slip:</span>
                       <a
                         href={getSlipViewUrl(selectedSheet.paymentSlipUrl || (selectedSheet.bankDetails as any)?.slipUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900 hover:underline"
+                        className="inline-flex items-center gap-1 font-semibold text-blue-700 dark:text-blue-300 hover:underline"
                       >
                         <ExternalLink className="h-3 w-3" /> View Uploaded Slip
                       </a>
@@ -1974,12 +1984,12 @@ export default function FundOfficePage() {
 
               {/* Patient Roster */}
               <div>
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">
                   Patient Consultation Roster ({selectedSheet.patientItems?.length || 0} Records)
                 </h4>
-                <div className="border rounded-md overflow-hidden max-h-56 overflow-y-auto">
+                <div className="border border-border rounded-md overflow-hidden max-h-56 overflow-y-auto">
                   <Table className="text-xs">
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead className="w-10">#</TableHead>
                         <TableHead>Patient Name</TableHead>
@@ -1998,7 +2008,7 @@ export default function FundOfficePage() {
                       ) : (
                         selectedSheet.patientItems.map((item, idx) => (
                           <TableRow key={item.id || idx}>
-                            <TableCell className="text-slate-400">{idx + 1}</TableCell>
+                            <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
                             <TableCell className="font-semibold">{item.patientName}</TableCell>
                             <TableCell className="font-mono text-[11px] text-muted-foreground">
                               {item.tokenNumber || item.appointmentId || "-"}
@@ -2006,7 +2016,7 @@ export default function FundOfficePage() {
                             <TableCell className="text-right">
                               LKR {item.consultationFee.toLocaleString()}
                             </TableCell>
-                            <TableCell className="text-right font-medium text-emerald-700">
+                            <TableCell className="text-right font-medium text-emerald-700 dark:text-emerald-400">
                               LKR{" "}
                               {(
                                 item.doctorShare ||
@@ -2027,7 +2037,7 @@ export default function FundOfficePage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="text-emerald-800 border-emerald-300"
+                    className="text-emerald-700 border-emerald-300 dark:text-emerald-300 dark:border-emerald-700"
                     onClick={() => {
                       triggerPrintReceipt(selectedSheet);
                     }}
