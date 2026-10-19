@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { User, KeyRound, Loader2, Save, Settings as SettingsIcon, Bell, Sun } from "lucide-react";
+import { User, KeyRound, Loader2, Save, Settings as SettingsIcon, Bell, Sun, Printer, HardDrive, CheckCircle2, AlertCircle, RefreshCw, Banknote } from "lucide-react";
+import { openCashDrawer, getBridgeUrl } from "@/lib/cashDrawer";
+import { NodePrintClient } from "@asithakonara/node-print-client";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { user, token } = useAuth();
@@ -20,6 +23,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
+
+  // Hardware Print & Cash Drawer state
+  const [bridgeUrl, setBridgeUrl] = useState("http://127.0.0.1:18181");
+  const [printerName, setPrinterName] = useState("");
+  const [bridgeStatus, setBridgeStatus] = useState<"idle" | "checking" | "online" | "offline">("idle");
+  const [detectedPrinters, setDetectedPrinters] = useState<any[]>([]);
+  const [isTestingDrawer, setIsTestingDrawer] = useState(false);
 
   const [profile, setProfile] = useState({
     fullName: "",
@@ -56,7 +66,57 @@ export default function SettingsPage() {
         console.error(err);
       })
       .finally(() => setLoading(false));
+
+    if (typeof window !== "undefined") {
+      setBridgeUrl(getBridgeUrl());
+      setPrinterName(localStorage.getItem("node_print_printer") || localStorage.getItem("pos_printer") || "");
+    }
   }, [token]);
+
+  const checkBridge = async (urlToCheck: string = bridgeUrl) => {
+    setBridgeStatus("checking");
+    try {
+      const client = new NodePrintClient({ url: urlToCheck });
+      const printers = await client.printers.list();
+      setDetectedPrinters(printers);
+      setBridgeStatus("online");
+      toast.success(`Bridge is online. Found ${printers.length} printer(s).`);
+    } catch (e: any) {
+      setBridgeStatus("offline");
+      toast.error(`Bridge unreachable at ${urlToCheck}: ${e?.message || "connection refused"}`);
+    }
+  };
+
+  const handleTestCashDrawer = async () => {
+    setIsTestingDrawer(true);
+    try {
+      const res = await openCashDrawer({
+        url: bridgeUrl,
+        printer: printerName.trim() || undefined
+      });
+      if (res.success) {
+        toast.success(`Cash drawer triggered successfully (${res.method === "webusb" ? "WebUSB" : "Bridge"}).`);
+      } else {
+        toast.error(`Cash drawer failed: ${res.message}`);
+      }
+    } catch (err: any) {
+      toast.error(`Cash drawer test error: ${err?.message || err}`);
+    } finally {
+      setIsTestingDrawer(false);
+    }
+  };
+
+  const handleSaveHardware = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("node_print_url", bridgeUrl.trim());
+      if (printerName.trim()) {
+        localStorage.setItem("node_print_printer", printerName.trim());
+      } else {
+        localStorage.removeItem("node_print_printer");
+      }
+      toast.success("Hardware configuration saved locally.");
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +218,12 @@ export default function SettingsPage() {
               className="gap-2 px-4 py-2 hover:bg-muted/50 rounded-md"
             >
               <SettingsIcon className="w-4 h-4" /> App Preferences
+            </TabsTrigger>
+            <TabsTrigger 
+              value="hardware" 
+              className="gap-2 px-4 py-2 hover:bg-muted/50 rounded-md"
+            >
+              <Printer className="w-4 h-4" /> Hardware & Printers
             </TabsTrigger>
           </TabsList>
         </div>
@@ -319,6 +385,128 @@ export default function SettingsPage() {
                   />
                 </div>
               </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="hardware" className="m-0 space-y-6 focus-visible:outline-none focus-visible:ring-0">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Printer className="w-5 h-5 text-primary" /> Hardware Printing & Cash Drawer
+                </CardTitle>
+                <CardDescription>
+                  Configure and test the local hardware printing bridge service and cash drawer connection.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="bridgeUrl">Bridge Service URL</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      id="bridgeUrl" 
+                      value={bridgeUrl} 
+                      onChange={e => setBridgeUrl(e.target.value)} 
+                      placeholder="http://127.0.0.1:18181" 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => checkBridge(bridgeUrl)}
+                      disabled={bridgeStatus === "checking"}
+                      className="gap-1.5 shrink-0"
+                    >
+                      <RefreshCw className={cn("w-4 h-4", bridgeStatus === "checking" && "animate-spin")} />
+                      Test Bridge
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Default port is 18181. Ensure the background bridge service is running (<code>node-print start</code>).
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Bridge Status:</span>
+                    <span className="text-xs font-semibold flex items-center gap-1.5">
+                      {bridgeStatus === "online" && (
+                        <span className="text-emerald-600 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Online ({detectedPrinters.length} printers)
+                        </span>
+                      )}
+                      {bridgeStatus === "offline" && (
+                        <span className="text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" /> Offline / Unreachable
+                        </span>
+                      )}
+                      {bridgeStatus === "checking" && <span className="text-muted-foreground">Connecting...</span>}
+                      {bridgeStatus === "idle" && <span className="text-muted-foreground">Not checked yet</span>}
+                    </span>
+                  </div>
+
+                  {detectedPrinters.length > 0 && (
+                    <div className="space-y-1 pt-2 border-t text-xs">
+                      <span className="font-medium text-muted-foreground">Detected Printers:</span>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {detectedPrinters.map((p, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setPrinterName(p.name || p.id)}
+                            className={cn(
+                              "px-2.5 py-1 rounded border text-xs cursor-pointer transition-colors",
+                              (printerName === p.name || printerName === p.id)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-card hover:bg-muted"
+                            )}
+                          >
+                            {p.name || p.id} {p.isDefault && "(Default)"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="printerName">Assigned Receipt / Cash Drawer Printer (Optional)</Label>
+                  <Input 
+                    id="printerName" 
+                    value={printerName} 
+                    onChange={e => setPrinterName(e.target.value)} 
+                    placeholder="e.g. POS-80, Thermal-Receipt, or leave blank for default" 
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank to automatically route to the default system receipt printer.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                        <Banknote className="w-4 h-4 text-primary" /> Test Cash Drawer
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Send an ESC/POS pulse to test if the cash drawer kick solenoid triggers.
+                      </p>
+                    </div>
+                    <Button 
+                      type="button"
+                      onClick={handleTestCashDrawer}
+                      disabled={isTestingDrawer}
+                      className="gap-2 shrink-0"
+                    >
+                      {isTestingDrawer ? <Loader2 className="w-4 h-4 animate-spin" /> : <Banknote className="w-4 h-4" />}
+                      Test Open Drawer
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t px-6 py-4 bg-muted/20 flex justify-between">
+                <Button type="button" onClick={handleSaveHardware} className="gap-2">
+                  <Save className="w-4 h-4" /> Save Hardware Preferences
+                </Button>
+              </CardFooter>
             </Card>
           </TabsContent>
         </div>
