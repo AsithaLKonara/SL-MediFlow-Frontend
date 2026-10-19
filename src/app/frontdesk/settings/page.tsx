@@ -163,7 +163,10 @@ export default function SettingsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(profile)
+        body: JSON.stringify({
+          ...profile,
+          email: profile.email.toLowerCase().trim()
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update profile");
@@ -285,8 +288,11 @@ export default function SettingsPage() {
                     <Input 
                       id="email" 
                       type="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       value={profile.email} 
-                      onChange={e => setProfile({...profile, email: e.target.value})} 
+                      onChange={e => setProfile({...profile, email: e.target.value.toLowerCase().trim()})} 
                       required 
                     />
                   </div>

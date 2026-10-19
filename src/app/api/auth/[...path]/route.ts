@@ -12,6 +12,10 @@ export async function POST(
     // Mock network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
+    if (body.email && typeof body.email === "string") {
+      body.email = body.email.toLowerCase().trim();
+    }
+
     switch (action) {
       case "login":
         if (body.email === "admin@amaz.com" && body.password === "ChangeMe123!") {

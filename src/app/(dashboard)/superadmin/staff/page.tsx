@@ -157,7 +157,7 @@ export default function StaffManagementPage() {
     setEditingId(member.id);
     setFormData({ 
       name: member.name, 
-      email: member.email, 
+      email: member.email.toLowerCase().trim(), 
       password: "", 
       roleName: member.role, 
       specialty: member.specialty || "", 
@@ -203,7 +203,10 @@ export default function StaffManagementPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          email: formData.email.toLowerCase().trim()
+        })
       });
       const data = await res.json();
       
@@ -470,7 +473,16 @@ export default function StaffManagementPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email</label>
-                <Input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="john@amaz.com" />
+                <Input 
+                  required 
+                  type="email" 
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value.toLowerCase().trim()})} 
+                  placeholder="john@amaz.com" 
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Password {editingId && "(Leave blank to keep unchanged)"}</label>

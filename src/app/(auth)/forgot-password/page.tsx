@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().email({ message: "Please enter a valid email address." }).transform(val => val.trim().toLowerCase()),
 });
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ email: data.email.trim().toLowerCase() }),
       });
 
       if (!response.ok) {
@@ -96,6 +96,9 @@ export default function ForgotPasswordPage() {
               <Input
                 id="email"
                 type="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="name@example.com"
                 className="pl-9 bg-card text-card-foreground border-border focus-visible:ring-primary h-11"
                 {...register("email")}

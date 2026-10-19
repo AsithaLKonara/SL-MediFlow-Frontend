@@ -108,7 +108,15 @@ export default function SettingsPage() {
               </div>
               <div className="grid gap-2 max-w-sm">
                 <label className="text-sm font-medium">Contact Email</label>
-                <Input value={settings.contactEmail} onChange={e => handleChange('contactEmail', e.target.value)} type="email" placeholder="admin@amaz.com" />
+                <Input 
+                  value={settings.contactEmail} 
+                  onChange={e => handleChange('contactEmail', e.target.value.toLowerCase().trim())} 
+                  type="email" 
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="admin@amaz.com" 
+                />
               </div>
               <div className="grid gap-2 max-w-sm">
                 <label className="text-sm font-medium">System Currency</label>
@@ -177,7 +185,15 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-2 max-w-sm">
                 <label className="text-sm font-medium">Daily Report Email</label>
-                <Input value={settings.dailyReportEmail} onChange={e => handleChange('dailyReportEmail', e.target.value)} type="email" placeholder="admin@amaz.com" />
+                <Input 
+                  value={settings.dailyReportEmail} 
+                  onChange={e => handleChange('dailyReportEmail', e.target.value.toLowerCase().trim())} 
+                  type="email" 
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="admin@amaz.com" 
+                />
               </div>
               <div className="grid gap-2 max-w-sm">
                 <label className="text-sm font-medium">Critical Queue Alert Threshold</label>

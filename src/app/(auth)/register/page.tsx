@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().email({ message: "Please enter a valid email address." }).transform(val => val.trim().toLowerCase()),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
@@ -53,7 +53,7 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fullName: data.name, email: data.email, password: data.password }),
+        body: JSON.stringify({ fullName: data.name, email: data.email.trim().toLowerCase(), password: data.password }),
       });
 
       if (!response.ok) {
@@ -113,6 +113,9 @@ export default function RegisterPage() {
             <Input
               id="email"
               type="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder="name@example.com"
               className="pl-9 bg-card text-card-foreground border-border focus-visible:ring-primary h-11"
               {...register("email")}

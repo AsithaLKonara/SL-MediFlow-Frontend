@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().email({ message: "Please enter a valid email address." }).transform(val => val.trim().toLowerCase()),
   password: z.string().min(1, { message: "Password is required." }),
 });
 
@@ -50,7 +50,10 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          email: data.email.trim().toLowerCase(),
+        }),
       });
 
       let responseData;
@@ -118,6 +121,9 @@ export default function LoginPage() {
             <Input
               id="email"
               type="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder="name@example.com"
               className="pl-10 bg-black/40 border-white/10 text-white focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary focus:bg-black/60 placeholder:text-white/30 h-12 rounded-xl transition-all dark:bg-black/40 dark:focus:bg-black/60"
               {...register("email")}
