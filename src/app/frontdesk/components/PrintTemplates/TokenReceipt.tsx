@@ -39,9 +39,9 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
       </div>
 
       {roomNumber && (
-        <div className="text-center mb-6 border-2 border-black py-2 bg-black text-white">
-          <p className="text-xs uppercase font-bold tracking-widest">Proceed To</p>
-          <h3 className="text-2xl font-black">
+        <div className="text-center mb-6 border-2 border-black py-2 bg-white text-black">
+          <p className="text-xs uppercase font-bold tracking-widest text-black">Proceed To</p>
+          <h3 className="text-2xl font-black text-black">
             {String(roomNumber).toUpperCase().startsWith('ROOM') 
               ? roomNumber 
               : `ROOM ${roomNumber}`}

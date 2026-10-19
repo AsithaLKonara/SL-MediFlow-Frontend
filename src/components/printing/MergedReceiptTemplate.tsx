@@ -59,7 +59,7 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
               )}
               {tokenData.roomNumber && (
                 <div className="mt-3">
-                  <p className="text-xl font-black border-2 border-black inline-block px-4 py-1 uppercase tracking-widest bg-black text-white">
+                  <p className="text-xl font-black border-2 border-black inline-block px-4 py-1 uppercase tracking-widest bg-white text-black">
                     {String(tokenData.roomNumber).toUpperCase().startsWith('ROOM') 
                       ? tokenData.roomNumber 
                       : `ROOM ${tokenData.roomNumber}`}
@@ -70,62 +70,98 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
           ))}
 
           {/* Invoice Section */}
-          {receiptData && receiptData.items && receiptData.items.length > 0 && (
-            <>
-              <div className="mb-4 text-xs">
-                <div className="flex justify-between">
-                  <span className="font-bold">Receipt #:</span>
-                  <span>{receiptData.receiptId.substring(0, 8).toUpperCase()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-bold">Date:</span>
-                  <span>{new Date(receiptData.date).toLocaleString()}</span>
-                </div>
-              </div>
+          {receiptData && receiptData.items && receiptData.items.length > 0 && (() => {
+            const isMedicineItem = (item: any) => {
+              if (item.isMedicine !== undefined) return Boolean(item.isMedicine);
+              if (item.department === "PHARMACY") return true;
+              if (item.department && item.department !== "PHARMACY") return false;
+              const desc = (item.name || "").toLowerCase();
+              if (
+                desc.includes("consultation") ||
+                desc.includes("dr.") ||
+                desc.includes("doctor") ||
+                desc.includes("test") ||
+                desc.includes("lab") ||
+                desc.includes("service") ||
+                desc.includes("fee") ||
+                desc.includes("certificate")
+              ) {
+                return false;
+              }
+              return true;
+            };
 
-              <div className="border-t-2 border-black pt-2 mb-2">
-                <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="border-b border-dashed border-black">
-                      <th className="py-1 w-1/2">Item</th>
-                      <th className="py-1 w-1/4 text-center">Qty</th>
-                      <th className="py-1 w-1/4 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {receiptData.items.map((item: any, idx: number) => (
-                      <React.Fragment key={idx}>
-                        <tr className="align-top">
-                          <td className="pt-1 pr-1 truncate max-w-[140px]">{item.name}</td>
-                          <td className="pt-1 text-center">{item.qty}</td>
-                          <td className="pt-1 text-right">{(item.total || item.price * item.qty).toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                          <td colSpan={3} className="pb-1 text-[10px] text-gray-600">
-                            {item.qty} x Rs. {item.price.toFixed(2)}
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            const medItems = receiptData.items.filter(isMedicineItem);
+            const hasMedicines = medItems.length > 0;
+            const totalMedicines = medItems.reduce((acc: number, item: any) => acc + (item.total || (item.price * item.qty) || 0), 0);
 
-              <div className="border-t-2 border-black pt-2 mb-4 text-sm space-y-0.5">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>LKR {receiptData.subtotal.toFixed(2)}</span>
-                </div>
-                {receiptData.discount !== undefined && receiptData.discount > 0 && (
-                  <div className="flex justify-between font-medium text-xs">
-                    <span>Discount:</span>
-                    <span>- LKR {receiptData.discount.toFixed(2)}</span>
+            return (
+              <>
+                <div className="mb-4 text-xs">
+                  <div className="flex justify-between">
+                    <span className="font-bold">Receipt #:</span>
+                    <span>{receiptData.receiptId.substring(0, 8).toUpperCase()}</span>
                   </div>
-                )}
-                <div className="flex justify-between font-bold text-base mt-1 pt-1 border-t border-dashed border-black">
-                  <span>Total:</span>
-                  <span>LKR {receiptData.total.toFixed(2)}</span>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Date:</span>
+                    <span>{new Date(receiptData.date).toLocaleString()}</span>
+                  </div>
                 </div>
+
+                <div className="border-t-2 border-black pt-2 mb-2">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b border-dashed border-black">
+                        <th className="py-1 w-1/2">Item</th>
+                        <th className="py-1 w-1/4 text-center">Qty</th>
+                        <th className="py-1 w-1/4 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receiptData.items.map((item: any, idx: number) => {
+                        const isMed = isMedicineItem(item);
+                        return (
+                          <React.Fragment key={idx}>
+                            <tr className="align-top">
+                              <td className="pt-1 pr-1 truncate max-w-[140px]">{item.name}</td>
+                              <td className="pt-1 text-center">{item.qty}</td>
+                              <td className="pt-1 text-right">{isMed ? "-" : (item.total || item.price * item.qty).toFixed(2)}</td>
+                            </tr>
+                            {!isMed && (
+                              <tr>
+                                <td colSpan={3} className="pb-1 text-[10px] text-gray-600">
+                                  {item.qty} x Rs. {item.price.toFixed(2)}
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="border-t-2 border-black pt-2 mb-4 text-sm space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>LKR {receiptData.subtotal.toFixed(2)}</span>
+                  </div>
+                  {hasMedicines && (
+                    <div className="flex justify-between text-xs font-semibold text-gray-800">
+                      <span>Medicines Total:</span>
+                      <span>LKR {totalMedicines.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {receiptData.discount !== undefined && receiptData.discount > 0 && (
+                    <div className="flex justify-between font-medium text-xs">
+                      <span>Discount:</span>
+                      <span>- LKR {receiptData.discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-base mt-1 pt-1 border-t border-dashed border-black">
+                    <span>Total:</span>
+                    <span>LKR {receiptData.total.toFixed(2)}</span>
+                  </div>
                 
                 <div className="flex justify-between mt-3 text-xs">
                   <span>Pay Method:</span>
@@ -147,7 +183,7 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                 )}
               </div>
             </>
-          )}
+          ); })()}
 
           <div className="text-center mt-6 pt-2 border-t border-dashed border-black flex flex-col items-center">
             {(() => {

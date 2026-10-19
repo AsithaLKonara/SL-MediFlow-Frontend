@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, SendToBack, Send, UserRound, Stethoscope, FlaskConical, FilePlus2, CheckCircle2 } from "lucide-react";
+import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, SendToBack, Send, UserRound, Stethoscope, FlaskConical, FilePlus2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { io, Socket } from "socket.io-client";
 import { useRxToPOS } from "../hooks/useCartSync";
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnhancedCalendar } from "@/app/frontdesk/arrivals/components/workspace/left-panel/EnhancedCalendar";
 import { Badge } from "@/components/ui/badge";
+import { CancelAppointmentModal } from "@/components/frontdesk/CancelAppointmentModal";
 
 interface Doctor {
   id: string;
@@ -71,6 +72,8 @@ export function PhoneBookingPane() {
   const [todayBookings, setTodayBookings] = useState<any[]>([]);
   const [bookingSearchQuery, setBookingSearchQuery] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null);
 
   const [successPopupOpen, setSuccessPopupOpen] = useState(false);
   const [successTokens, setSuccessTokens] = useState<any[]>([]);
@@ -1101,7 +1104,28 @@ export function PhoneBookingPane() {
                 )}
               </ScrollArea>
 
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-between items-center pt-2 border-t gap-2">
+                <Button 
+                  variant="destructive"
+                  size="sm"
+                  disabled={!selectedBookingId}
+                  onClick={() => {
+                    const selectedAppt = todayBookings.find(b => b.id === selectedBookingId);
+                    if (selectedAppt) {
+                      setAppointmentToCancel({
+                        id: selectedAppt.id,
+                        tokenNumber: selectedAppt.tokenNumber,
+                        patientName: selectedAppt.Patient?.fullName || selectedAppt.patientName,
+                        doctorName: selectedAppt.User?.fullName || selectedAppt.doctorName
+                      });
+                      setIsCancelModalOpen(true);
+                    }
+                  }}
+                >
+                  <XCircle className="w-4 h-4 mr-1.5" />
+                  Cancel Booking
+                </Button>
+
                 <DialogClose render={
                   <Button 
                     disabled={!selectedBookingId}
@@ -1150,7 +1174,7 @@ export function PhoneBookingPane() {
                         toast.success("Sent to POS for checkout.");
                       }
                     }}
-                    className="w-full"
+                    className="flex-1 max-w-[200px]"
                   />
                 }>
                   <Send className="w-4 h-4 mr-2" /> Send to POS
@@ -1160,6 +1184,20 @@ export function PhoneBookingPane() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <CancelAppointmentModal
+        isOpen={isCancelModalOpen}
+        onClose={() => {
+          setIsCancelModalOpen(false);
+          setAppointmentToCancel(null);
+        }}
+        appointment={appointmentToCancel}
+        onSuccess={() => {
+          setSelectedBookingId(null);
+          fetchTodayBookings();
+          if (selectedDocId) fetchDocTokens();
+        }}
+      />
 
       {/* Success Popup */}
       <Dialog open={successPopupOpen} onOpenChange={setSuccessPopupOpen}>

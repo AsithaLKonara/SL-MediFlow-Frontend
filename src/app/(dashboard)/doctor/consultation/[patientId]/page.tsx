@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useRef } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2, ScanBarcode, DollarSign, Edit3, X } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, Trash2, CheckCircle2, Save, FileText, Activity, User, Beaker, FlaskConical, FilePen, Printer, Loader2, ScanBarcode, DollarSign, Edit3, X, FilePlus2, Award } from "lucide-react";
 import Link from "next/link";
 import { io } from "socket.io-client";
 import { useReactToPrint } from "react-to-print";
@@ -17,6 +17,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
+import { LabTestsModal } from "@/components/doctor/LabTestsModal";
+import { ExtraServicesModal, SelectedExtraService } from "@/components/doctor/ExtraServicesModal";
+import { MedicalCertificateModal, CertificateType } from "@/components/doctor/MedicalCertificateModal";
 import {
   PRESCRIPTION_FREQUENCIES,
   PRESCRIPTION_ROUTES,
@@ -152,6 +155,12 @@ export default function ConsultationPage() {
   const handleRemoveLabTest = (id: string) => {
     setSelectedTests(prev => prev.filter(t => t.id !== id));
   };
+
+  // Consultation Modals & Services
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [isExtraServicesModalOpen, setIsExtraServicesModalOpen] = useState(false);
+  const [availableExtraServices, setAvailableExtraServices] = useState<any[]>([]);
+  const [customDocFee, setCustomDocFee] = useState<number>(2500);
 
   // OPD Doctor Fee State
   const [selectedFee, setSelectedFee] = useState<number | null>(null);
@@ -331,6 +340,17 @@ export default function ConsultationPage() {
       .then((data) => setAvailableLabTests(Array.isArray(data) ? data : (data.data || [])))
       .catch((e) => console.error("Failed to load lab catalog", e));
 
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((r) => r.json())
+      .then((data) => setAvailableExtraServices(Array.isArray(data) ? data : (data.data || [])))
+      .catch((e) => console.error("Failed to load extra services catalog", e));
+
+    if ((user as any)?.consultationFee) {
+      setCustomDocFee((user as any).consultationFee);
+    }
+
     const socketUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace('/api', '');
     const socket = io(socketUrl);
 
@@ -506,6 +526,39 @@ export default function ConsultationPage() {
       prev.some(t => t.id === test.id) ? prev.filter((t) => t.id !== test.id) : [...prev, test]
     );
 
+  const handleSaveCertificateAsOrder = async (certData: any) => {
+    try {
+      const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+      const finalVisitId = urlVisitId || patient?.activeVisitId || rxVisitId || createdPrescription?.visitId || patient?.id;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${activeToken}`
+        },
+        body: JSON.stringify({
+          orders: [{
+            patientId: patient?.id,
+            doctorId: user?.id,
+            visitId: finalVisitId,
+            customPrice: certData.customPrice,
+            certificateType: certData.certificateType,
+            certificateData: certData.certificateData,
+            notes: certData.notes
+          }]
+        })
+      });
+      if (res.ok) {
+        toast.success("Medical Certificate saved and added to billing!");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to record certificate order");
+      }
+    } catch (err) {
+      toast.error("Failed to save certificate order");
+    }
+  };
+
   const savePrescription = async (navigateNext: boolean = false) => {
     if (navigateNext && isOpdDoctor && (selectedFee === null || selectedFee <= 0)) {
       toast.error("Please select or enter a valid consultation fee before completing the consultation.");
@@ -540,6 +593,7 @@ export default function ConsultationPage() {
         consultationFee: selectedFee !== null ? selectedFee : (user.consultationFee ?? 2500),
         diagnosis,
         clinicalNotes: notes,
+        customConsultationFee: selectedFee !== null ? selectedFee : (customDocFee ? Number(customDocFee) : undefined),
         extraServices: selectedExtraServices,
         items: addedDrugs.map(d => {
           const dispenseQty = calculateDispenseQuantity(d);
@@ -630,6 +684,38 @@ export default function ConsultationPage() {
       }
     }
 
+    if (selectedExtraServices.length > 0) {
+      try {
+        const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+        const extraRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${activeToken}`
+          },
+          body: JSON.stringify({
+            orders: selectedExtraServices.map(s => ({
+              serviceId: s.id,
+              patientId: patient?.id,
+              doctorId: user.id,
+              visitId: finalVisitId,
+              customPrice: s.customPrice,
+              notes: (s as any).notes
+            }))
+          })
+        });
+        if (extraRes.ok) {
+          toast.success("Extra services ordered successfully.");
+          setSelectedExtraServices([]);
+        } else {
+          const extraErr = await extraRes.json().catch(() => ({}));
+          toast.error(extraErr.error || "Failed to send extra services.");
+        }
+      } catch (e) {
+        console.error("Failed to send extra services", e);
+      }
+    }
+
     if (navigateNext) {
       // Update Token Status if completing consultation
       try {
@@ -696,6 +782,44 @@ export default function ConsultationPage() {
                     <span>Barcode: {patient.masterBarcode || patient.bookingReference}</span>
                   </span>
                 )}
+
+                <div className="flex items-center gap-2 ml-auto flex-wrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    data-testid="header-open-lab-modal-btn"
+                    onClick={() => setIsLabModalOpen(true)}
+                    className="h-7 gap-1 text-xs border-blue-200 text-blue-700 bg-blue-50/60 hover:bg-blue-100"
+                  >
+                    <FlaskConical className="w-3.5 h-3.5 text-blue-600" />
+                    + Order Lab Test {selectedTests.length > 0 && `(${selectedTests.length})`}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    data-testid="header-open-extra-service-modal-btn"
+                    onClick={() => setIsExtraServiceModalOpen(true)}
+                    className="h-7 gap-1 text-xs border-purple-200 text-purple-700 bg-purple-50/60 hover:bg-purple-100"
+                  >
+                    <FilePlus2 className="w-3.5 h-3.5 text-purple-600" />
+                    + Order Extra Service {selectedExtraServices.length > 0 && `(${selectedExtraServices.length})`}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    data-testid="open-certificate-modal-btn"
+                    onClick={() => setIsCertificateModalOpen(true)}
+                    className="h-7 gap-1 text-xs border-emerald-200 text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100"
+                  >
+                    <Award className="w-3.5 h-3.5 text-emerald-600" />
+                    Certificate
+                  </Button>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -778,7 +902,17 @@ export default function ConsultationPage() {
           <div className="hidden md:flex flex-col items-end text-right text-sm shrink-0 border-l border-border pl-6 pt-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Token Number</p>
             <p className="text-2xl font-black text-foreground tracking-tight">{patient.activeTokenNumber ? `Token #${patient.activeTokenNumber}` : "--"}</p>
-            <p className="font-medium text-muted-foreground text-xs mt-3">{patient.activeVisitStartTime ? `Started ${new Date(patient.activeVisitStartTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Colombo'})}` : "Started --:--"}</p>
+            <div className="mt-2 flex items-center gap-1.5 bg-primary/5 border border-primary/20 px-2 py-1 rounded">
+              <span className="text-[10px] uppercase font-bold text-primary">OPD Fee: Rs.</span>
+              <Input
+                type="number"
+                min="0"
+                value={customDocFee}
+                onChange={e => setCustomDocFee(parseFloat(e.target.value) || 0)}
+                className="h-6 w-20 text-right text-xs font-bold bg-background p-1"
+              />
+            </div>
+            <p className="font-medium text-muted-foreground text-xs mt-2">{patient.activeVisitStartTime ? `Started ${new Date(patient.activeVisitStartTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Colombo'})}` : "Started --:--"}</p>
             <p className="font-mono text-[10px] text-muted-foreground mt-1 opacity-50" title={patient.id}>ID: {patient.id ? patient.id.substring(0,8) : "N/A"}</p>
           </div>
         </div>
@@ -1644,6 +1778,26 @@ export default function ConsultationPage() {
       />
 
       <PrescriptionPrintTemplate ref={printRef} prescription={createdPrescription} />
+
+
+      <MedicalCertificateModal
+        isOpen={isCertificateModalOpen}
+        onClose={() => setIsCertificateModalOpen(false)}
+        patient={patient ? {
+          id: patient.id,
+          name: patient.name,
+          age: patient.age,
+          gender: patient.gender,
+          contact: patient.contact,
+          activeVisitId: patient.activeVisitId
+        } : null}
+        doctor={user ? {
+          id: user.id,
+          fullName: user.fullName,
+          specialty: (user as any).specialty
+        } : null}
+        onSaveAsOrder={handleSaveCertificateAsOrder}
+      />
     </div>
   );
 }

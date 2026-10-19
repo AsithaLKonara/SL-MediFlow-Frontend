@@ -13,10 +13,13 @@ export interface BillReceiptProps {
     discountAmount?: number;
     totalAmount: number;
     lineItems: Array<{
-      id: string;
+      id?: string;
       description: string;
       quantity: number;
       unitPrice: number;
+      total?: number;
+      department?: string;
+      isMedicine?: boolean;
     }>;
   };
 }
@@ -50,9 +53,9 @@ export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
           <p className="text-xs uppercase text-black font-bold">Token Number</p>
           <p className="text-4xl font-black">{queueNumber}</p>
           {roomNumber && (
-            <div className="mt-2 border-2 border-black py-1 bg-black text-white">
-              <p className="text-[10px] uppercase font-bold tracking-widest">Proceed To</p>
-              <h3 className="text-xl font-black">ROOM {roomNumber}</h3>
+            <div className="mt-2 border-2 border-black py-1 bg-white text-black">
+              <p className="text-[10px] uppercase font-bold tracking-widest text-black">Proceed To</p>
+              <h3 className="text-xl font-black text-black">ROOM {roomNumber}</h3>
             </div>
           )}
         </div>
@@ -82,36 +85,81 @@ export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
         {/* Billing Details */}
         <div className="mb-8">
           <h3 className="font-bold text-sm mb-2 underline">Billing Items</h3>
-          <div className="space-y-2">
-            {invoice.lineItems.map((item, index) => (
-              <div key={index} className="text-xs">
-                <div className="flex justify-between font-medium">
-                  <span className="pr-2">{item.description}</span>
-                  <span>Rs. {(item.quantity * item.unitPrice).toFixed(2)}</span>
+          {(() => {
+            const isMedicineItem = (item: any) => {
+              if (item.isMedicine !== undefined) return Boolean(item.isMedicine);
+              if (item.department === "PHARMACY") return true;
+              if (item.department && item.department !== "PHARMACY") return false;
+              const desc = (item.description || item.name || "").toLowerCase();
+              if (
+                desc.includes("consultation") ||
+                desc.includes("dr.") ||
+                desc.includes("doctor") ||
+                desc.includes("test") ||
+                desc.includes("lab") ||
+                desc.includes("service") ||
+                desc.includes("fee") ||
+                desc.includes("certificate")
+              ) {
+                return false;
+              }
+              return true;
+            };
+
+            const medItems = invoice.lineItems.filter(isMedicineItem);
+            const hasMedicines = medItems.length > 0;
+            const totalMedicines = medItems.reduce((acc, item) => acc + (item.total || (item.quantity * item.unitPrice) || 0), 0);
+
+            return (
+              <>
+                <div className="space-y-2">
+                  {invoice.lineItems.map((item, index) => {
+                    const isMed = isMedicineItem(item);
+                    return (
+                      <div key={index} className="text-xs">
+                        <div className="flex justify-between font-medium">
+                          <span className="pr-2">{item.description}</span>
+                          {isMed ? (
+                            <span className="text-gray-600 font-normal">Qty: {item.quantity}</span>
+                          ) : (
+                            <span>Rs. {(item.quantity * item.unitPrice).toFixed(2)}</span>
+                          )}
+                        </div>
+                        {!isMed && (
+                          <div className="text-[10px] text-gray-600">
+                            {item.quantity} x Rs. {item.unitPrice.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="text-[10px] text-gray-600">
-                  {item.quantity} x Rs. {item.unitPrice.toFixed(2)}
+                
+                <div className="mt-4 pt-2 border-t-2 border-black space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span>Subtotal</span>
+                    <span>Rs. {(invoice.subtotal || invoice.totalAmount).toFixed(2)}</span>
+                  </div>
+                  {hasMedicines && (
+                    <div className="flex justify-between text-xs font-semibold text-gray-800">
+                      <span>Medicines Total</span>
+                      <span>Rs. {totalMedicines.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {invoice.discountAmount !== undefined && invoice.discountAmount > 0 && (
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span>Discount</span>
+                      <span>- Rs. {invoice.discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-sm pt-1 border-t border-dashed border-black">
+                    <span>Total Amount</span>
+                    <span>Rs. {invoice.totalAmount.toFixed(2)}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-4 pt-2 border-t-2 border-black space-y-1">
-            <div className="flex justify-between text-xs">
-              <span>Subtotal</span>
-              <span>Rs. {(invoice.subtotal || invoice.totalAmount).toFixed(2)}</span>
-            </div>
-            {invoice.discountAmount !== undefined && invoice.discountAmount > 0 && (
-              <div className="flex justify-between text-xs font-semibold">
-                <span>Discount</span>
-                <span>- Rs. {invoice.discountAmount.toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-bold text-sm pt-1 border-t border-dashed border-black">
-              <span>Total Amount</span>
-              <span>Rs. {invoice.totalAmount.toFixed(2)}</span>
-            </div>
-          </div>
+              </>
+            );
+          })()}
         </div>
 
         <div className="mt-12 text-center border-t-2 border-black pt-4 flex flex-col items-center">

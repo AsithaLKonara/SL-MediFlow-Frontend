@@ -26,6 +26,7 @@ import {
   Hospital,
   ActivitySquare,
   Clock,
+  RotateCcw,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
     { href: "/superadmin/extra-services", label: "Extra Services (Config)", icon: FilePlus2, category: "Operations", permission: "Extra Services" },
     { href: "/extra-services", label: "Extra Services Station", icon: ActivitySquare, category: "Operations", permission: "Extra Services" },
+    { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw, category: "Operations", permission: "Finance" },
 
     { href: "/superadmin/staff", label: "Employee Directory", icon: Users, category: "Management", permission: "Staff" },
     { href: "/superadmin/hr/attendance", label: "Attendance & Leaves", icon: CalendarClock, category: "Management", permission: "HR" },
@@ -64,6 +66,8 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
     { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users },
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
+    { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw },
+    { href: "/extra-services", label: "Extra Services Orders", icon: FilePlus2 },
     { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
     { href: "/frontdesk/inventory", label: "Restock & Operations", icon: PackageSearch },
     { href: "/frontdesk/rooms", label: "Room Management", icon: Building2 },
@@ -74,6 +78,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/doctor/queue", label: "Patient Queue", icon: ClipboardList },
     { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
     { href: "/doctor/lab-requests", label: "Lab Requests", icon: FlaskConical },
+    { href: "/extra-services", label: "Extra Services Orders", icon: FilePlus2 },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
@@ -87,6 +92,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
   ],
   nurse: [
     { href: "/extra-services", label: "Extra Services Station", icon: ActivitySquare },
+    { href: "/nurse", label: "Nurse Dashboard", icon: LayoutDashboard },
     { href: "/frontdesk/arrivals", label: "Arrivals & Queue", icon: Users },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
@@ -111,6 +117,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/cashier", label: "Overview", icon: LayoutDashboard },
     { href: "/cashier/payments", label: "Payments List", icon: CreditCard },
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt },
+    { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw },
     { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },
     { href: "/settings", label: "Settings", icon: Settings },
