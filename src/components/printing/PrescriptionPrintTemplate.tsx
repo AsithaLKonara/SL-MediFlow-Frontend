@@ -1,5 +1,6 @@
 import React from "react";
 import Barcode from "react-barcode";
+import { getFrequencyLabel, getRouteLabel } from "@/lib/prescriptionConstants";
 
 interface PrintProps {
   prescription: any;
@@ -72,9 +73,14 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {prescription.items?.map((item: any, idx: number) => {
+                  const doseStr = item.dosageAmount && item.doseUnit 
+                    ? `${item.dosageAmount} ${item.doseUnit}` 
+                    : item.dosage;
                   const clinicalParts = [
-                    item.dosage,
-                    item.frequency,
+                    item.strength,
+                    doseStr,
+                    item.route ? getRouteLabel(item.route) : null,
+                    item.frequency ? getFrequencyLabel(item.frequency) : null,
                     item.duration ? `for ${item.duration}` : null,
                   ].filter(Boolean);
 
