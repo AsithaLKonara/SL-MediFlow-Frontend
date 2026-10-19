@@ -1116,18 +1116,6 @@ export function POSPane() {
                   <Button variant="outline" className="flex-1 h-12" onClick={() => handlePrint()}>
                     <Printer className="w-4 h-4 mr-2" /> Print Receipt
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-12 px-3 gap-1.5" 
-                    title="Open Cash Drawer"
-                    onClick={async () => {
-                      const res = await openCashDrawer();
-                      if (res.success) toast.success("Cash drawer opened");
-                      else toast.warning("Could not open drawer: " + (res.message || "check bridge"));
-                    }}
-                  >
-                    <Banknote className="w-4 h-4" /> Open Drawer
-                  </Button>
                   <Button className="flex-1 h-12" onClick={() => handleCloseCheckout()}>
                     New Sale
                   </Button>
@@ -1136,22 +1124,7 @@ export function POSPane() {
             ) : (
               <>
                 <div className="p-4 border-b border-border bg-muted flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-lg">Checkout</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                      title="Open Cash Drawer"
-                      onClick={async () => {
-                        const res = await openCashDrawer();
-                        if (res.success) toast.success("Cash drawer opened");
-                        else toast.warning("Could not open drawer: " + (res.message || "check bridge"));
-                      }}
-                    >
-                      <Banknote className="w-3.5 h-3.5" /> Open Drawer
-                    </Button>
-                  </div>
+                  <h3 className="font-semibold text-lg">Checkout</h3>
                   <Button variant="ghost" size="sm" onClick={() => handleCloseCheckout(true)}>Cancel</Button>
                 </div>
             <div className="p-4 space-y-5">

@@ -12,12 +12,12 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
     return (
       <div className="hidden">
         {/* The printable area that react-to-print targets */}
-        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-sans print:w-[290px] print:px-3.5 print:py-2 leading-tight">
+        <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 pt-1.5 pb-8 font-sans print:w-[290px] print:px-3.5 print:pt-1 print:pb-12 leading-tight">
           <style dangerouslySetInnerHTML={{ __html: `
             @media print {
               @page {
                 size: auto;
-                margin: 3mm 2mm;
+                margin: 1.5mm 2mm 6mm 2mm;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -146,6 +146,7 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
             <p className="text-xs italic mt-1">Wishing you a speedy recovery!</p>
             <p className="text-[9px] text-gray-500 mt-0.5">Generated electronically.</p>
           </div>
+          <div className="h-8 print:h-12 w-full" aria-hidden="true" />
         </div>
       </div>
     );

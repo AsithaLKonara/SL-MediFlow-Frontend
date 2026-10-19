@@ -117,7 +117,7 @@ export const ShiftSummaryReceipt = forwardRef<HTMLDivElement, ShiftSummaryReceip
     return (
       <div
         ref={ref}
-        className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-mono text-[11px] leading-tight print:w-[290px] print:px-3 print:py-2 select-text"
+        className="w-[290px] mx-auto box-border bg-white text-black px-3.5 pt-1.5 pb-8 font-mono text-[11px] leading-tight print:w-[290px] print:px-3 print:pt-1 print:pb-12 select-text"
       >
         <style
           dangerouslySetInnerHTML={{
@@ -125,7 +125,7 @@ export const ShiftSummaryReceipt = forwardRef<HTMLDivElement, ShiftSummaryReceip
               @media print {
                 @page {
                   size: auto;
-                  margin: 2mm 2mm;
+                  margin: 1.5mm 2mm 6mm 2mm;
                 }
                 body {
                   -webkit-print-color-adjust: exact;
@@ -367,6 +367,7 @@ export const ShiftSummaryReceipt = forwardRef<HTMLDivElement, ShiftSummaryReceip
             <p>AMAZ Hospital Enterprise Management System</p>
           </div>
         </div>
+        <div className="h-8 print:h-12 w-full" aria-hidden="true" />
       </div>
     );
   }

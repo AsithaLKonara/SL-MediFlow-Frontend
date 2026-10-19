@@ -20,12 +20,12 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
   date: string;
 }>(({ prescriptionId, patientName, patientAge, patientPhone, doctorName, medicines, date }, ref) => {
   return (
-    <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 py-3 font-sans print:w-[290px] print:px-3.5 print:py-2 leading-tight">
+    <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 pt-1.5 pb-8 font-sans print:w-[290px] print:px-3.5 print:pt-1 print:pb-12 leading-tight">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: auto;
-            margin: 3mm 2mm;
+            margin: 1.5mm 2mm 6mm 2mm;
           }
           body {
             -webkit-print-color-adjust: exact;
@@ -146,6 +146,7 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
           Official AMAZ Hospital Medical Prescription
         </p>
       </div>
+      <div className="h-8 print:h-12 w-full" aria-hidden="true" />
     </div>
   );
 });

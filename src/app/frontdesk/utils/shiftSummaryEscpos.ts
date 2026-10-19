@@ -1,4 +1,4 @@
-import { EscPosBuilder } from "@asithakonara/escpos";
+import { EscPosBuilder } from "@/lib/escpos";
 import { ShiftSummaryData } from "../components/PrintTemplates/ShiftSummaryReceipt";
 
 export function buildShiftSummaryEscPos(summary: ShiftSummaryData): EscPosBuilder {

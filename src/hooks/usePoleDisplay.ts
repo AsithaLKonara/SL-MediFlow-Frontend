@@ -1,62 +1,55 @@
 import { useEffect, useRef } from 'react';
-import { NodePrintClient } from '@asithakonara/node-print-client';
-import { EscPosBuilder } from '@asithakonara/escpos';
+import { EscPosBuilder } from '@/lib/escpos';
 
 export function usePoleDisplay(enabled: boolean = true) {
-  const clientRef = useRef<NodePrintClient | null>(null);
+  const bridgeUrlRef = useRef<string>('http://127.0.0.1:18181');
 
   useEffect(() => {
-    if (enabled && !clientRef.current) {
-      // Connect to the local bridge service
-      clientRef.current = new NodePrintClient({
-        url: 'http://127.0.0.1:18181', // Default bridge port
-      });
+    if (typeof window !== "undefined") {
+      bridgeUrlRef.current = localStorage.getItem("node_print_url") || 'http://127.0.0.1:18181';
     }
-
-    return () => {
-      // Clean up if needed
-    };
   }, [enabled]);
 
   const showAmount = async (amount: number, label: string = "Total") => {
-    if (!clientRef.current || !enabled) return;
+    if (!enabled) return;
 
     try {
-      // Typically pole displays are connected via a COM port, we treat it as a printer.
-      // ESC/POS commands can clear the screen and write text.
-      // E.g., ESC @ (init), text
       const builder = new EscPosBuilder();
-      
       builder
-        .init() // Clear/Init
+        .init()
         .text(`${label}:\n`)
         .text(`LKR ${amount.toFixed(2)}\n`);
 
-      // You would configure the bridge with a specific printer name for the pole display
-      await clientRef.current.print({ type: 'escpos', printer: 'PoleDisplay', data: Buffer.from(builder.build()).toString('base64') });
+      const rawBase64 = builder.toBase64();
+      await fetch(`${bridgeUrlRef.current}/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: 'escpos', printer: 'PoleDisplay', data: rawBase64 }),
+      }).catch(() => null);
     } catch (error: any) {
-      if (error?.message?.includes("Failed to fetch") || error instanceof TypeError) {
-        console.warn("Pole display skipped: Bridge service not reachable at 127.0.0.1:18181");
-        return;
-      }
-      console.error("Pole display error:", error);
+      // silently ignore if bridge is offline
     }
   };
 
   const clearDisplay = async () => {
-    if (!clientRef.current || !enabled) return;
+    if (!enabled) return;
 
     try {
       const builder = new EscPosBuilder();
       builder.init();
-      await clientRef.current.print({ type: 'escpos', printer: 'PoleDisplay', data: Buffer.from(builder.build()).toString('base64') });
+      const rawBase64 = builder.toBase64();
+      await fetch(`${bridgeUrlRef.current}/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: 'escpos', printer: 'PoleDisplay', data: rawBase64 }),
+      }).catch(() => null);
     } catch (error: any) {
-      if (error?.message?.includes("Failed to fetch") || error instanceof TypeError) {
-        return; // silently ignore when bridge is not running
-      }
-      console.error("Pole display clear error:", error);
+      // silently ignore
     }
   };
 
-  return { showAmount, clearDisplay };
+  return {
+    showAmount,
+    clearDisplay,
+  };
 }

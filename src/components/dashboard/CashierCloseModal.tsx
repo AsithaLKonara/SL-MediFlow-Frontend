@@ -9,7 +9,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 import { useReactToPrint } from "react-to-print";
 import { Printer, FileText, LogOut, CheckCircle2 } from "lucide-react";
-import { NodePrintClient } from "@asithakonara/node-print-client";
 import { 
   ShiftSummaryReceipt, 
   ShiftSummaryData 
@@ -43,11 +42,25 @@ export function CashierCloseModal({
 
   const printThermalHardware = async (summaryData: ShiftSummaryData) => {
     try {
-      const client = new NodePrintClient({ url: "http://127.0.0.1:18181" });
       const builder = buildShiftSummaryEscPos(summaryData);
-      await client.print({ type: "escpos", data: builder.build().toString("base64") });
-      toast.success("Shift settlement receipt printed to thermal printer.");
-      return true;
+      const rawBase64 = builder.toBase64();
+      const bridgeUrl = (typeof window !== "undefined" ? localStorage.getItem("node_print_url") : null) || "http://127.0.0.1:18181";
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1500);
+
+      const res = await fetch(`${bridgeUrl}/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "escpos", data: rawBase64 }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        toast.success("Shift settlement receipt printed to thermal printer.");
+        return true;
+      }
+      return false;
     } catch (e) {
       console.warn("Hardware thermal printer offline or bridge error:", e);
       return false;

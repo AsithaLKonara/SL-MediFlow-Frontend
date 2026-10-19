@@ -11,9 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { User, KeyRound, Loader2, Save, Settings as SettingsIcon, Bell, Sun, Printer, HardDrive, CheckCircle2, AlertCircle, RefreshCw, Banknote, Scissors } from "lucide-react";
-import { openCashDrawer, getBridgeUrl } from "@/lib/cashDrawer";
+import { openCashDrawer } from "@/lib/cashDrawer";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
-import { NodePrintClient } from "@asithakonara/node-print-client";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -71,7 +70,7 @@ export default function SettingsPage() {
       .finally(() => setLoading(false));
 
     if (typeof window !== "undefined") {
-      setBridgeUrl(getBridgeUrl());
+      setBridgeUrl(localStorage.getItem("node_print_url") || "http://127.0.0.1:18181");
       setPrinterName(localStorage.getItem("node_print_printer") || localStorage.getItem("pos_printer") || "");
       setLanIp(localStorage.getItem("printer_lan_ip") || "");
     }
@@ -80,11 +79,18 @@ export default function SettingsPage() {
   const checkBridge = async (urlToCheck: string = bridgeUrl) => {
     setBridgeStatus("checking");
     try {
-      const client = new NodePrintClient({ url: urlToCheck });
-      const printers = await client.printers.list();
-      setDetectedPrinters(printers);
-      setBridgeStatus("online");
-      toast.success(`Bridge is online. Found ${printers.length} printer(s).`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${urlToCheck}/printers`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const printers = await res.json().catch(() => []);
+        setDetectedPrinters(Array.isArray(printers) ? printers : []);
+        setBridgeStatus("online");
+        toast.success(`Bridge is online. Found ${printers.length || 0} printer(s).`);
+      } else {
+        throw new Error(`HTTP ${res.status}`);
+      }
     } catch (e: any) {
       setBridgeStatus("offline");
       toast.error(`Bridge unreachable at ${urlToCheck}: ${e?.message || "connection refused"}`);
@@ -95,11 +101,10 @@ export default function SettingsPage() {
     setIsTestingDrawer(true);
     try {
       const res = await openCashDrawer({
-        url: bridgeUrl,
-        printer: printerName.trim() || undefined
+        host: lanIp.trim() || undefined
       });
       if (res.success) {
-        toast.success(`Cash drawer triggered successfully (${res.method === "webusb" ? "WebUSB" : "Bridge"}).`);
+        toast.success(`Cash drawer triggered successfully (${res.channel || "direct"}).`);
       } else {
         toast.error(`Cash drawer failed: ${res.message}`);
       }
@@ -114,12 +119,11 @@ export default function SettingsPage() {
     setIsTestingCut(true);
     try {
       const res = await triggerPrinterAutoCut({
-        printer: printerName.trim() || undefined,
-        ip: lanIp.trim() || undefined,
-        feedLines: 3
+        host: lanIp.trim() || undefined,
+        feedLines: 4
       });
       if (res.success) {
-        toast.success(`Auto-cut triggered successfully via ${res.method === "lan" ? "LAN TCP Socket" : res.method === "webusb" ? "WebUSB" : "Bridge"}.`);
+        toast.success(`Auto-cut triggered successfully (${res.channel || "direct"}).`);
       } else {
         toast.error(`Auto-cut failed: ${res.message}`);
       }

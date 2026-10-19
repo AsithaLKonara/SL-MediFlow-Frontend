@@ -3,26 +3,21 @@ import net from "net";
 
 /**
  * Direct LAN/Network Thermal Printer Auto-Cut using Node.js default 'net' module.
- * Communicates with Xprinter XP-80T or any ESC/POS printer on TCP port 9100.
+ * Communicates with Xprinter XP-80T or any standard ESC/POS printer on TCP port 9100.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const ip = body.ip || process.env.PRINTER_IP || process.env.NEXT_PUBLIC_PRINTER_IP || process.env.NEXT_PUBLIC_POS_IP;
+    const host = body.host || body.ip || process.env.PRINTER_LAN_IP || process.env.NEXT_PUBLIC_PRINTER_IP || "127.0.0.1";
     const port = Number(body.port) || 9100;
-    const feedLines = Math.min(Math.max(Number(body.feedLines) || 3, 1), 10);
-
-    if (!ip) {
-      return NextResponse.json({
-        success: false,
-        skipped: true,
-        message: "No LAN printer IP configured. Use bridge or provide printer IP."
-      });
-    }
+    const feedLines = Math.min(Math.max(Number(body.feedLines) || 4, 1), 10);
+    const timeoutMs = Number(body.timeout) || 3000;
 
     // ESC/POS Commands:
+    // ESC @: Initialize printer (0x1b, 0x40)
     // ESC d <feedLines>: Feed paper (0x1b, 0x64, n)
-    // GS V 66 0: Partial cut with feed (0x1d, 0x56, 0x42, 0x00)
+    // GS V 66 0: Partial cut (0x1d, 0x56, 0x42, 0x00)
+    // Also include standard ESC m (0x1b, 0x6d) for legacy ESC/POS cut
     const cutBuffer = Buffer.from([
       0x1b, 0x40,               // Initialize printer (ESC @)
       0x1b, 0x64, feedLines,    // Feed n lines (ESC d n)
@@ -31,23 +26,35 @@ export async function POST(req: Request) {
 
     const result = await new Promise<{ success: boolean; message: string }>((resolve) => {
       const socket = new net.Socket();
-      socket.setTimeout(2500);
+      let finished = false;
 
-      socket.connect(port, ip, () => {
-        socket.write(cutBuffer, () => {
-          socket.end();
-          resolve({ success: true, message: `Auto-cut signal sent to LAN printer at ${ip}:${port}` });
+      const finish = (success: boolean, message: string) => {
+        if (finished) return;
+        finished = true;
+        try { socket.destroy(); } catch (_) {}
+        resolve({ success, message });
+      };
+
+      socket.setTimeout(timeoutMs);
+
+      socket.connect(port, host, () => {
+        socket.write(cutBuffer, (err) => {
+          if (err) {
+            finish(false, "Write cut command failed: " + err.message);
+          } else {
+            setTimeout(() => {
+              finish(true, `Auto-cut signal sent to printer at ${host}:${port}`);
+            }, 100);
+          }
         });
       });
 
       socket.on("timeout", () => {
-        socket.destroy();
-        resolve({ success: false, message: `Connection timed out to ${ip}:${port}` });
+        finish(false, `Connection timed out to ${host}:${port}`);
       });
 
       socket.on("error", (err) => {
-        socket.destroy();
-        resolve({ success: false, message: `LAN printer error: ${err.message}` });
+        finish(false, `LAN printer socket error: ${err.message}`);
       });
     });
 
