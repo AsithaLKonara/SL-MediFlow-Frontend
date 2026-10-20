@@ -73,7 +73,7 @@ export default function LoginPage() {
       login(responseData.token, user);
 
       // Determine correct dashboard path based on role
-      const roleStr = user.role.toLowerCase();
+      const roleStr = (user.roleName || user.role || "").toLowerCase();
       
       if (roleStr === "admin" || roleStr === "superadmin") {
         router.push("/superadmin");
@@ -83,8 +83,13 @@ export default function LoginPage() {
         router.push("/frontdesk");
       } else if (["receptionist", "pharmacist", "cashier"].includes(roleStr)) {
         router.push("/frontdesk");
+      } else if (roleStr === "doctor") {
+        router.push("/doctor");
+      } else if (roleStr === "labtech") {
+        router.push("/labtech");
       } else {
-        router.push(`/${roleStr}`);
+        const sanitizedRole = roleStr.replace(/\s+/g, "-");
+        router.push(`/${sanitizedRole}`);
       }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");

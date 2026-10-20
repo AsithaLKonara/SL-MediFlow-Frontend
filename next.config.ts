@@ -17,6 +17,16 @@ const nextConfig: NextConfig = {
         destination: "/labtech/requests",
         permanent: true,
       },
+      {
+        source: "/extra services",
+        destination: "/extra-services",
+        permanent: true,
+      },
+      {
+        source: "/extra%20services",
+        destination: "/extra-services",
+        permanent: true,
+      },
     ];
   },
 };
