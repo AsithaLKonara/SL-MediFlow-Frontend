@@ -128,6 +128,21 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/finance", label: "Finance Overview", icon: Banknote, permission: "Finance" },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
+  "extra services": [
+    { href: "/extra-services", label: "Workstation Queue", icon: ActivitySquare, category: "Workstation", permission: "Extra Services" },
+    { href: "/superadmin/extra-services", label: "Services Catalog", icon: FilePlus2, category: "Workstation", permission: "Extra Services Config" },
+    { href: "/settings", label: "My Profile", icon: Settings, category: "System" },
+  ],
+  "extra_services": [
+    { href: "/extra-services", label: "Workstation Queue", icon: ActivitySquare, category: "Workstation", permission: "Extra Services" },
+    { href: "/superadmin/extra-services", label: "Services Catalog", icon: FilePlus2, category: "Workstation", permission: "Extra Services Config" },
+    { href: "/settings", label: "My Profile", icon: Settings, category: "System" },
+  ],
+  "extraservices": [
+    { href: "/extra-services", label: "Workstation Queue", icon: ActivitySquare, category: "Workstation", permission: "Extra Services" },
+    { href: "/superadmin/extra-services", label: "Services Catalog", icon: FilePlus2, category: "Workstation", permission: "Extra Services Config" },
+    { href: "/settings", label: "My Profile", icon: Settings, category: "System" },
+  ],
 };
 
 const roleLabelMap: Record<string, string> = {
@@ -140,6 +155,9 @@ const roleLabelMap: Record<string, string> = {
   receptionist: "Receptionist",
   cashier: "Cashier",
   fundoffice: "Fund Office",
+  "extra services": "Extra Services Station",
+  "extra_services": "Extra Services Station",
+  "extraservices": "Extra Services Station",
 };
 
 export function Sidebar() {
@@ -156,15 +174,24 @@ export function Sidebar() {
   
   // Filter items by Granular Role Permissions if user has specific permissions assigned
   if (user && user.role?.toLowerCase() !== "superadmin") {
-    if (user.permissions && user.permissions.length > 0 && !user.permissions.includes("ALL")) {
-      navItems = navItems.filter(item => {
-        if (!item.permission) return true;
-        return user.permissions?.includes(item.permission);
+    if (user.permissions && user.permissions.length > 0) {
+      const flatPerms = user.permissions.map((p: any) => {
+        if (typeof p === 'string') return p;
+        if (p?.resource) return p.resource;
+        if (p?.Permission?.resource) return p.Permission.resource;
+        return '';
       });
+
+      if (!flatPerms.includes("ALL")) {
+        navItems = navItems.filter(item => {
+          if (!item.permission) return true;
+          return flatPerms.includes(item.permission);
+        });
+      }
     }
   }
 
-  const roleLabel = user?.role ? user.role : (roleLabelMap[roleKey] || "Staff");
+  const roleLabel = roleLabelMap[roleKey] || (user?.role ? user.role : "Staff");
   const width = isCollapsed ? "w-[80px]" : "w-64";
 
   return (

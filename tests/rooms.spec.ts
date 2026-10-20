@@ -10,7 +10,7 @@ test.describe('Room Management e2e', () => {
     
     // Attempt basic login if a form exists
     await page.fill('input[type="email"]', 'admin@amaz.com');
-    await page.fill('input[type="password"]', 'admin123');
+    await page.fill('input[type="password"]', 'password123');
     await page.click('button[type="submit"]');
 
     // Wait for redirect to dashboard

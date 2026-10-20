@@ -135,4 +135,85 @@ test.describe('Superadmin RBAC Matrix & Extra Services Dashboard Authorization',
     await expect(page.locator('text=Permissions saved successfully.').first()).toBeVisible();
   });
 
+  test('should authenticate user with role EXTRA SERVICES and route directly to /extra-services with dedicated sidebar', async ({ page }) => {
+    // Mock login endpoint
+    await page.route('**/api/auth/login', async (route) => {
+      if (route.request().method() === 'POST') {
+        const body = JSON.parse(route.request().postData() || '{}');
+        if (body.email === 'ext@amaz.com' && body.password === 'password123') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              token: 'mock-ext-jwt-token',
+              user: {
+                id: 'ext-user-id',
+                fullName: 'EXT Test',
+                email: 'ext@amaz.com',
+                role: 'EXTRA SERVICES',
+                roleName: 'EXTRA SERVICES',
+                permissions: [
+                  { action: 'READ', resource: 'Extra Services' },
+                  { action: 'CREATE', resource: 'Extra Services' },
+                  { action: 'UPDATE', resource: 'Extra Services' },
+                  { action: 'DELETE', resource: 'Extra Services' },
+                  { action: 'READ', resource: 'Extra Services Config' }
+                ]
+              }
+            })
+          });
+          return;
+        }
+      }
+      await route.continue();
+    });
+
+    // Mock extra-services queue API
+    await page.route('**/api/extra-services/queue*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: []
+        })
+      });
+    });
+
+    // Mock extra-services catalog API
+    await page.route('**/api/extra-services', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: []
+        })
+      });
+    });
+
+    // Go to login page
+    await page.goto('http://localhost:3000/login');
+    await expect(page).toHaveURL(/.*login/);
+
+    // Fill credentials for ext@amaz.com
+    await page.fill('input[type="email"]', 'ext@amaz.com');
+    await page.fill('input[type="password"]', 'password123');
+
+    // Click Sign In
+    await page.click('button[type="submit"]');
+
+    // Verify redirected directly to /extra-services
+    await expect(page).toHaveURL(/.*extra-services/, { timeout: 15000 });
+
+    // Verify Extra Services Station badge / title in sidebar
+    await expect(page.locator('text=Extra Services Station').first()).toBeVisible({ timeout: 10000 });
+
+    // Verify workstation queue navigation link is present
+    await expect(page.locator('a:has-text("Workstation Queue")').first()).toBeVisible();
+
+    // Verify services catalog navigation link is present
+    await expect(page.locator('a:has-text("Services Catalog")').first()).toBeVisible();
+  });
+
 });

@@ -77,6 +77,8 @@ export default function LoginPage() {
       
       if (roleStr === "admin" || roleStr === "superadmin") {
         router.push("/superadmin");
+      } else if (["extra services", "extra_services", "extraservices"].includes(roleStr) || (user.permissions?.includes("Extra Services") && !["admin", "superadmin", "doctor"].includes(roleStr))) {
+        router.push("/extra-services");
       } else if (roleStr === "nurse") {
         router.push("/frontdesk");
       } else if (["receptionist", "pharmacist", "cashier"].includes(roleStr)) {

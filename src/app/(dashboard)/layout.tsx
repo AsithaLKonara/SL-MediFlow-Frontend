@@ -30,6 +30,18 @@ export default function DashboardLayout({
              return; // allow
            }
            
+           // Mapping for Extra Services workstation role
+           const extraServicesRoles = ["extra services", "extra_services", "extraservices"];
+           if (extraServicesRoles.includes(userRole) || (user.permissions?.includes("Extra Services") && !["admin", "superadmin", "doctor"].includes(userRole))) {
+             if (pathname.startsWith("/superadmin/extra-services")) {
+               return; // allow catalog access
+             }
+             if (!pathname.startsWith("/extra-services")) {
+               router.push("/extra-services");
+             }
+             return;
+           }
+
            // Mapping for roles that use the consolidated Front Desk
            const frontdeskRoles = ["receptionist", "pharmacist", "cashier", "nurse", "frontdesk"];
            
