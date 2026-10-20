@@ -545,12 +545,13 @@ export default function ConsultationPage() {
             title: `Medical Certificate (${certData.certificateType || "General"})`,
             certificateType: certData.certificateType,
             certificateData: certData.certificateData,
+            status: "COMPLETED",
             notes: certData.notes
           }]
         })
       });
       if (res.ok) {
-        toast.success("Medical Certificate saved and added to billing!");
+        toast.success("Medical Certificate saved as COMPLETED and added to billing!");
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || "Failed to record certificate order");

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
+import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 export interface CertificatePatientInfo {
   id?: string;
@@ -150,6 +151,7 @@ export default function MedicalCertificateModal({
     contentRef: printRef as any,
     documentTitle: `${certType === "LEAVE" ? "Medical_Leave_Certificate" : "Fitness_Certificate"}_${patientName}`,
     onAfterPrint: () => {
+      triggerPrinterAutoCut();
       toast.success("Certificate sent to printer successfully");
     },
   });
@@ -811,6 +813,7 @@ export default function MedicalCertificateModal({
             <button
               type="button"
               onClick={onClose}
+              data-testid="cancel-cert-modal-btn"
               className="px-4 py-2 rounded-xl border hover:bg-muted text-xs font-semibold transition-colors"
             >
               Cancel

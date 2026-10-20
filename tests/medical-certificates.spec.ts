@@ -167,7 +167,7 @@ test.describe('Task 1.5: Medical & Fitness Certificates as Extra Services', () =
     await expect(page.locator('[data-testid="input-patient-name"]')).toHaveValue('Kusumawathi Perera');
 
     // Close modal
-    await page.locator('[data-testid="close-cert-modal"]').click();
+    await page.locator('[data-testid="cancel-cert-modal-btn"]').click();
     await expect(page.locator('text=Issue Medical & Fitness Certificate')).not.toBeVisible();
   });
 });

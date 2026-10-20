@@ -68,6 +68,9 @@ export function MedicalCertificateModal({
   const handlePrint = useReactToPrint({
     contentRef: certPrintRef,
     documentTitle: `Medical_Certificate_${patient?.name || "Patient"}_${certDate}`,
+    onAfterPrint: () => {
+      triggerPrinterAutoCut();
+    }
   });
 
   const handleSaveOrder = () => {

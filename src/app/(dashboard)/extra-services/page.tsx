@@ -314,6 +314,8 @@ export default function ExtraServicesDashboard() {
         setSelectedItemForUpload(null);
         setUploadFile(null);
         setUploadNotes("");
+        fetchQueue();
+        fetchOrders();
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || "Failed to upload report file.");
@@ -374,10 +376,11 @@ export default function ExtraServicesDashboard() {
       });
 
       if (res.ok) {
-        toast.success("File uploaded successfully");
+        toast.success("File uploaded! Order automatically marked as COMPLETED.");
         setOrderFileToUpload(null);
         if (orderFileInputRef.current) orderFileInputRef.current.value = "";
         fetchOrders();
+        fetchQueue();
         
         const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/orders/${selectedOrder.id}`, {
           headers: { Authorization: `Bearer ${activeToken}` }
@@ -1070,8 +1073,39 @@ export default function ExtraServicesDashboard() {
             isOpen={isCertModalOpen}
             onClose={() => setIsCertModalOpen(false)}
             patient={selectedPatientForCert || undefined}
-            onSaveAsExtraService={async () => {
-              fetchQueue();
+            onSaveAsExtraService={async (certData: any) => {
+              try {
+                const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/orders`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${activeToken}`
+                  },
+                  body: JSON.stringify({
+                    orders: [{
+                      patientId: certData?.patientId || selectedPatientForCert?.id,
+                      doctorId: user?.id,
+                      visitId: selectedPatientForCert?.id,
+                      customPrice: certData?.price,
+                      title: certData?.title || "Medical Certificate",
+                      certificateType: certData?.certificateType,
+                      certificateData: certData?.certificateDetails,
+                      status: "COMPLETED"
+                    }]
+                  })
+                });
+                if (res.ok) {
+                  toast.success("Certificate issued and marked as COMPLETED!");
+                } else {
+                  toast.error("Failed to save certificate order");
+                }
+              } catch (e) {
+                console.error("Failed to save certificate order:", e);
+              } finally {
+                fetchQueue();
+                fetchOrders();
+              }
             }}
           />
         </>
