@@ -88,6 +88,8 @@ interface ExtraServiceOrder {
   };
   patientId: string;
   patient?: {
+    id?: string;
+    patientId?: string;
     fullName: string;
     phone?: string;
     ageFallback?: number;
@@ -231,7 +233,20 @@ export default function ExtraServicesDashboard() {
         return;
       }
       const json = await res.json();
-      setSearchQuery(code);
+      
+      let resolvedQuery = code;
+      if (json.type === "APPOINTMENT") {
+        resolvedQuery = json.data?.patient?.fullName || json.masterBarcode || code;
+        setActiveMainTab("workstation");
+        setSearchQuery(resolvedQuery);
+      } else if (json.type === "EXTRA_SERVICE_ORDER") {
+        resolvedQuery = json.data?.orderNumber || json.data?.patient?.fullName || code;
+        setActiveMainTab("orders");
+        setOrderSearchTerm(resolvedQuery);
+      } else {
+        setSearchQuery(code);
+      }
+
       toast.success(`Scanned: ${json.type || "Barcode resolved"}`);
     } catch (e) {
       toast.error("Failed to resolve scanned barcode.");
@@ -446,7 +461,9 @@ export default function ExtraServicesDashboard() {
       }
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
-        const matchesPatient = item.patient.fullName.toLowerCase().includes(query);
+        const matchesPatient = item.patient.fullName.toLowerCase().includes(query) ||
+          (item.patient.id || "").toLowerCase().includes(query) ||
+          ((item.patient as any).patientId || "").toLowerCase().includes(query);
         const matchesToken = item.tokenNumber.toLowerCase().includes(query);
         const matchesBooking = (item.bookingReference || "").toLowerCase().includes(query);
         const matchesPhone = (item.patient.phone || "").toLowerCase().includes(query);
@@ -474,8 +491,11 @@ export default function ExtraServicesDashboard() {
       return (
         order.orderNumber.toLowerCase().includes(q) ||
         (order.patient?.fullName || "").toLowerCase().includes(q) ||
+        (order.patient?.patientId || "").toLowerCase().includes(q) ||
+        (order.patient?.id || "").toLowerCase().includes(q) ||
         (order.service?.title || "").toLowerCase().includes(q) ||
-        (order.doctor?.fullName || "").toLowerCase().includes(q)
+        (order.doctor?.fullName || "").toLowerCase().includes(q) ||
+        (order.visitId || "").toLowerCase().includes(q)
       );
     });
   }, [orders, orderSearchTerm]);
@@ -558,51 +578,52 @@ export default function ExtraServicesDashboard() {
         </div>
       </div>
 
+      {/* HARDWARE BARCODE SCANNER BANNER (Active across Workstation & Orders Manifest) */}
+      <div className="bg-gradient-to-r from-emerald-500/10 via-background to-teal-500/10 border border-emerald-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg shrink-0">
+            <ScanBarcode className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+              Hardware Barcode Scanner Active
+            </h4>
+            <p className="text-[11px] text-muted-foreground">
+              Scan patient wristband or token barcode to instantly isolate procedure
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Input
+            type="text"
+            placeholder="Scan or type barcode..."
+            value={barcodeInput}
+            onChange={(e) => setBarcodeInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && barcodeInput.trim()) {
+                processBarcodeLookup(barcodeInput.trim());
+              }
+            }}
+            className="h-8 text-xs font-mono max-w-[200px]"
+            data-testid="barcode-manual-input"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => processBarcodeLookup(barcodeInput.trim())}
+            disabled={isSearchingBarcode || !barcodeInput.trim()}
+            className="h-8 text-xs font-semibold gap-1"
+            data-testid="barcode-search-btn"
+          >
+            {isSearchingBarcode ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+            Lookup
+          </Button>
+        </div>
+      </div>
+
       {activeMainTab === "workstation" ? (
         <>
-          {/* HARDWARE BARCODE SCANNER BANNER */}
-          <div className="bg-gradient-to-r from-emerald-500/10 via-background to-teal-500/10 border border-emerald-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg shrink-0">
-                <ScanBarcode className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                  Hardware Barcode Scanner Active
-                </h4>
-                <p className="text-[11px] text-muted-foreground">
-                  Scan patient wristband or token barcode to instantly isolate procedure
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Input
-                type="text"
-                placeholder="Scan or type barcode..."
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && barcodeInput.trim()) {
-                    processBarcodeLookup(barcodeInput.trim());
-                  }
-                }}
-                className="h-8 text-xs font-mono max-w-[200px]"
-                data-testid="barcode-manual-input"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => processBarcodeLookup(barcodeInput.trim())}
-                disabled={isSearchingBarcode || !barcodeInput.trim()}
-                className="h-8 text-xs font-semibold gap-1"
-                data-testid="barcode-search-btn"
-              >
-                {isSearchingBarcode ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
-                Lookup
-              </Button>
-            </div>
-          </div>
 
           {/* SUMMARY KPI CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
