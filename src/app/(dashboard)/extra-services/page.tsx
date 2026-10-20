@@ -188,7 +188,7 @@ export default function ExtraServicesDashboard() {
       });
       if (res.ok) {
         const data = await res.json();
-        setOrders(Array.isArray(data) ? data : data.data || []);
+        setOrders(Array.isArray(data) ? data : (data.orders || data.data || []));
       }
     } catch (err) {
       // Gracefully handle if orders table is not yet seeded

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, FileText, FlaskConical, Users, ScanBarcode, Search, Loader2, DollarSign, Receipt, CheckCircle } from "lucide-react";
+import { Clock, FileText, FlaskConical, Users, ScanBarcode, Search, Loader2, DollarSign, Receipt, CheckCircle, ActivitySquare, FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ export default function DoctorOverview() {
   const [loading, setLoading] = useState(true);
   const [tokenInput, setTokenInput] = useState("");
   const [searching, setSearching] = useState(false);
+  const [extraServicesOrders, setExtraServicesOrders] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<{
     todayDoctorShare: number;
     todayRevenue: number;
@@ -197,6 +198,18 @@ export default function DoctorOverview() {
         }
       })
       .catch((err) => console.error("Error loading doctor earnings:", err));
+
+    // Fetch doctor's extra service orders
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/orders`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((r) => r.json())
+      .then((res: any) => {
+        const orders = Array.isArray(res) ? res : (res.orders || res.data || []);
+        const myOrders = orders.filter((o: any) => !o.doctorId || o.doctorId === user.id);
+        setExtraServicesOrders(myOrders);
+      })
+      .catch((err) => console.error("Error loading extra service orders:", err));
   }, [user, token]);
 
   if (loading || !metrics) {
@@ -275,7 +288,7 @@ export default function DoctorOverview() {
       </Card>
 
       {/* App-like Action Tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link href="/doctor/queue" className="group block">
           <Card className="h-full border-border bg-card hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
             <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-4">
@@ -318,6 +331,22 @@ export default function DoctorOverview() {
                 <h3 className="text-xl font-bold text-foreground">Lab Results</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   {metrics.pendingLabRequests} pending results
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/extra-services" className="group block">
+          <Card className="h-full border-border bg-card hover:border-purple-500/30 hover:shadow-md transition-all cursor-pointer">
+            <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ActivitySquare className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Extra Services</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {extraServicesOrders.filter(o => o.status === "PENDING").length} pending procedures
                 </p>
               </div>
             </CardContent>
@@ -421,6 +450,83 @@ export default function DoctorOverview() {
           ) : (
             <div className="text-xs text-muted-foreground text-center py-2">
               No consultations completed yet today. As soon as you complete a patient in consultation, their fee and your doctor share will appear here instantly.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Today's Extra Services & Procedures Ordered by Doctor */}
+      <Card className="shadow-sm border-purple-500/20 bg-gradient-to-r from-purple-500/5 via-card to-card">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+              <ActivitySquare className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Extra Services & Procedures</CardTitle>
+              <CardDescription>
+                Track status of procedures and medical certificates ordered for your patients
+              </CardDescription>
+            </div>
+          </div>
+          <Link href="/extra-services">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-semibold">
+              <FilePlus2 className="w-3.5 h-3.5" />
+              Open Workstation
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent className="p-0">
+          {extraServicesOrders.length === 0 ? (
+            <div className="p-6 text-center text-xs text-muted-foreground">
+              No extra services or procedures ordered yet today. When you order ECG, dressing, or certificates during consultation, they will appear here.
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {extraServicesOrders.slice(0, 5).map((order) => {
+                const isDone = order.status === "COMPLETED";
+                const serviceTitle = order.service?.title || (order.certificateType ? `Certificate (${order.certificateType})` : "Clinical Service");
+                const reportsCount = order.reportFiles?.length || 0;
+                return (
+                  <div key={order.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0 font-mono text-xs font-bold">
+                        {order.orderNumber.slice(-4)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-xs text-foreground truncate">{order.patient?.fullName || "Patient"}</p>
+                          <Badge variant="outline" className="text-[10px] font-medium py-0">
+                            {serviceTitle}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Order #{order.orderNumber} • LKR {order.finalPrice?.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {isDone ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] gap-1 font-bold">
+                          <CheckCircle className="w-3 h-3" />
+                          COMPLETED
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] gap-1 font-bold">
+                          <Clock className="w-3 h-3" />
+                          PENDING
+                        </Badge>
+                      )}
+                      {reportsCount > 0 && (
+                        <Link href="/extra-services" className="text-xs text-purple-600 hover:underline flex items-center gap-1 font-medium">
+                          <FileText className="w-3.5 h-3.5" />
+                          Report ({reportsCount})
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

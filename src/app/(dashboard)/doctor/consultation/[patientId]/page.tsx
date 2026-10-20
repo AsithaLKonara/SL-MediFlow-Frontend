@@ -542,6 +542,7 @@ export default function ConsultationPage() {
             doctorId: user?.id,
             visitId: finalVisitId,
             customPrice: certData.customPrice,
+            title: `Medical Certificate (${certData.certificateType || "General"})`,
             certificateType: certData.certificateType,
             certificateData: certData.certificateData,
             notes: certData.notes
