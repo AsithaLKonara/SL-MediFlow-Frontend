@@ -143,6 +143,8 @@ export type RxMetaPayload = {
   patientName?: string;
   bookingReference?: string;
   consultationFee?: number;
+  invoice?: any;
+  extraServices?: any[];
 };
 
 export function useRxToPOS() {

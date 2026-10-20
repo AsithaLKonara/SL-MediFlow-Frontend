@@ -76,6 +76,8 @@ interface Prescription {
   doctor?: any;
   consultationPaid?: boolean;
   consultationFee?: number;
+  invoice?: any;
+  extraServices?: any[];
 }
 
 interface GeneratedToken {
@@ -576,6 +578,8 @@ export function TokenPane() {
         patientName: rx.patientName || "Walk-in",
         bookingReference: rx.bookingReference || undefined,
         consultationFee: rx.consultationFee ?? (rx as any).doctor?.consultationFee ?? 2500,
+        invoice: (rx as any).invoice,
+        extraServices: (rx as any).extraServices
       }
     );
     toast.success(`${cartItems.length} medicine(s) sent to POS — complete checkout to dispense.`);
@@ -628,8 +632,10 @@ export function TokenPane() {
 
         const hasPrescriptions = barcodeData?.prescriptions?.length > 0;
         const hasLabRequests = mappedLabRequests.length > 0;
+        const hasExtraServices = (barcodeData?.extraServices || []).length > 0;
+        const hasInvoice = !!barcodeData?.invoice;
 
-        if (barcodeType === "APPOINTMENT" && (hasPrescriptions || hasLabRequests)) {
+        if (barcodeType === "APPOINTMENT" && (hasPrescriptions || hasLabRequests || hasExtraServices || hasInvoice)) {
           const apptIds = new Set([
             barcodeData.appointment?.id,
             ...(barcodeData.allAppointments || []).map((a: any) => a.id)
@@ -664,9 +670,11 @@ export function TokenPane() {
             patientId: rxFromApi.patientId || barcodeData.patient?.id,
             bookingReference: barcodeData.masterBarcode || cleanBarcode,
             doctor: barcodeData.doctor,
-            consultationPaid: barcodeData.consultationPaid
+            consultationPaid: barcodeData.consultationPaid,
+            invoice: barcodeData.invoice,
+            extraServices: barcodeData.extraServices
           } : {
-            id: `LAB-${barcodeData.appointment?.id || cleanBarcode}`,
+            id: `VISIT-${barcodeData.appointment?.id || cleanBarcode}`,
             patientName: barcodeData.patient?.fullName || "Patient",
             doctorName: barcodeData.doctor?.fullName || "Doctor",
             createdAt: barcodeData.appointment?.createdAt || new Date().toISOString(),
@@ -677,7 +685,9 @@ export function TokenPane() {
             patientId: barcodeData.patient?.id,
             bookingReference: barcodeData.masterBarcode || cleanBarcode,
             doctor: barcodeData.doctor,
-            consultationPaid: barcodeData.consultationPaid
+            consultationPaid: barcodeData.consultationPaid,
+            invoice: barcodeData.invoice,
+            extraServices: barcodeData.extraServices
           };
 
           // Also inject into local list so the card displays in Rx list immediately
@@ -717,7 +727,9 @@ export function TokenPane() {
             patientId: barcodeData.patientId,
             bookingReference: barcodeData.bookingReference || cleanBarcode,
             doctor: barcodeData.doctor,
-            consultationPaid: barcodeData.consultationPaid
+            consultationPaid: barcodeData.consultationPaid,
+            invoice: barcodeData.invoice,
+            extraServices: barcodeData.extraServices
           };
 
           setPendingPrescriptions(prev => {

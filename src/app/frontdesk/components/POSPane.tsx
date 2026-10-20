@@ -131,9 +131,12 @@ export function POSPane() {
         if (patientId) setActivePatientId(patientId);
 
         let invoiceData: any = null;
-        if (visitId) {
+        if (meta?.invoice) {
+          invoiceData = meta.invoice;
+        } else if (visitId || meta?.bookingReference) {
+          const targetId = meta?.bookingReference || visitId;
           try {
-            const invRes = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices?visitId=${visitId}`);
+            const invRes = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices?visitId=${targetId}`);
             if (invRes.ok) {
               const fetchedInv = await invRes.json();
               if (fetchedInv && fetchedInv.status === "DRAFT") {
@@ -897,7 +900,7 @@ export function POSPane() {
                       bgClass = "bg-blue-500/5";
                       textClass = "text-blue-600";
                       subText = "Lab Test";
-                    } else if (li.department === "SERVICE" || li.department === "EXTRA_SERVICE") {
+                    } else if (li.department === "SERVICE" || li.department === "EXTRA_SERVICE" || li.department === "OTHER") {
                       bgClass = "bg-orange-500/5";
                       textClass = "text-orange-600";
                       subText = "Extra Service";
