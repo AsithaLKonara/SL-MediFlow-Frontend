@@ -199,6 +199,18 @@ export default function LabTechOverview() {
       // 1. Check direct lab requests by token/barcode
       if (data.success && data.data?.LabRequests && data.data.LabRequests.length > 0) {
         const d = data.data;
+        const allItems = (d.LabRequests || []).flatMap((lr: any) => lr.items || []);
+        const outsideItems = allItems.filter((item: any) => item.LabTest?.isOutsideTest);
+        const inHouseItems = allItems.filter((item: any) => !item.LabTest?.isOutsideTest);
+
+        // If this token represents an outside test (or purely outside tests), redirect to Outsource Lab workflow
+        if (outsideItems.length > 0 && inHouseItems.length === 0) {
+          const partnerName = outsideItems[0]?.LabTest?.outsourcedCenter || "External Reference Lab";
+          toast.info(`Outsource Lab Test (${partnerName}) found for #${code}. Redirecting to Outsource Lab...`);
+          router.push(`/outsource-lab?search=${encodeURIComponent(code)}`);
+          return;
+        }
+
         const tests: ConsolidatedTestItem[] = [];
         (d.LabRequests || []).forEach((lr: any) => {
           const isDoctor = !!lr.doctorId;
@@ -211,7 +223,9 @@ export default function LabTechOverview() {
               status: lr.status,
               source: isDoctor ? "Doctor" : "Frontdesk",
               requestedAt: lr.requestedAt,
-              price: item.price
+              price: item.price,
+              isOutsideTest: item.LabTest?.isOutsideTest,
+              outsourcedCenter: item.LabTest?.outsourcedCenter
             });
           });
         });
@@ -245,6 +259,17 @@ export default function LabTechOverview() {
         const { type, data: bData, masterBarcode } = await barcodeRes.json();
         if (type === "LAB_REQUEST") {
           const lr = bData;
+          const items = lr.items || [];
+          const outsideItems = items.filter((item: any) => item.LabTest?.isOutsideTest);
+          const inHouseItems = items.filter((item: any) => !item.LabTest?.isOutsideTest);
+
+          if (outsideItems.length > 0 && inHouseItems.length === 0) {
+            const partnerName = outsideItems[0]?.LabTest?.outsourcedCenter || "External Reference Lab";
+            toast.info(`Outsource Lab Test (${partnerName}) found for #${code}. Redirecting to Outsource Lab...`);
+            router.push(`/outsource-lab?search=${encodeURIComponent(code)}`);
+            return;
+          }
+
           const tests: ConsolidatedTestItem[] = (lr.items || []).map((item: any) => ({
             requestId: lr.id,
             testId: item.LabTest?.id || item.labTestId,
@@ -253,7 +278,9 @@ export default function LabTechOverview() {
             status: lr.status,
             source: lr.doctorId ? "Doctor" : "Frontdesk",
             requestedAt: lr.requestedAt,
-            price: item.price
+            price: item.price,
+            isOutsideTest: item.LabTest?.isOutsideTest,
+            outsourcedCenter: item.LabTest?.outsourcedCenter
           }));
 
           setManifest({
@@ -275,6 +302,17 @@ export default function LabTechOverview() {
 
         if (type === "APPOINTMENT") {
           const lrs = bData.labRequests || bData.appointment?.LabRequests || [];
+          const allItems = lrs.flatMap((lr: any) => lr.items || []);
+          const outsideItems = allItems.filter((item: any) => item.LabTest?.isOutsideTest);
+          const inHouseItems = allItems.filter((item: any) => !item.LabTest?.isOutsideTest);
+
+          if (outsideItems.length > 0 && inHouseItems.length === 0) {
+            const partnerName = outsideItems[0]?.LabTest?.outsourcedCenter || "External Reference Lab";
+            toast.info(`Outsource Lab Test (${partnerName}) found for #${code}. Redirecting to Outsource Lab...`);
+            router.push(`/outsource-lab?search=${encodeURIComponent(code)}`);
+            return;
+          }
+
           if (lrs.length > 0) {
             const tests: ConsolidatedTestItem[] = [];
             lrs.forEach((lr: any) => {
@@ -288,7 +326,9 @@ export default function LabTechOverview() {
                   status: lr.status,
                   source: isDoctor ? "Doctor" : "Frontdesk",
                   requestedAt: lr.requestedAt,
-                  price: item.price
+                  price: item.price,
+                  isOutsideTest: item.LabTest?.isOutsideTest,
+                  outsourcedCenter: item.LabTest?.outsourcedCenter
                 });
               });
             });

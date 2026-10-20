@@ -68,6 +68,18 @@ export default function LabTechRequestsPage() {
       // 1. Check direct lab requests by token/barcode
       if (data.success && data.data?.LabRequests && data.data.LabRequests.length > 0) {
         const d = data.data;
+        const allItems = (d.LabRequests || []).flatMap((lr: any) => lr.items || []);
+        const outsideItems = allItems.filter((item: any) => item.LabTest?.isOutsideTest);
+        const inHouseItems = allItems.filter((item: any) => !item.LabTest?.isOutsideTest);
+
+        // If this token represents an outside test (or purely outside tests), redirect to Outsource Lab workflow
+        if (outsideItems.length > 0 && inHouseItems.length === 0) {
+          const partnerName = outsideItems[0]?.LabTest?.outsourcedCenter || "External Reference Lab";
+          toast.info(`Outsource Lab Test (${partnerName}) found for #${code}. Redirecting to Outsource Lab...`);
+          router.push(`/outsource-lab?search=${encodeURIComponent(code)}`);
+          return;
+        }
+
         const tests: ConsolidatedTestItem[] = [];
         (d.LabRequests || []).forEach((lr: any) => {
           const isDoctor = !!lr.doctorId;
@@ -81,7 +93,9 @@ export default function LabTechRequestsPage() {
               status: lr.status,
               source: isDoctor ? "Doctor" : "Frontdesk",
               requestedAt: lr.requestedAt,
-              price: item.price
+              price: item.price,
+              isOutsideTest: item.LabTest?.isOutsideTest,
+              outsourcedCenter: item.LabTest?.outsourcedCenter
             });
           });
         });
@@ -115,6 +129,17 @@ export default function LabTechRequestsPage() {
         const { type, data: bData, masterBarcode } = await barcodeRes.json();
         if (type === "LAB_REQUEST") {
           const lr = bData;
+          const items = lr.items || [];
+          const outsideItems = items.filter((item: any) => item.LabTest?.isOutsideTest);
+          const inHouseItems = items.filter((item: any) => !item.LabTest?.isOutsideTest);
+
+          if (outsideItems.length > 0 && inHouseItems.length === 0) {
+            const partnerName = outsideItems[0]?.LabTest?.outsourcedCenter || "External Reference Lab";
+            toast.info(`Outsource Lab Test (${partnerName}) found for #${code}. Redirecting to Outsource Lab...`);
+            router.push(`/outsource-lab?search=${encodeURIComponent(code)}`);
+            return;
+          }
+
           const tests: ConsolidatedTestItem[] = (lr.items || []).map((item: any) => ({
             requestId: lr.id,
             testId: item.LabTest?.id || item.labTestId,
@@ -124,7 +149,9 @@ export default function LabTechRequestsPage() {
             status: lr.status,
             source: lr.doctorId ? "Doctor" : "Frontdesk",
             requestedAt: lr.requestedAt,
-            price: item.price
+            price: item.price,
+            isOutsideTest: item.LabTest?.isOutsideTest,
+            outsourcedCenter: item.LabTest?.outsourcedCenter
           }));
 
           setManifest({
@@ -146,6 +173,17 @@ export default function LabTechRequestsPage() {
 
         if (type === "APPOINTMENT") {
           const lrs = bData.labRequests || bData.appointment?.LabRequests || [];
+          const allItems = lrs.flatMap((lr: any) => lr.items || []);
+          const outsideItems = allItems.filter((item: any) => item.LabTest?.isOutsideTest);
+          const inHouseItems = allItems.filter((item: any) => !item.LabTest?.isOutsideTest);
+
+          if (outsideItems.length > 0 && inHouseItems.length === 0) {
+            const partnerName = outsideItems[0]?.LabTest?.outsourcedCenter || "External Reference Lab";
+            toast.info(`Outsource Lab Test (${partnerName}) found for #${code}. Redirecting to Outsource Lab...`);
+            router.push(`/outsource-lab?search=${encodeURIComponent(code)}`);
+            return;
+          }
+
           if (lrs.length > 0) {
             const tests: ConsolidatedTestItem[] = [];
             lrs.forEach((lr: any) => {
@@ -160,7 +198,9 @@ export default function LabTechRequestsPage() {
                   status: lr.status,
                   source: isDoctor ? "Doctor" : "Frontdesk",
                   requestedAt: lr.requestedAt,
-                  price: item.price
+                  price: item.price,
+                  isOutsideTest: item.LabTest?.isOutsideTest,
+                  outsourcedCenter: item.LabTest?.outsourcedCenter
                 });
               });
             });
@@ -206,7 +246,7 @@ export default function LabTechRequestsPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/requests?type=IN_HOUSE`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => {
@@ -214,26 +254,35 @@ export default function LabTechRequestsPage() {
         return r.json();
       })
       .then((data: any[]) => {
-        const mapped = data.map(req => ({
-          id: req.id,
-          patientId: req.patientId,
-          patientName: req.Patient?.fullName || `Patient ${req.patientId.slice(0, 4)}`,
-          patientAge: req.Patient?.ageFallback || (req.Patient?.dateOfBirth ? (new Date().getFullYear() - new Date(req.Patient.dateOfBirth).getFullYear()) : 0),
-          doctor: req.Visit?.User?.fullName || "External Doctor",
-          clinicalIndication: req.Visit?.clinicalNotes || "Routine Checkup",
-          tests: (req.items || []).map((item: any) => ({
-            id: item.LabTest?.id,
-            name: item.LabTest?.name,
-            unit: item.LabTest?.unit || "",
-            referenceRange: item.LabTest?.referenceRange || "",
-            roomNumber: item.LabTest?.room?.roomNumber || "",
-            result: null,
-            status: req.status
-          })),
-          priority: req.priority || "ROUTINE",
-          status: req.status,
-          requestedAt: req.requestedAt
-        }));
+        const mapped = data
+          .map(req => {
+            // Strictly exclude any outside tests from the in-house requests queue
+            const inHouseItems = (req.items || []).filter((item: any) => !item.LabTest?.isOutsideTest);
+            if (inHouseItems.length === 0) return null;
+
+            return {
+              id: req.id,
+              patientId: req.patientId,
+              patientName: req.Patient?.fullName || `Patient ${req.patientId.slice(0, 4)}`,
+              patientAge: req.Patient?.ageFallback || (req.Patient?.dateOfBirth ? (new Date().getFullYear() - new Date(req.Patient.dateOfBirth).getFullYear()) : 0),
+              doctor: req.Visit?.User?.fullName || "External Doctor",
+              clinicalIndication: req.Visit?.clinicalNotes || "Routine Checkup",
+              tests: inHouseItems.map((item: any) => ({
+                id: item.LabTest?.id,
+                name: item.LabTest?.name,
+                unit: item.LabTest?.unit || "",
+                referenceRange: item.LabTest?.referenceRange || "",
+                roomNumber: item.LabTest?.room?.roomNumber || "",
+                result: null,
+                status: req.status
+              })),
+              priority: req.priority || "ROUTINE",
+              status: req.status,
+              requestedAt: req.requestedAt
+            };
+          })
+          .filter((req): req is LabRequest => req !== null && req.tests.length > 0);
+
         setRequests(mapped);
         setLoading(false);
       })
@@ -241,7 +290,7 @@ export default function LabTechRequestsPage() {
         console.error("Failed to fetch requests", e);
         setLoading(false);
       });
-  }, []);
+  }, [token]);
 
   const filteredRequests = useMemo(() => {
     if (selectedRoom === "ALL") return requests;
@@ -356,9 +405,10 @@ export default function LabTechRequestsPage() {
             value={tokenSearch}
             onChange={(e) => setTokenSearch(e.target.value)}
             placeholder="Scan barcode or type token #..."
+            data-testid="requests-search-input"
             className="border-0 bg-transparent focus-visible:ring-0 shadow-none flex-1 text-sm font-mono"
           />
-          <Button type="submit" disabled={!tokenSearch.trim()} isLoading={searching}>
+          <Button type="submit" disabled={!tokenSearch.trim()} isLoading={searching} data-testid="requests-search-btn">
             <ArrowRight className="w-5 h-5" />
           </Button>
         </form>

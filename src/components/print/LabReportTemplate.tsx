@@ -47,86 +47,171 @@ export const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplatePro
         fontFamily: "'Courier New', Courier, monospace",
       }}
     >
-      {/* Header Section */}
-      <div className="flex justify-between items-start border-b-2 border-red-900 pb-4 mb-4 font-sans">
-        <div className="w-1/2">
-          <div className="text-xs text-red-900 font-bold mb-1">www.amazhospital.com</div>
-          <h1 className="text-lg font-bold text-red-900 tracking-tight leading-tight uppercase">
-            Confidential Laboratory Report
-          </h1>
-          <p className="text-[9px] font-semibold text-red-800 mb-2">
-            Member of Clinical and Laboratory Standards Institute, U.S.A.
-          </p>
-          {/* Mock Certifications Row */}
-          <div className="flex gap-2 mb-3">
-            <div className="h-6 w-8 bg-gray-200 border border-gray-400 flex items-center justify-center text-[6px]">ISO</div>
-            <div className="h-6 w-8 bg-gray-200 border border-gray-400 flex items-center justify-center text-[6px]">CAP</div>
-            <div className="h-6 w-8 bg-gray-200 border border-gray-400 flex items-center justify-center text-[6px]">AACC</div>
-            <div className="h-6 w-12 bg-gray-200 border border-gray-400 flex items-center justify-center text-[6px] font-bold">35+ Yrs</div>
-          </div>
-          <div className="text-[10px] leading-tight">
-            <span className="font-bold">Amaz Hospital Holdings</span>, debarawewa, Tissamaharama<br />
-            T. +94 47 223 9090 | info@amazhospital.com
-          </div>
-        </div>
+      {/* Redesigned Premium Clinical Header Section */}
+      <div className="border-b-2 border-red-900 pb-3 mb-3 font-sans">
+        <div className="flex justify-between items-start gap-4">
+          {/* Left: Brand Identity & Accreditations */}
+          <div className="flex-1">
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-9 h-9 rounded-lg bg-red-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                +
+              </div>
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-black tracking-tight text-red-900 font-serif">AMAZ</span>
+                  <span className="text-xs font-bold tracking-[0.2em] text-red-800 uppercase">Hospital Laboratories</span>
+                </div>
+                <div className="text-[9px] font-semibold text-slate-600 tracking-wide uppercase">
+                  Department of Pathology & Clinical Laboratory Sciences
+                </div>
+              </div>
+            </div>
 
-        <div className="w-1/4 flex flex-col items-center pt-4">
-          {/* QR Code */}
-          <div className="w-16 h-16 p-1 border border-gray-300">
-             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(data.reportUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/reports/${data.referenceNo}`)}`} alt="QR Code" className="w-full h-full object-contain" />
-          </div>
-        </div>
+            <div className="text-[9.5px] text-slate-600 leading-tight mt-1">
+              <span>Amaz Hospital (Pvt) Ltd. No 382/3, Debarawewa, Tissamaharama</span>
+              <span className="mx-1 text-slate-300">•</span>
+              <span className="font-medium text-slate-800">Reg: PHSRC/PH/306</span>
+              <br />
+              <span>Hotline: +94 47 223 9090</span>
+              <span className="mx-1 text-slate-300">•</span>
+              <span>info@amazhospital.com</span>
+              <span className="mx-1 text-slate-300">•</span>
+              <span className="text-red-900 font-semibold">www.amazhospital.com</span>
+            </div>
 
-        <div className="w-1/4 flex flex-col items-end">
-          <div className="text-[10px] mb-2 font-semibold">LAB/FOR-07</div>
-          <img src="/logo.png" alt="Amaz Hospital" className="h-14 object-contain mb-1" />
-          <div className="text-red-900 font-bold text-xl tracking-wider">AMAZ</div>
-          <div className="text-red-900 text-sm tracking-[0.2em]">LABORATORIES</div>
+            {/* Quality & Accreditation Badges */}
+            <div className="flex items-center gap-1.5 mt-2">
+              <div className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-[8px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block"></span>
+                ISO 15189:2022 Accredited
+              </div>
+              <div className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-[8px] font-bold text-slate-700 uppercase tracking-wider">
+                CLSI Member (USA)
+              </div>
+              <div className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-[8px] font-bold text-slate-700 uppercase tracking-wider">
+                Bio-Rad EQAS Certified
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Security, Digital Verification & QR */}
+          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+            <div className="text-right">
+              <div className="text-[8px] uppercase tracking-wider font-bold text-red-900 mb-0.5">
+                Authentic Clinical Report
+              </div>
+              <div className="text-[10px] font-mono font-bold text-slate-900">
+                {data.referenceNo}
+              </div>
+              <div className="text-[7.5px] text-slate-500 mt-0.5 font-sans">
+                Scan to verify online
+              </div>
+              <div className="text-[7.5px] font-mono text-slate-400 mt-0.5">
+                DOC: LAB/REP-07
+              </div>
+            </div>
+            <div className="w-16 h-16 p-1 bg-white border border-slate-300 rounded shadow-xs flex items-center justify-center shrink-0">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                  data.reportUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/reports/${data.referenceNo}`
+                )}`}
+                alt="QR Code"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="w-full relative">
-        <div className="text-center font-bold mb-4 text-sm">
-          ** {data.reportType} **
-        </div>
-        
-        <div className="flex justify-between font-bold mb-6">
-          <div className="w-1/2"></div>
-          <div className="w-1/2 flex justify-between">
-            <span>** {data.departmentInfo} **</span>
-            <span>{data.pageInfo}</span>
+        {/* Report Banner Bar */}
+        <div className="flex items-center justify-between bg-red-950 text-white px-3 py-1.5 rounded mb-3 font-sans">
+          <div className="text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
+            <span>●</span>
+            <span>{data.reportType || "Confidential Laboratory Diagnostic Report"}</span>
+          </div>
+          <div className="text-[10px] font-medium tracking-wide flex items-center gap-3">
+            <span>{data.departmentInfo ? `** ${data.departmentInfo} **` : "** CLINICAL DIAGNOSTICS **"}</span>
+            <span className="text-red-200 font-mono text-[9px]">{data.pageInfo || "Page 1 of 1"}</span>
           </div>
         </div>
 
-        {/* Patient Info Grid */}
-        <div className="grid grid-cols-[150px_1fr] gap-x-2 gap-y-1 mb-6 uppercase">
-          <div>REFERENCE No.</div>
-          <div>: {data.referenceNo}</div>
-          
-          <div>SAMPLE DATE & TIME</div>
-          <div className="flex justify-between w-full max-w-lg">
-            <span>: {data.sampleDateTime}</span>
-            <span>AGE : {data.ageGender}</span>
+        {/* Executive Patient & Specimen Demographics Matrix */}
+        <div className="border border-slate-300 rounded-lg overflow-hidden mb-4 font-sans text-[10px] bg-slate-50/40">
+          <div className="grid grid-cols-3 divide-x divide-slate-300">
+            {/* Column 1: Patient Identity */}
+            <div className="p-2.5 space-y-1">
+              <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">
+                Patient Demographics
+              </div>
+              <div>
+                <span className="text-[8px] text-slate-500 block">Patient Full Name</span>
+                <span className="font-bold text-slate-900 uppercase text-[11px] block truncate">
+                  {data.patientName}
+                </span>
+              </div>
+              <div className="flex justify-between pt-0.5">
+                <div>
+                  <span className="text-[8px] text-slate-500 block">Age / Gender</span>
+                  <span className="font-semibold text-slate-800">{data.ageGender || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-[8px] text-slate-500 block">Contact</span>
+                  <span className="font-mono text-slate-800">{data.patientPhone || "N/A"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: Specimen & Timeline */}
+            <div className="p-2.5 space-y-1">
+              <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">
+                Specimen & Reference
+              </div>
+              <div className="flex justify-between items-baseline">
+                <div>
+                  <span className="text-[8px] text-slate-500 block">Lab Reference No</span>
+                  <span className="font-bold font-mono text-red-900 text-[11px]">
+                    {data.referenceNo}
+                  </span>
+                </div>
+                {data.patientIds && (
+                  <span className="text-[8px] font-mono text-slate-600 bg-slate-200 px-1 py-0.5 rounded">
+                    {data.patientIds}
+                  </span>
+                )}
+              </div>
+              <div className="space-y-0.5 pt-0.5">
+                <div className="flex justify-between">
+                  <span className="text-[8.5px] text-slate-600">Sample Date & Time:</span>
+                  <span className="font-medium text-slate-900 font-mono text-[9px]">{data.sampleDateTime}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[8.5px] text-slate-600">Report Date & Time:</span>
+                  <span className="font-medium text-slate-900 font-mono text-[9px]">{data.reportDateTime}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: Clinical Care Team & Order */}
+            <div className="p-2.5 space-y-1">
+              <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">
+                Clinical Referral
+              </div>
+              <div>
+                <span className="text-[8px] text-slate-500 block">Referred By Consultant</span>
+                <span className="font-bold text-slate-900 block truncate">
+                  {data.referredBy || "OPD Doctor / Consultant"}
+                </span>
+              </div>
+              <div className="pt-0.5">
+                <span className="text-[8px] text-slate-500 block">Test / Investigation Profile</span>
+                <span className="font-bold text-red-900 uppercase text-[10px] block truncate">
+                  {data.testProfile}
+                </span>
+              </div>
+            </div>
           </div>
-
-          <div>REPORT DATE & TIME</div>
-          <div className="flex gap-4 w-full max-w-lg">
-            <span>: {data.reportDateTime}</span>
-            <span>{data.patientIds}</span>
-          </div>
-
-          <div>PATIENT</div>
-          <div className="flex justify-between w-full max-w-lg">
-            <span>: {data.patientName}</span>
-            <span>PHONE : {data.patientPhone || "N/A"}</span>
-          </div>
-
-          <div>REFERRED BY</div>
-          <div>: {data.referredBy}</div>
-
-          <div className="font-bold underline">TEST/PROFILE</div>
-          <div className="font-bold">: {data.testProfile}</div>
         </div>
 
         {/* Results Table Header */}

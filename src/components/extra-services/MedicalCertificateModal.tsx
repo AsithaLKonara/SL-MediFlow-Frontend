@@ -17,6 +17,14 @@ import {
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
+import {
+  PhysicalFitnessCertificateTemplate,
+  PhysicalFitnessCertificateData
+} from "@/components/printing/certificates/PhysicalFitnessCertificateTemplate";
+import {
+  MedicalCertificateA5Template,
+  MedicalCertificateA5Data
+} from "@/components/printing/certificates/MedicalCertificateA5Template";
 
 export interface CertificatePatientInfo {
   id?: string;
@@ -628,175 +636,54 @@ export default function MedicalCertificateModal({
           >
             <div className="w-full flex items-center justify-between mb-3 text-xs">
               <span className="font-semibold text-muted-foreground">Printable Certificate Output</span>
-              <span className="text-[11px] text-muted-foreground italic">Standard A4 / Letter format</span>
+              <span className="text-[11px] text-muted-foreground italic">
+                {certType === "FITNESS" ? "A4 Portrait Official Template" : "A5 Landscape Official Red Frame"}
+              </span>
             </div>
 
             {/* Certificate Paper Container with Shadow and Border */}
             <div
-              className="w-full max-w-[650px] bg-white text-slate-900 border border-slate-300 rounded-lg shadow-xl p-8 relative overflow-hidden"
+              className="w-full bg-slate-100 dark:bg-slate-900 border rounded-xl p-4 overflow-auto flex flex-col items-center justify-start shadow-inner"
               data-testid="certificate-print-preview"
             >
-              {/* Ref Target for react-to-print */}
-              <div ref={printRef} className="p-4 bg-white text-slate-900 font-serif">
-                {/* Decorative Classic Border */}
-                <div className="border-4 border-double border-red-950 p-6 relative">
-                  {/* Subtle Background Watermark */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
-                    <span className="text-8xl font-black uppercase text-red-900">AMAZ</span>
-                  </div>
-
-                  {/* Hospital Official Header */}
-                  <div className="text-center border-b-2 border-red-900 pb-4 mb-5">
-                    <div className="text-[11px] font-sans tracking-widest uppercase text-red-800 font-bold mb-1">
-                      AMAZ HOSPITAL (PVT) LTD
-                    </div>
-                    <h1 className="text-xl font-bold tracking-tight text-slate-900 uppercase font-serif mb-1">
-                      {certType === "LEAVE"
-                        ? "Medical Leave Certificate"
-                        : "Certificate of Medical Fitness"}
-                    </h1>
-                    <div className="text-[10px] text-slate-600 font-sans leading-tight">
-                      Debarawewa, Tissamaharama, Southern Province, Sri Lanka | Reg: PHSRC/HAM/042
-                      <br />
-                      Tel: +94 47 223 9090 | Hotline: 1390 | info@amazhospital.com
-                    </div>
-                  </div>
-
-                  {/* Meta Bar: Serial and Date */}
-                  <div className="flex justify-between items-center text-[10px] font-sans text-slate-600 mb-6 border-b pb-2">
-                    <div>
-                      <span className="font-semibold text-slate-800">Certificate No: </span>
-                      <span className="font-mono">{certSerial}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-slate-800">Date of Issue: </span>
-                      <span>{todayStr}</span>
-                    </div>
-                  </div>
-
-                  {/* Body Content based on Template */}
-                  {certType === "LEAVE" ? (
-                    <div className="space-y-4 text-xs leading-relaxed text-slate-800">
-                      <p>
-                        This is to certify that{" "}
-                        <span className="font-bold border-b border-dotted border-slate-600 px-2 uppercase text-slate-950">
-                          {patientName}
-                        </span>
-                        , aged <span className="font-bold">{patientAge}</span> years, Gender:{" "}
-                        <span className="font-bold">{patientGender}</span> (NIC:{" "}
-                        <span className="font-mono font-medium">{patientNic || "N/A"}</span>), was
-                        examined by me at AMAZ Hospital.
-                      </p>
-
-                      <p>
-                        The patient is suffering from:
-                        <br />
-                        <span className="block mt-1 p-2 bg-slate-50 border border-slate-200 rounded font-semibold text-slate-900 italic">
-                          "{diagnosis}"
-                        </span>
-                      </p>
-
-                      <p>
-                        In my clinical opinion, the patient is medically unfit for work/school duties and
-                        requires medical leave from{" "}
-                        <span className="font-bold underline">{leaveFrom}</span> to{" "}
-                        <span className="font-bold underline">{leaveTo}</span> (inclusive of{" "}
-                        <span className="font-bold text-red-900">{calculatedDays} day(s)</span>).
-                      </p>
-
-                      <p>
-                        The patient is expected to be fit to resume normal duties on:{" "}
-                        <span className="font-bold underline">{resumeDate}</span>.
-                      </p>
-
-                      {leaveRemarks && (
-                        <div className="mt-2 text-[11px] text-slate-600 italic">
-                          <span className="font-semibold text-slate-700">Remarks: </span>
-                          {leaveRemarks}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4 text-xs leading-relaxed text-slate-800">
-                      <p>
-                        This is to certify that I have conducted a clinical physical examination of{" "}
-                        <span className="font-bold border-b border-dotted border-slate-600 px-2 uppercase text-slate-950">
-                          {patientName}
-                        </span>
-                        , Age: <span className="font-bold">{patientAge}</span> years, Gender:{" "}
-                        <span className="font-bold">{patientGender}</span> (NIC:{" "}
-                        <span className="font-mono font-medium">{patientNic || "N/A"}</span>) for the
-                        purpose of:{" "}
-                        <span className="font-semibold underline text-slate-950">{fitnessPurpose}</span>.
-                      </p>
-
-                      {/* Clinical Parameters Table */}
-                      <div className="my-3 border border-slate-300 rounded overflow-hidden">
-                        <table className="w-full text-left text-[11px] font-sans">
-                          <thead className="bg-slate-100 border-b border-slate-300">
-                            <tr>
-                              <th className="p-2 font-bold text-slate-700">Clinical Parameter</th>
-                              <th className="p-2 font-bold text-slate-700">Finding</th>
-                              <th className="p-2 font-bold text-slate-700">Reference / Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200">
-                            <tr>
-                              <td className="p-2 font-medium">Height & Weight</td>
-                              <td className="p-2 font-bold">{heightCm} cm / {weightKg} kg</td>
-                              <td className="p-2">BMI: <span className="font-bold">{bmiInfo.value}</span> ({bmiInfo.status})</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-medium">Blood Pressure</td>
-                              <td className="p-2 font-bold">{bp} mmHg</td>
-                              <td className="p-2 text-emerald-700 font-medium">Within normal limits</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-medium">Pulse Rate</td>
-                              <td className="p-2 font-bold">{pulse} bpm</td>
-                              <td className="p-2">Regular rhythm</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-medium">Visual Acuity</td>
-                              <td className="p-2">L: <span className="font-bold">{visionLeft}</span> | R: <span className="font-bold">{visionRight}</span></td>
-                              <td className="p-2">{visionCorrection === "WITH" ? "With corrective lenses" : "Unaided"}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-[11px] italic leading-normal">
-                        <span className="font-bold not-italic block text-slate-900 mb-0.5">Medical Fitness Declaration:</span>
-                        "{fitnessDeclaration}"
-                      </div>
-
-                      {fitnessRemarks && (
-                        <div className="text-[11px] text-slate-600">
-                          <span className="font-semibold text-slate-700">Doctor Remarks: </span>
-                          {fitnessRemarks}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Signatures & Seal Section */}
-                  <div className="mt-10 pt-6 border-t border-slate-300 grid grid-cols-2 gap-6 items-end font-sans">
-                    <div className="text-center">
-                      <div className="w-20 h-20 mx-auto rounded-full border-2 border-dashed border-red-900/30 flex items-center justify-center text-[9px] text-red-900/40 uppercase font-bold tracking-wider mb-2">
-                        Official Seal
-                      </div>
-                      <div className="text-[9px] text-slate-500 uppercase">Hospital Stamp</div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="h-10 border-b border-slate-800 mb-1 w-44 ml-auto" />
-                      <div className="text-xs font-bold text-slate-900">{docName}</div>
-                      <div className="text-[10px] text-slate-600">{docQualifications}</div>
-                      <div className="text-[10px] font-mono text-red-900 font-semibold">{docSlmc}</div>
-                      <div className="text-[9px] text-slate-500 mt-1">Medical Officer In-Charge</div>
-                    </div>
-                  </div>
-                </div>
+              <div className="shadow-2xl border border-slate-300 dark:border-slate-800 bg-white rounded my-auto max-w-full overflow-hidden">
+                {certType === "FITNESS" ? (
+                  <PhysicalFitnessCertificateTemplate
+                    ref={printRef}
+                    data={{
+                      patientName: patientName,
+                      candidateTitle: patientGender === "Female" ? "Mrs" : "Mr",
+                      idNo: patientNic,
+                      height: heightCm ? `${heightCm} cm` : "",
+                      weight: weightKg ? `${weightKg} kg` : "",
+                      bp: bp,
+                      pr: pulse,
+                      visionR: visionRight,
+                      visionL: visionLeft,
+                      hearing: "Normal",
+                      respiration: "Normal",
+                      remarks: fitnessRemarks,
+                      doctorName: docName,
+                      date: todayStr
+                    }}
+                  />
+                ) : (
+                  <MedicalCertificateA5Template
+                    ref={printRef}
+                    data={{
+                      serialNo: certSerial,
+                      date: todayStr,
+                      patientName: patientName,
+                      patientAddress: `${patient?.address ? `${patient.address}, ` : ""}${patientAge ? `${patientAge} yrs, ${patientGender}` : ""}`,
+                      diagnosis: diagnosis,
+                      remarks: leaveRemarks || `Recommended leave from ${leaveFrom} to ${leaveTo} (${calculatedDays} day(s))`,
+                      recommended: `Medical rest for ${calculatedDays} days. Fit to resume on ${resumeDate}.`,
+                      doctorName: docName,
+                      doctorQualification: docQualifications,
+                      doctorSlmcNo: docSlmc
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>

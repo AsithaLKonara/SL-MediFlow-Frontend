@@ -38,6 +38,7 @@ export interface DoctorDailySheetData {
   consultationFee: number;
   totalRevenue: number;
   commissionRate: number;
+  commissionType?: string;
   hospitalCommission: number;
   doctorPayment?: number;
   netDoctorPayment: number;
@@ -279,7 +280,7 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
                     <p className="text-[11px] text-slate-500">Hospital retained operational & facility charges</p>
                   </td>
                   <td className="py-2.5 px-3 text-center font-medium text-red-600">
-                    {sheet.commissionRate.toFixed(1)}%
+                    {sheet.commissionType === "FLAT" ? `LKR ${sheet.commissionRate.toLocaleString()} flat` : `${sheet.commissionRate.toFixed(1)}%`}
                   </td>
                   <td className="py-2.5 px-3 text-right font-bold text-red-600">
                     - {(sheet.hospitalCommission || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -351,7 +352,12 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
                           {item.consultationFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </td>
                         <td className="py-1 px-2 text-right text-[11px] font-semibold text-emerald-700">
-                          {(item.doctorShare || (item.consultationFee * (1 - sheet.commissionRate / 100))).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          {(item.doctorShare !== undefined && item.doctorShare !== null
+                            ? item.doctorShare
+                            : (sheet.commissionType === "FLAT"
+                                ? Math.max(0, item.consultationFee - sheet.commissionRate)
+                                : item.consultationFee * (1 - sheet.commissionRate / 100))
+                          ).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
                     );

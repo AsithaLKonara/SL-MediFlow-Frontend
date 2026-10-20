@@ -45,6 +45,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
     { href: "/superadmin/finance/doctor-statements", label: "Doctor Settlements", icon: Stethoscope, category: "Operations", permission: "Doctor Share" },
     { href: "/superadmin/inventory", label: "Inventory Engine", icon: PackageSearch, category: "Operations", permission: "Inventory" },
     { href: "/superadmin/lab-tests", label: "Lab Templates", icon: FlaskConical, category: "Operations", permission: "Lab Tests" },
+    { href: "/outsource-lab", label: "Outsourced Lab Tests", icon: Building2, category: "Operations", permission: "Lab Operations" },
     { href: "/superadmin/extra-services", label: "Extra Services (Config)", icon: FilePlus2, category: "Operations", permission: "Extra Services Config" },
     { href: "/extra-services", label: "Extra Services Station", icon: ActivitySquare, category: "Operations", permission: "Extra Services" },
     { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw, category: "Operations", permission: "Refunds" },
@@ -65,6 +66,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
   frontdesk: [
     { href: "/frontdesk", label: "Dashboard", icon: LayoutDashboard },
     { href: "/frontdesk/queue", label: "Queue & Tokens", icon: Users, permission: "Frontdesk" },
+    { href: "/outsource-lab", label: "Outsourced Lab Tests", icon: Building2, permission: "Frontdesk" },
     { href: "/frontdesk/billing", label: "Centralized Billing", icon: Receipt, permission: "Billing" },
     { href: "/billing/refunds", label: "Refund Management", icon: RotateCcw, permission: "Refunds" },
     { href: "/extra-services", label: "Extra Services Orders", icon: FilePlus2, permission: "Extra Services" },
@@ -84,6 +86,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
   ],
   labtech: [
     { href: "/labtech", label: "Overview", icon: LayoutDashboard },
+    { href: "/outsource-lab", label: "Outsourced Lab Tests", icon: Building2, permission: "Lab Operations" },
     { href: "/labtech/requests", label: "Test Requests", icon: Microscope, permission: "Lab Operations" },
     { href: "/labtech/reports", label: "Published Reports", icon: FileSearch2, permission: "Lab Operations" },
     { href: "/labtech/lab-tests", label: "Lab Templates", icon: FlaskConical, permission: "Lab Tests" },
@@ -108,6 +111,7 @@ const roleNavConfig: Record<string, NavItem[]> = {
   receptionist: [
     { href: "/receptionist", label: "Overview", icon: LayoutDashboard },
     { href: "/receptionist/queue", label: "Patient Queue", icon: ClipboardList, permission: "Frontdesk" },
+    { href: "/outsource-lab", label: "Outsourced Lab Tests", icon: Building2, permission: "Frontdesk" },
     { href: "/receptionist/patients", label: "Patient Directory", icon: Users, permission: "Frontdesk" },
     { href: "/frontdesk/doctor-share", label: "Doctor Share Payouts", icon: Stethoscope, permission: "Doctor Share" },
     { href: "/hr", label: "My HR & Leaves", icon: CalendarClock },

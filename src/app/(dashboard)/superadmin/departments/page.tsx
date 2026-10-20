@@ -24,6 +24,7 @@ interface User {
   feeOptions?: number[];
   departmentId: string | null;
   commissionRate?: number;
+  commissionType?: string;
 }
 
 interface Department {
@@ -32,6 +33,7 @@ interface Department {
   description: string | null;
   isActive: boolean;
   commissionRate?: number;
+  commissionType?: string;
   Users: User[];
   _count: { Users: number };
 }
@@ -45,7 +47,7 @@ export default function DepartmentsPage() {
 
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
-  const [deptForm, setDeptForm] = useState({ name: "", description: "", isActive: true, commissionRate: 20 });
+  const [deptForm, setDeptForm] = useState({ name: "", description: "", isActive: true, commissionRate: 20, commissionType: "PERCENTAGE" });
 
   const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<User | null>(null);
@@ -54,7 +56,8 @@ export default function DepartmentsPage() {
     feeType: string;
     feeOptions: number[];
     commissionRate: number;
-  }>({ consultationFee: 2500, feeType: "POST", feeOptions: [], commissionRate: 20 });
+    commissionType: string;
+  }>({ consultationFee: 2500, feeType: "POST", feeOptions: [], commissionRate: 20, commissionType: "PERCENTAGE" });
   const [newFeeOptionInput, setNewFeeOptionInput] = useState<string>("");
   const [activeDeptId, setActiveDeptId] = useState<string | null>(null);
 
@@ -190,7 +193,8 @@ export default function DepartmentsPage() {
           consultationFee: isOpdActiveDept ? (doctorForm.feeOptions[0] || doctorForm.consultationFee) : doctorForm.consultationFee,
           feeType: doctorForm.feeType,
           feeOptions: isOpdActiveDept ? doctorForm.feeOptions : undefined,
-          commissionRate: doctorForm.commissionRate
+          commissionRate: doctorForm.commissionRate,
+          commissionType: doctorForm.commissionType
         })
       });
       const data = await res.json().catch(() => ({}));
@@ -255,7 +259,7 @@ export default function DepartmentsPage() {
 
   const openNewDept = () => {
     setEditingDept(null);
-    setDeptForm({ name: "", description: "", isActive: true, commissionRate: 20 });
+    setDeptForm({ name: "", description: "", isActive: true, commissionRate: 20, commissionType: "PERCENTAGE" });
     setIsDeptModalOpen(true);
   };
 
@@ -265,7 +269,8 @@ export default function DepartmentsPage() {
       name: dept.name, 
       description: dept.description || "", 
       isActive: dept.isActive,
-      commissionRate: dept.commissionRate !== undefined ? dept.commissionRate : 20
+      commissionRate: dept.commissionRate !== undefined ? dept.commissionRate : 20,
+      commissionType: dept.commissionType || "PERCENTAGE"
     });
     setIsDeptModalOpen(true);
   };
@@ -460,7 +465,11 @@ export default function DepartmentsPage() {
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-slate-600 dark:text-slate-400 font-semibold">{doc.commissionRate !== undefined ? doc.commissionRate : (dept.commissionRate || 20)}%</TableCell>
+                              <TableCell className="text-slate-600 dark:text-slate-400 font-semibold">
+                                {doc.commissionType === "FLAT"
+                                  ? `LKR ${doc.commissionRate ?? 500} flat`
+                                  : `${doc.commissionRate !== undefined ? doc.commissionRate : (dept.commissionRate || 20)}%`}
+                              </TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="sm" className="dark:hover:bg-slate-800" onClick={() => {
                                   const isOpd = dept.name.trim().toUpperCase() === "OPD";
@@ -469,7 +478,8 @@ export default function DepartmentsPage() {
                                     consultationFee: doc.consultationFee || 2500, 
                                     feeType: doc.feeType || "POST",
                                     feeOptions: doc.feeOptions && doc.feeOptions.length > 0 ? [...doc.feeOptions] : (isOpd ? [850, 1000, 1200] : []),
-                                    commissionRate: doc.commissionRate !== undefined ? doc.commissionRate : (dept.commissionRate || 20)
+                                    commissionRate: doc.commissionRate !== undefined ? doc.commissionRate : (dept.commissionRate || 20),
+                                    commissionType: doc.commissionType || dept.commissionType || "PERCENTAGE"
                                   });
                                   setNewFeeOptionInput("");
                                   setActiveDeptId(dept.id);
@@ -679,16 +689,48 @@ export default function DepartmentsPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Hospital Commission Override (%)</Label>
-              <Input 
-                type="number" 
-                min="0"
-                max="100"
-                value={doctorForm.commissionRate} 
-                onChange={e => setDoctorForm({ ...doctorForm, commissionRate: parseFloat(e.target.value) || 0 })}
-              />
-              <p className="text-xs text-muted-foreground">Doctor Payout = Consultation Fee - Hospital Commission %</p>
+            <div className="space-y-3 p-3 bg-muted/40 rounded-lg border border-border">
+              <div className="flex items-center justify-between">
+                <Label>Hospital Commission</Label>
+                <div className="flex items-center gap-1 bg-background p-1 rounded-md border text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setDoctorForm({ ...doctorForm, commissionType: "PERCENTAGE" })}
+                    className={`px-2 py-0.5 rounded font-medium transition-colors ${doctorForm.commissionType === "PERCENTAGE" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    % Percentage
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDoctorForm({ ...doctorForm, commissionType: "FLAT" })}
+                    className={`px-2 py-0.5 rounded font-medium transition-colors ${doctorForm.commissionType === "FLAT" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Flat (LKR)
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <Input 
+                    type="number" 
+                    min="0"
+                    max={doctorForm.commissionType === "PERCENTAGE" ? 100 : undefined}
+                    step={doctorForm.commissionType === "PERCENTAGE" ? "0.5" : "50"}
+                    value={doctorForm.commissionRate} 
+                    onChange={e => setDoctorForm({ ...doctorForm, commissionRate: parseFloat(e.target.value) || 0 })}
+                    placeholder={doctorForm.commissionType === "FLAT" ? "500" : "20"}
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-semibold text-muted-foreground pointer-events-none">
+                    {doctorForm.commissionType === "FLAT" ? "LKR / patient" : "%"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {doctorForm.commissionType === "FLAT"
+                    ? "Fixed flat LKR retained per patient consultation"
+                    : "Doctor Payout = Consultation Fee - Hospital Commission %"}
+                </p>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Payment Type</Label>

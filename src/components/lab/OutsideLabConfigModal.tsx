@@ -36,6 +36,7 @@ interface OutsideLabConfigModalProps {
 
 export const OUTSIDE_CENTERS = [
   "Asiri Laboratories",
+  "Ruhunu Hospital Diagnostics",
   "Nawaloka Pathology",
   "Durdans Laboratory",
   "Lanka Hospitals Diagnostics",
@@ -110,6 +111,10 @@ export default function OutsideLabConfigModal({
     return base + calculatedCommission;
   }, [basePrice, calculatedCommission]);
 
+  const calculatedProfit = useMemo(() => {
+    return Math.max(0, totalPatientPrice - (parseFloat(basePrice) || 0));
+  }, [totalPatientPrice, basePrice]);
+
   const effectiveCenter = outsourcedCenter === "Other Reference Lab" && customCenter.trim()
     ? customCenter.trim()
     : outsourcedCenter;
@@ -126,8 +131,10 @@ export default function OutsideLabConfigModal({
 
       const payload = {
         isOutsideTest,
-        price: parseFloat(basePrice) || 0,
-        hospitalCommission: calculatedCommission,
+        outsourceCost: parseFloat(basePrice) || 0,
+        price: totalPatientPrice,
+        commissionType,
+        hospitalCommission: parseFloat(commissionValue) || 0,
         outsourcedCenter: isOutsideTest ? effectiveCenter : null,
       };
 
@@ -316,18 +323,24 @@ export default function OutsideLabConfigModal({
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Base Partner Cost:</span>
-                  <span className="font-semibold">LKR {(parseFloat(basePrice) || 0).toFixed(2)}</span>
+                  <span className="font-semibold">LKR {(parseFloat(basePrice) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Hospital Commission:</span>
                   <span className="font-bold text-emerald-600" data-testid="preview-commission-amount">
-                    + LKR {calculatedCommission.toFixed(2)} {commissionType === "PERCENT" ? `(${commissionValue}%)` : ""}
+                    + LKR {calculatedCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {commissionType === "PERCENT" ? `(${commissionValue}%)` : ""}
                   </span>
                 </div>
                 <div className="border-t border-blue-500/20 pt-2 flex items-center justify-between text-sm">
-                  <span className="font-bold text-foreground">Total Patient Price:</span>
+                  <span className="font-bold text-foreground">Customer Price:</span>
                   <span className="font-black text-blue-600 text-base" data-testid="preview-total-price">
-                    LKR {totalPatientPrice.toFixed(2)}
+                    LKR {totalPatientPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-dashed border-emerald-500/30">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400">Our Calculated Profit:</span>
+                  <span className="font-black text-emerald-600 text-sm" data-testid="preview-profit-amount">
+                    LKR {calculatedProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>

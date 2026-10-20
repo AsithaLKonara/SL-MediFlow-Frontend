@@ -713,7 +713,7 @@ export default function FrontDeskDoctorSharePage() {
                           <TableCell className="text-right text-red-600 dark:text-red-400 font-medium">
                             - LKR {(sheet.hospitalCommission || 0).toLocaleString()}
                             <span className="text-[10px] block text-muted-foreground font-normal">
-                              ({sheet.commissionRate}%)
+                              ({(sheet as any).commissionType === "FLAT" ? `LKR ${sheet.commissionRate} flat` : `${sheet.commissionRate}%`})
                             </span>
                           </TableCell>
 

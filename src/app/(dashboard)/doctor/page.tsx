@@ -354,6 +354,53 @@ export default function DoctorOverview() {
         </Link>
       </div>
 
+      {/* Next Up for Consultation - Brought up to top directly below action tile buttons */}
+      <Card className="shadow-sm border-border" data-testid="next-up-consultation-card">
+        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Next Up for Consultation
+            </CardTitle>
+            <CardDescription>Select a patient to begin clinical review</CardDescription>
+          </div>
+          <Link href="/doctor/queue">
+            <Button variant="outline" size="sm">View Full List</Button>
+          </Link>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border">
+            {metrics.upcomingPatients.map((p, idx) => (
+              <div key={p.queueNo} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-primary font-mono">{p.queueNo}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-foreground truncate">{p.patientName}</p>
+                    <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded-full">Age {p.age}</span>
+                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs ml-auto border-none">
+                      <Clock className="w-3 h-3 mr-1" /> Waiting
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">{p.reason}</p>
+                </div>
+                <Link href={`/doctor/consultation/${p.patientId}?visitId=${p.id || ''}`}>
+                  <Button className="bg-primary hover:bg-primary/90 text-white shrink-0 px-6" data-testid="start-consultation-btn">
+                    Start
+                  </Button>
+                </Link>
+              </div>
+            ))}
+            {metrics.upcomingPatients.length === 0 && (
+              <div className="p-8 text-center text-muted-foreground">
+                No patients currently waiting in queue.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Today's Doctor Share & Earnings Summary */}
       <Card className="shadow-sm border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 via-card to-card">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-2">
@@ -529,50 +576,6 @@ export default function DoctorOverview() {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Simplified Upcoming patients */}
-      <Card className="shadow-sm border-border">
-        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border">
-          <div>
-            <CardTitle className="text-lg">Next Up for Consultation</CardTitle>
-            <CardDescription>Select a patient to begin clinical review</CardDescription>
-          </div>
-          <Link href="/doctor/queue">
-            <Button variant="outline" size="sm">View Full List</Button>
-          </Link>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-border">
-            {metrics.upcomingPatients.map((p, idx) => (
-              <div key={p.queueNo} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-primary font-mono">{p.queueNo}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-foreground truncate">{p.patientName}</p>
-                    <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded-full">Age {p.age}</span>
-                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs ml-auto border-none">
-                      <Clock className="w-3 h-3 mr-1" /> Waiting
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{p.reason}</p>
-                </div>
-                <Link href={`/doctor/consultation/${p.patientId}?visitId=${p.id || ''}`}>
-                  <Button className="bg-primary hover:bg-primary/90 text-white shrink-0 px-6">
-                    Start
-                  </Button>
-                </Link>
-              </div>
-            ))}
-            {metrics.upcomingPatients.length === 0 && (
-              <div className="p-8 text-center text-muted-foreground">
-                No patients currently waiting in queue.
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>

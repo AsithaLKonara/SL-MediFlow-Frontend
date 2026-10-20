@@ -63,6 +63,14 @@ test.describe('Task 1.5: Medical & Fitness Certificates as Extra Services', () =
       });
     });
 
+    await page.route('**/api/extra-services/orders**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'Extra service order created' })
+      });
+    });
+
     // 2. Navigate to /extra-services
     await page.goto('http://localhost:3000/extra-services', { waitUntil: 'domcontentloaded' });
 
@@ -105,11 +113,13 @@ test.describe('Task 1.5: Medical & Fitness Certificates as Extra Services', () =
 
     const previewContainer = page.locator('[data-testid="certificate-print-preview"]');
     await expect(previewContainer).toBeVisible();
-    await expect(previewContainer).toContainText('AMAZ HOSPITAL (PVT) LTD');
-    await expect(previewContainer).toContainText(/medical leave certificate/i);
+    await expect(previewContainer).toContainText('AMAZ');
+    await expect(previewContainer).toContainText(/MEDICAL CERTIFICATE/i);
+    await expect(previewContainer).toContainText('The Certificate is not for Purpose of Leave from A Court of Law');
+    await expect(previewContainer).toContainText('Dr. K. M. Wickramasinghe');
+    await expect(previewContainer).toContainText('SLMC-28491');
     await expect(previewContainer).toContainText('Sarath Jayawardena');
     await expect(previewContainer).toContainText('Acute Pharyngitis & High Fever');
-    await expect(previewContainer).toContainText('4 day(s)');
 
     // 5. Test Switching to General Fitness Certificate Template
     const fitnessTabBtn = page.locator('[data-testid="tab-fitness-cert"]');
@@ -137,12 +147,13 @@ test.describe('Task 1.5: Medical & Fitness Certificates as Extra Services', () =
 
     // Switch back to Preview to verify Fitness template preview
     await docPreviewTabBtn.click();
-    await expect(previewContainer).toContainText(/certificate of medical fitness/i);
-    await expect(previewContainer).toContainText('University Medical Clearance');
-    await expect(previewContainer).toContainText('180 cm / 75 kg');
-    await expect(previewContainer).toContainText('118/78 mmHg');
-    await expect(previewContainer).toContainText('23.1');
-    await expect(previewContainer).toContainText('Medical Fitness Declaration:');
+    await expect(previewContainer).toContainText(/PHYSICAL FITNESS CERTIFICATE/i);
+    await expect(previewContainer).toContainText('To be obtained only from Gazette Government Medical officer');
+    await expect(previewContainer).toContainText('1. Name ( In block letters )');
+    await expect(previewContainer).toContainText('5. CVS :-');
+    await expect(previewContainer).toContainText('9. Investigation :-');
+    await expect(previewContainer).toContainText('10. Allergy if any');
+    await expect(previewContainer).toContainText('Is found physicaly fit to undergo professional trannings');
 
     // 6. Test Print Action Trigger
     const printBtn = page.locator('[data-testid="print-certificate-btn"]');

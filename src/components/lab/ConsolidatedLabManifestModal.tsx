@@ -17,6 +17,8 @@ export interface ConsolidatedTestItem {
   source: "Frontdesk" | "Doctor";
   requestedAt?: string;
   price?: number;
+  isOutsideTest?: boolean;
+  outsourcedCenter?: string | null;
 }
 
 export interface ConsolidatedLabManifest {
@@ -184,17 +186,31 @@ export function ConsolidatedLabManifestModal({
                       {test.status}
                     </span>
 
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        onClose();
-                        router.push(`/labtech/results/${test.requestId}`);
-                      }}
-                      className="gap-1.5 h-8 text-xs font-semibold"
-                    >
-                      <span>{test.status === "COMPLETED" ? "View Report" : "Enter Results"}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
+                    {test.isOutsideTest ? (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          onClose();
+                          router.push(`/outsource-lab?search=${encodeURIComponent(manifest.masterBarcode)}`);
+                        }}
+                        className="gap-1.5 h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
+                      >
+                        <span>Outsource Flow</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          onClose();
+                          router.push(`/labtech/results/${test.requestId}`);
+                        }}
+                        className="gap-1.5 h-8 text-xs font-semibold"
+                      >
+                        <span>{test.status === "COMPLETED" ? "View Report" : "Enter Results"}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

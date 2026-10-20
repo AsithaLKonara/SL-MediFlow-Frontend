@@ -120,6 +120,7 @@ export default function FundOfficePage() {
     sessionName: "All Day",
     consultationFee: 3000,
     commissionRate: 20,
+    commissionType: "PERCENTAGE" as "PERCENTAGE" | "FLAT",
     otherAdjustments: 0,
     remarks: "",
     entryMode: "batch" as "batch" | "itemized",
@@ -291,13 +292,15 @@ export default function FundOfficePage() {
   // Handle doctor selection in Create Sheet modal
   const handleDoctorSelect = (doctorId: string) => {
     const selected = doctors.find((d) => d.id === doctorId);
+    const commType = (selected?.commissionType || "PERCENTAGE") as "PERCENTAGE" | "FLAT";
     setNewSheet((prev) => ({
       ...prev,
       doctorId,
       consultationFee: selected?.consultationFee || prev.consultationFee || 3000,
+      commissionType: commType,
       commissionRate: selected?.commissionRate !== null && selected?.commissionRate !== undefined
         ? selected.commissionRate
-        : 20
+        : (commType === "FLAT" ? 500 : 20)
     }));
   };
 
@@ -318,7 +321,12 @@ export default function FundOfficePage() {
     }
 
     const commRate = Number(newSheet.commissionRate) || 0;
-    const commAmount = (grossRevenue * commRate) / 100;
+    let commAmount = 0;
+    if (newSheet.commissionType === "FLAT") {
+      commAmount = patientCount * Math.min(Number(newSheet.consultationFee) || 0, commRate);
+    } else {
+      commAmount = (grossRevenue * commRate) / 100;
+    }
     const adjustments = Number(newSheet.otherAdjustments) || 0;
     const netDoctorPayment = Math.max(0, grossRevenue - commAmount - adjustments);
 
@@ -345,8 +353,9 @@ export default function FundOfficePage() {
         const count = Number(newSheet.batchPatientCount) || 0;
         const fee = Number(newSheet.consultationFee) || 0;
         const commRate = Number(newSheet.commissionRate) || 0;
-        const docShare = fee * (1 - commRate / 100);
-        const hospShare = fee * (commRate / 100);
+        const isFlat = newSheet.commissionType === "FLAT";
+        const hospShare = isFlat ? Math.min(fee, commRate) : fee * (commRate / 100);
+        const docShare = Math.max(0, fee - hospShare);
 
         for (let i = 1; i <= count; i++) {
           patientItemsPayload.push({
@@ -374,6 +383,7 @@ export default function FundOfficePage() {
           sessionName: newSheet.sessionName,
           consultationFee: Number(newSheet.consultationFee),
           commissionRate: Number(newSheet.commissionRate),
+          commissionType: newSheet.commissionType,
           otherAdjustments: Number(newSheet.otherAdjustments) || 0,
           remarks: newSheet.remarks,
           patientItems: patientItemsPayload
@@ -391,6 +401,7 @@ export default function FundOfficePage() {
           sessionName: "All Day",
           consultationFee: 3000,
           commissionRate: 20,
+          commissionType: "PERCENTAGE",
           otherAdjustments: 0,
           remarks: "",
           entryMode: "batch",
@@ -926,7 +937,9 @@ export default function FundOfficePage() {
 
                         <TableCell className="text-right text-rose-600 dark:text-rose-400 font-medium">
                           - LKR {sheet.hospitalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          <span className="text-xs text-muted-foreground block">({sheet.commissionRate}%)</span>
+                          <span className="text-xs text-muted-foreground block">
+                            ({sheet.commissionType === "FLAT" ? `LKR ${sheet.commissionRate} flat` : `${sheet.commissionRate}%`})
+                          </span>
                         </TableCell>
 
                         <TableCell className="text-right font-black text-emerald-700 dark:text-emerald-400 text-sm">
@@ -1458,23 +1471,49 @@ export default function FundOfficePage() {
                 />
               </div>
 
-              {/* Hospital Commission Rate % */}
-              <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">
-                  Hospital Commission % <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  value={newSheet.commissionRate}
-                  onChange={(e) =>
-                    setNewSheet({ ...newSheet, commissionRate: parseFloat(e.target.value) || 0 })
-                  }
-                  className="bg-background dark:bg-card border-border text-foreground"
-                  required
-                />
+              {/* Hospital Commission Rate */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Hospital Commission <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded border text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setNewSheet({ ...newSheet, commissionType: "PERCENTAGE" })}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${newSheet.commissionType === "PERCENTAGE" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                      data-testid="fund-comm-type-percent"
+                    >
+                      % Rate
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewSheet({ ...newSheet, commissionType: "FLAT" })}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${newSheet.commissionType === "FLAT" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                      data-testid="fund-comm-type-flat"
+                    >
+                      Flat Fee (LKR)
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    max={newSheet.commissionType === "PERCENTAGE" ? 100 : undefined}
+                    step={newSheet.commissionType === "PERCENTAGE" ? "0.5" : "50"}
+                    value={newSheet.commissionRate}
+                    onChange={(e) =>
+                      setNewSheet({ ...newSheet, commissionRate: parseFloat(e.target.value) || 0 })
+                    }
+                    className="bg-background dark:bg-card border-border text-foreground pr-14"
+                    required
+                    data-testid="fund-input-commission-rate"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-semibold text-muted-foreground pointer-events-none">
+                    {newSheet.commissionType === "FLAT" ? "LKR/pt" : "%"}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1665,7 +1704,9 @@ export default function FundOfficePage() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-rose-400 block">Hospital Commission ({newSheet.commissionRate}%)</span>
+                  <span className="text-rose-400 block">
+                    Hospital Commission ({newSheet.commissionType === "FLAT" ? `LKR ${newSheet.commissionRate} flat` : `${newSheet.commissionRate}%`})
+                  </span>
                   <span className="text-sm font-bold text-rose-300">
                     - LKR {liveSummary.commAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </span>
@@ -1930,7 +1971,7 @@ export default function FundOfficePage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground block">
-                    Hospital Commission ({selectedSheet.commissionRate}%):
+                    Hospital Commission ({selectedSheet.commissionType === "FLAT" ? `LKR ${selectedSheet.commissionRate} flat` : `${selectedSheet.commissionRate}%`}):
                   </span>
                   <span className="font-bold text-rose-600 dark:text-rose-400">
                     - LKR {selectedSheet.hospitalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -2019,8 +2060,11 @@ export default function FundOfficePage() {
                             <TableCell className="text-right font-medium text-emerald-700 dark:text-emerald-400">
                               LKR{" "}
                               {(
-                                item.doctorShare ||
-                                item.consultationFee * (1 - selectedSheet.commissionRate / 100)
+                                item.doctorShare !== undefined && item.doctorShare !== null
+                                  ? item.doctorShare
+                                  : (selectedSheet.commissionType === "FLAT"
+                                      ? Math.max(0, item.consultationFee - selectedSheet.commissionRate)
+                                      : item.consultationFee * (1 - selectedSheet.commissionRate / 100))
                               ).toLocaleString()}
                             </TableCell>
                           </TableRow>

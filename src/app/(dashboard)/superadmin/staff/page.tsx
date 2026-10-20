@@ -51,6 +51,7 @@ interface Staff {
   feeType?: string | null;
   deviceUserId?: string | null;
   commissionRate?: number | null;
+  commissionType?: string | null;
 }
 
 export default function StaffManagementPage() {
@@ -83,7 +84,8 @@ export default function StaffManagementPage() {
     consultationFee: 2500,
     feeType: "POST",
     deviceUserId: "",
-    commissionRate: 20
+    commissionRate: 20,
+    commissionType: "PERCENTAGE"
   });
 
   const API = process.env.NEXT_PUBLIC_API_URL;
@@ -151,7 +153,7 @@ export default function StaffManagementPage() {
       name: "", email: "", password: "", roleName: "", 
       specialty: "", roomId: "", title: "Dr.", departmentId: "", 
       consultationFee: 2500, feeType: "POST", deviceUserId: "",
-      commissionRate: 20
+      commissionRate: 20, commissionType: "PERCENTAGE"
     });
     setIsModalOpen(true);
   };
@@ -170,7 +172,8 @@ export default function StaffManagementPage() {
       consultationFee: member.consultationFee || 2500,
       feeType: member.feeType || "POST",
       deviceUserId: member.deviceUserId || "",
-      commissionRate: (member.commissionRate !== undefined && member.commissionRate !== null) ? member.commissionRate : 20
+      commissionRate: (member.commissionRate !== undefined && member.commissionRate !== null) ? member.commissionRate : 20,
+      commissionType: member.commissionType || "PERCENTAGE"
     });
     setIsModalOpen(true);
   };
@@ -391,6 +394,11 @@ export default function StaffManagementPage() {
                                 {member.consultationFee != null && !isNaN(Number(member.consultationFee)) && (
                                   <span className="text-[11px]">Rs. {Number(member.consultationFee).toLocaleString()} {member.feeType ? `(${member.feeType})` : ''}</span>
                                 )}
+                                {member.commissionRate != null && (
+                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal bg-purple-500/5 text-purple-700 dark:text-purple-300 border-purple-200">
+                                    Comm: {member.commissionType === "FLAT" ? `LKR ${member.commissionRate}` : `${member.commissionRate}%`}
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                           ) : (
@@ -587,17 +595,54 @@ export default function StaffManagementPage() {
                       </select>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Hospital Doctor Commission (%)</label>
-                    <Input 
-                      type="number" 
-                      min="0"
-                      max="100"
-                      value={formData.commissionRate} 
-                      onChange={e => setFormData({...formData, commissionRate: parseFloat(e.target.value) || 0})} 
-                      placeholder="20" 
-                    />
-                    <p className="text-xs text-muted-foreground">Percentage hospital retains (Doctor Payout = Consultation Fee - Hospital Commission %)</p>
+                  <div className="space-y-3 p-3.5 bg-muted/40 rounded-lg border border-border">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-semibold text-foreground">Hospital Doctor Commission</label>
+                      <div className="flex items-center gap-1 bg-background p-1 rounded-md border text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, commissionType: "PERCENTAGE" })}
+                          className={`px-2.5 py-1 rounded font-medium transition-colors ${formData.commissionType === "PERCENTAGE" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                          data-testid="comm-type-percent"
+                        >
+                          % Percentage
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, commissionType: "FLAT" })}
+                          className={`px-2.5 py-1 rounded font-medium transition-colors ${formData.commissionType === "FLAT" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                          data-testid="comm-type-flat"
+                        >
+                          Flat Fee (LKR)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-muted-foreground font-medium">
+                        {formData.commissionType === "FLAT" ? "Flat Amount Retained by Hospital per Consultation (LKR)" : "Commission Percentage (%)"}
+                      </label>
+                      <div className="relative">
+                        <Input 
+                          type="number" 
+                          min="0"
+                          max={formData.commissionType === "PERCENTAGE" ? 100 : undefined}
+                          step={formData.commissionType === "PERCENTAGE" ? "0.5" : "50"}
+                          value={formData.commissionRate} 
+                          onChange={e => setFormData({...formData, commissionRate: parseFloat(e.target.value) || 0})} 
+                          placeholder={formData.commissionType === "FLAT" ? "500" : "20"} 
+                          data-testid="input-commission-rate"
+                        />
+                        <span className="absolute right-3 top-2.5 text-xs font-semibold text-muted-foreground pointer-events-none">
+                          {formData.commissionType === "FLAT" ? "LKR / patient" : "%"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formData.commissionType === "FLAT" 
+                          ? "Hospital retains a fixed flat fee per patient consultation. (Doctor Payout = Consultation Fee - Flat Amount)" 
+                          : "Percentage hospital retains. (Doctor Payout = Consultation Fee - Hospital Commission %)"}
+                      </p>
+                    </div>
                   </div>
                 </>
               )}

@@ -1,15 +1,28 @@
-"use client";
-
-import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import React, { useState, useRef } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Award, Printer, Save, CheckCircle2, FileText, Calendar } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Award, Printer, Save, FileText, CheckCircle2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
+import {
+  PhysicalFitnessCertificateTemplate,
+  PhysicalFitnessCertificateData
+} from "@/components/printing/certificates/PhysicalFitnessCertificateTemplate";
+import {
+  MedicalCertificateA5Template,
+  MedicalCertificateA5Data
+} from "@/components/printing/certificates/MedicalCertificateA5Template";
 
 export type CertificateType = "GENERAL_MEDICAL" | "SICK_LEAVE" | "FITNESS";
 
@@ -19,9 +32,11 @@ interface MedicalCertificateModalProps {
   patient: {
     id: string;
     name: string;
-    age?: number | string;
+    age?: number;
     gender?: string;
     contact?: string;
+    address?: string;
+    nic?: string;
     activeVisitId?: string | null;
   } | null;
   doctor: {
@@ -45,33 +60,73 @@ export function MedicalCertificateModal({
   onSaveAsOrder
 }: MedicalCertificateModalProps) {
   const [certType, setCertType] = useState<CertificateType>("GENERAL_MEDICAL");
+  const [isManualBlank, setIsManualBlank] = useState(false);
 
-  // Form Fields
+  // Common Fields
   const [certDate, setCertDate] = useState(new Date().toISOString().split("T")[0]);
-  const [diagnosis, setDiagnosis] = useState("");
-  const [remarks, setRemarks] = useState("");
   const [fee, setFee] = useState(1500);
 
-  // Sick Leave Specific
+  // Medical Certificate (A5 Landscape) Fields
+  const [diagnosis, setDiagnosis] = useState("Acute Upper Respiratory Tract Infection");
+  const [remarks, setRemarks] = useState("Advised warm saline gargle & complete bed rest.");
+  const [recommended, setRecommended] = useState("Medical Leave for 3 days from date of examination.");
+  const [patientAddress, setPatientAddress] = useState(patient?.address || "Debarawewa, Tissamaharama");
+
+  // Sick Leave Helpers
   const [leaveFrom, setLeaveFrom] = useState(new Date().toISOString().split("T")[0]);
   const [leaveDays, setLeaveDays] = useState(3);
   const [resumeDate, setResumeDate] = useState(
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
 
-  // Fitness Specific
-  const [purpose, setPurpose] = useState("Employment / Duty");
-  const [fitnessRemarks, setFitnessRemarks] = useState("Patient is clinically examined and found physically and mentally FIT.");
+  // Physical Fitness Certificate (A4 Portrait) Fields
+  const [idNo, setIdNo] = useState(patient?.nic || "");
+  const [height, setHeight] = useState("168 cm");
+  const [weight, setWeight] = useState("64 kg");
+  const [respiration, setRespiration] = useState("16 / min (Normal Vesicular)");
+  const [bp, setBp] = useState("120/80 mmHg");
+  const [rr, setRr] = useState("16 / min");
+  const [dr, setDr] = useState("Normal");
+  const [pr, setPr] = useState("72 bpm (Regular)");
+  const [scars, setScars] = useState("None");
+  const [lumps, setLumps] = useState("None");
+  const [hearing, setHearing] = useState("Normal Bilaterally");
+  const [visionR, setVisionR] = useState("6/6");
+  const [visionL, setVisionL] = useState("6/6");
+  const [ecg, setEcg] = useState("Normal Sinus Rhythm");
+  const [fbc, setFbc] = useState("Within Normal Limits");
+  const [ufr, setUfr] = useState("Normal (Alb: Nil, Sug: Nil)");
+  const [bGroupRh, setBGroupRh] = useState("O Positive");
+  const [etc, setEtc] = useState("NAD");
+  const [sgotSgpt, setSgotSgpt] = useState("Normal");
+  const [scr, setScr] = useState("0.9 mg/dL");
+  const [esr, setEsr] = useState("12 mm/1st hr");
+  const [sCholestol, setSCholestol] = useState("175 mg/dL");
+  const [fbs, setFbs] = useState("88 mg/dL");
+  const [allergy, setAllergy] = useState("No known drug allergies");
+  const [otherRemarks, setOtherRemarks] = useState("Systemic examination normal. Clinically fit.");
+  const [candidateTitle, setCandidateTitle] = useState<string>("Mr");
 
+  // Dedicated Print Refs
   const certPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
     contentRef: certPrintRef,
-    documentTitle: `Medical_Certificate_${patient?.name || "Patient"}_${certDate}`,
+    documentTitle: `${certType === "FITNESS" ? "Physical_Fitness_Certificate" : "Medical_Certificate"}_${patient?.name || "Patient"}_${certDate}`,
     onAfterPrint: () => {
       triggerPrinterAutoCut();
     }
   });
+
+  // Keep recommended updated if sick leave dates change
+  const handleLeaveDaysChange = (days: number) => {
+    setLeaveDays(days);
+    const start = new Date(leaveFrom);
+    const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+    const endStr = end.toISOString().split("T")[0];
+    setResumeDate(endStr);
+    setRecommended(`Medical leave for ${days} day(s) from ${leaveFrom} to ${endStr}. Fit to resume on ${endStr}.`);
+  };
 
   const handleSaveOrder = () => {
     if (onSaveAsOrder) {
@@ -84,16 +139,18 @@ export function MedicalCertificateModal({
           date: certDate,
           diagnosis,
           remarks,
-          leaveFrom,
-          leaveDays,
-          resumeDate,
-          purpose,
-          fitnessRemarks,
-          doctorName: doctor?.fullName,
+          recommended,
+          idNo,
+          height,
+          weight,
+          bp,
+          pr,
+          rr,
+          doctorName: doctor?.fullName || "Dr. V.K.P.A. Mahesh Lakshman",
           doctorSpecialty: doctor?.specialty
         },
         customPrice: fee,
-        notes: `Medical Certificate (${certType}) issued by ${doctor?.fullName || "Doctor"}`
+        notes: `Official Certificate (${certType === "FITNESS" ? "A4 Fitness" : "A5 Medical"}) issued by ${doctor?.fullName || "Doctor"}`
       });
       toast.success("Certificate recorded to patient services & billing!");
     }
@@ -101,263 +158,326 @@ export function MedicalCertificateModal({
 
   if (!patient) return null;
 
+  // Build Medical A5 Data
+  const medicalA5Data: MedicalCertificateA5Data = {
+    serialNo: `AMAZ-MC-${Date.now().toString().slice(-6)}`,
+    date: certDate,
+    patientName: patient.name,
+    patientAddress: patientAddress,
+    diagnosis: diagnosis,
+    remarks: remarks,
+    recommended: recommended,
+    doctorName: doctor?.fullName || "Dr. V.K.P.A. Mahesh Lakshman",
+    doctorQualification: "MBBS - Karapitiya",
+    doctorSlmcNo: "27337",
+    isManualBlank
+  };
+
+  // Build Fitness A4 Data
+  const fitnessData: PhysicalFitnessCertificateData = {
+    patientName: patient.name,
+    idNo: idNo || patient.nic || "—",
+    height,
+    weight,
+    respiration,
+    bp,
+    dr,
+    rr,
+    pr,
+    scars,
+    lumps,
+    hearing,
+    visionR,
+    visionL,
+    ecg,
+    fbc,
+    ufr,
+    bGroupRh,
+    etc,
+    sgotSgpt,
+    scr,
+    esr,
+    sCholestol,
+    fbs,
+    allergy,
+    remarks: otherRemarks,
+    doctorName: doctor?.fullName || "Dr. V.K.P.A. Mahesh Lakshman",
+    candidateTitle,
+    date: certDate,
+    isManualBlank
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
-      <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[92vh] flex flex-col p-6">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Award className="w-5 h-5 text-emerald-600" />
-            Medical & Fitness Certificate Generator
-          </DialogTitle>
-          <DialogDescription>
-            Generate and print official verified medical, sick leave, or fitness certificates.
-          </DialogDescription>
+      <DialogContent className="w-[96vw] max-w-7xl max-h-[95vh] flex flex-col p-5">
+        <DialogHeader className="pb-2 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                <Award className="w-5 h-5 text-emerald-600" />
+                Hospital Official Certificate Generator
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Official hospital print templates: A4 Physical Fitness Certificate & A5 Landscape Medical Certificate
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer bg-muted/50 px-2.5 py-1.5 rounded border border-border">
+                <input
+                  type="checkbox"
+                  checked={isManualBlank}
+                  onChange={e => setIsManualBlank(e.target.checked)}
+                  className="rounded text-primary focus:ring-primary w-3.5 h-3.5"
+                  data-testid="chk-blank-stationery"
+                />
+                Print as Blank Dot-line Stationery (Manual Fill)
+              </label>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0 py-2 overflow-y-auto">
+        <div className="flex flex-col lg:flex-row gap-5 flex-1 min-h-0 py-2 overflow-hidden">
           {/* Controls Column */}
-          <div className="w-full md:w-96 flex flex-col space-y-4">
+          <div className="w-full lg:w-[380px] flex flex-col space-y-3 overflow-y-auto pr-1">
             <Tabs value={certType} onValueChange={v => setCertType(v as CertificateType)}>
-              <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="GENERAL_MEDICAL" className="text-xs">Medical</TabsTrigger>
-                <TabsTrigger value="SICK_LEAVE" className="text-xs">Sick Leave</TabsTrigger>
-                <TabsTrigger value="FITNESS" className="text-xs">Fitness</TabsTrigger>
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="GENERAL_MEDICAL" className="text-xs font-semibold" data-testid="tab-medical-a5">
+                  Medical Cert (A5)
+                </TabsTrigger>
+                <TabsTrigger value="FITNESS" className="text-xs font-semibold" data-testid="tab-fitness-a4">
+                  Fitness Cert (A4)
+                </TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <div className="p-3 bg-muted/30 rounded-lg border text-xs space-y-1">
+            {/* Patient Header Summary */}
+            <div className="p-2.5 bg-muted/40 rounded-lg border text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Patient:</span>
-                <span className="font-semibold">{patient.name}</span>
+                <span className="font-bold">{patient.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Age / Gender:</span>
-                <span>{patient.age || "—"} Yrs / {patient.gender || "—"}</span>
+                <span className="text-muted-foreground">NIC / Contact:</span>
+                <span>{patient.nic || patient.contact || "N/A"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Doctor:</span>
-                <span>{doctor?.fullName || "Consultant"}</span>
+                <span>{doctor?.fullName || "Dr. V.K.P.A. Mahesh Lakshman"}</span>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Certificate Date</label>
-                <Input
-                  type="date"
-                  value={certDate}
-                  onChange={e => setCertDate(e.target.value)}
-                  className="h-8 text-xs"
-                />
+            {/* Form Fields: Medical Certificate (A5 Landscape) */}
+            {certType === "GENERAL_MEDICAL" && (
+              <div className="space-y-2.5 text-xs">
+                <div className="space-y-1">
+                  <label className="font-semibold text-muted-foreground">Issue Date</label>
+                  <Input
+                    type="date"
+                    value={certDate}
+                    onChange={e => setCertDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-muted-foreground">Patient Address</label>
+                  <Input
+                    value={patientAddress}
+                    onChange={e => setPatientAddress(e.target.value)}
+                    placeholder="Debarawewa, Tissamaharama"
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-muted-foreground">Diagnosis</label>
+                  <Input
+                    value={diagnosis}
+                    onChange={e => setDiagnosis(e.target.value)}
+                    placeholder="e.g. Acute Viral Bronchitis"
+                    className="h-8 text-xs"
+                    data-testid="input-diagnosis"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-muted-foreground">Remarks</label>
+                  <Input
+                    value={remarks}
+                    onChange={e => setRemarks(e.target.value)}
+                    placeholder="Clinical advice / symptoms"
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-muted-foreground">Recommended (Duty/Leave Advice)</label>
+                  <Textarea
+                    value={recommended}
+                    onChange={e => setRecommended(e.target.value)}
+                    placeholder="e.g. Medical Leave for 3 days from 21/10/2026 to 24/10/2026"
+                    rows={2}
+                    className="text-xs"
+                    data-testid="input-recommended"
+                  />
+                </div>
+
+                <div className="p-2.5 bg-blue-50/60 dark:bg-blue-950/20 rounded border border-blue-200/60 dark:border-blue-900/40 text-[11px] space-y-1">
+                  <span className="font-bold text-blue-900 dark:text-blue-300 block">Quick Sick Leave Duration:</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 5, 7].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => handleLeaveDaysChange(d)}
+                        className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-semibold text-xs hover:border-blue-500"
+                      >
+                        {d} Day{d > 1 ? "s" : ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
+            )}
 
-              {certType === "GENERAL_MEDICAL" && (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Diagnosis / Illness</label>
+            {/* Form Fields: Physical Fitness Certificate (A4 Portrait) */}
+            {certType === "FITNESS" && (
+              <div className="space-y-2 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">Title</label>
+                    <select
+                      value={candidateTitle}
+                      onChange={e => setCandidateTitle(e.target.value)}
+                      className="w-full h-7 text-xs border rounded bg-background px-1"
+                    >
+                      <option value="Mr">Mr</option>
+                      <option value="Mrs">Mrs</option>
+                      <option value="Miss">Miss</option>
+                      <option value="Rev">Rev</option>
+                    </select>
+                  </div>
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">ID / NIC No</label>
                     <Input
-                      placeholder="e.g. Acute Viral Pharyngitis"
-                      value={diagnosis}
-                      onChange={e => setDiagnosis(e.target.value)}
-                      className="h-8 text-xs"
+                      value={idNo}
+                      onChange={e => setIdNo(e.target.value)}
+                      placeholder="NIC No"
+                      className="h-7 text-xs"
+                      data-testid="input-fitness-id"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Clinical Advice / Notes</label>
-                    <Textarea
-                      placeholder="Advised complete rest and hydration for 3 days..."
-                      value={remarks}
-                      onChange={e => setRemarks(e.target.value)}
-                      rows={3}
-                      className="text-xs"
-                    />
-                  </div>
-                </>
-              )}
+                </div>
 
-              {certType === "SICK_LEAVE" && (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Illness / Reason</label>
-                    <Input
-                      placeholder="e.g. Bronchitis & Fever"
-                      value={diagnosis}
-                      onChange={e => setDiagnosis(e.target.value)}
-                      className="h-8 text-xs"
-                    />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">Height</label>
+                    <Input value={height} onChange={e => setHeight(e.target.value)} className="h-7 text-xs" />
                   </div>
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">Weight</label>
+                    <Input value={weight} onChange={e => setWeight(e.target.value)} className="h-7 text-xs" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">BP</label>
+                    <Input value={bp} onChange={e => setBp(e.target.value)} className="h-7 text-xs" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">PR (Pulse)</label>
+                    <Input value={pr} onChange={e => setPr(e.target.value)} className="h-7 text-xs" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">Vision (R)</label>
+                    <Input value={visionR} onChange={e => setVisionR(e.target.value)} className="h-7 text-xs" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <label className="font-semibold text-muted-foreground text-[11px]">Vision (L)</label>
+                    <Input value={visionL} onChange={e => setVisionL(e.target.value)} className="h-7 text-xs" />
+                  </div>
+                </div>
+
+                <div className="space-y-0.5">
+                  <label className="font-semibold text-muted-foreground text-[11px]">Hearing / Respiration</label>
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Leave From</label>
-                      <Input
-                        type="date"
-                        value={leaveFrom}
-                        onChange={e => setLeaveFrom(e.target.value)}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Days of Leave</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={leaveDays}
-                        onChange={e => setLeaveDays(parseInt(e.target.value) || 1)}
-                        className="h-8 text-xs"
-                      />
-                    </div>
+                    <Input value={hearing} onChange={e => setHearing(e.target.value)} placeholder="Hearing" className="h-7 text-xs" />
+                    <Input value={respiration} onChange={e => setRespiration(e.target.value)} placeholder="Respiration" className="h-7 text-xs" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Fit to Resume Duty On</label>
-                    <Input
-                      type="date"
-                      value={resumeDate}
-                      onChange={e => setResumeDate(e.target.value)}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                </>
-              )}
+                </div>
 
-              {certType === "FITNESS" && (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Purpose of Certificate</label>
-                    <Input
-                      placeholder="e.g. Employment / Sports / School"
-                      value={purpose}
-                      onChange={e => setPurpose(e.target.value)}
-                      className="h-8 text-xs"
-                    />
+                <div className="space-y-0.5">
+                  <label className="font-semibold text-muted-foreground text-[11px]">Key Investigations</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Input value={ecg} onChange={e => setEcg(e.target.value)} placeholder="ECG" className="h-6 text-[11px]" />
+                    <Input value={fbc} onChange={e => setFbc(e.target.value)} placeholder="FBC" className="h-6 text-[11px]" />
+                    <Input value={bGroupRh} onChange={e => setBGroupRh(e.target.value)} placeholder="Blood Group" className="h-6 text-[11px]" />
+                    <Input value={fbs} onChange={e => setFbs(e.target.value)} placeholder="FBS" className="h-6 text-[11px]" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Fitness Declaration</label>
-                    <Textarea
-                      value={fitnessRemarks}
-                      onChange={e => setFitnessRemarks(e.target.value)}
-                      rows={3}
-                      className="text-xs"
-                    />
-                  </div>
-                </>
-              )}
+                </div>
 
-              <div className="space-y-1 pt-2 border-t">
-                <label className="text-xs font-semibold text-muted-foreground">Certificate Charge (Rs.)</label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={fee}
-                  onChange={e => setFee(parseFloat(e.target.value) || 0)}
-                  className="h-8 text-xs font-bold"
-                />
+                <div className="space-y-0.5">
+                  <label className="font-semibold text-muted-foreground text-[11px]">Allergies / Remarks</label>
+                  <Input value={allergy} onChange={e => setAllergy(e.target.value)} placeholder="Allergies" className="h-7 text-xs" />
+                  <Input value={otherRemarks} onChange={e => setOtherRemarks(e.target.value)} placeholder="Remarks" className="h-7 text-xs mt-1" />
+                </div>
               </div>
+            )}
+
+            {/* Fee input */}
+            <div className="pt-2 border-t flex items-center justify-between">
+              <label className="text-xs font-semibold text-muted-foreground">Fee Charge (LKR)</label>
+              <Input
+                type="number"
+                min="0"
+                value={fee}
+                onChange={e => setFee(parseFloat(e.target.value) || 0)}
+                className="w-24 h-7 text-xs font-bold text-right"
+              />
             </div>
           </div>
 
           {/* Certificate Live Preview Box */}
-          <div className="flex-1 border-2 border-dashed border-muted rounded-xl p-6 bg-white text-black shadow-inner overflow-y-auto flex flex-col justify-between">
-            <div ref={certPrintRef} className="p-4 print:p-8 space-y-6 bg-white text-black font-serif">
-              {/* Letterhead Header */}
-              <div className="text-center border-b-2 border-black pb-4 space-y-1">
-                <h1 className="text-2xl font-black tracking-wider uppercase font-sans text-emerald-800">
-                  AMAZ HOSPITAL
-                </h1>
-                <p className="text-xs text-gray-700 font-sans font-medium">
-                  Debarawewa, Tissamaharama • Tel: 0472239090 • www.amazhospital.com
-                </p>
-                <div className="inline-block border border-black px-4 py-1 mt-2 text-xs font-sans font-bold uppercase tracking-widest bg-gray-50">
-                  {certType === "GENERAL_MEDICAL" && "MEDICAL CERTIFICATE"}
-                  {certType === "SICK_LEAVE" && "MEDICAL SICK LEAVE CERTIFICATE"}
-                  {certType === "FITNESS" && "CERTIFICATE OF MEDICAL FITNESS"}
-                </div>
-              </div>
-
-              {/* Date & Ref */}
-              <div className="flex justify-between text-xs font-sans">
-                <span>Date: <span className="font-semibold underline">{certDate}</span></span>
-                <span>Ref #: <span className="font-mono">AMAZ-MC-{Date.now().toString().slice(-6)}</span></span>
-              </div>
-
-              {/* Body Content */}
-              <div className="space-y-4 text-sm leading-relaxed pt-2">
-                <p>
-                  To Whom It May Concern,
-                </p>
-                <p>
-                  This is to certify that <span className="font-bold underline uppercase">{patient.name}</span>,
-                  aged <span className="font-bold underline">{patient.age || "—"}</span> years, 
-                  residing at Debarawewa, was examined by me at AMAZ Hospital on <span className="font-bold underline">{certDate}</span>.
-                </p>
-
-                {certType === "GENERAL_MEDICAL" && (
-                  <div className="p-3 border rounded bg-gray-50/50 space-y-2">
-                    <p>
-                      <strong>Clinical Findings / Diagnosis:</strong> {diagnosis || "[Diagnosis specified by doctor]"}
-                    </p>
-                    {remarks && (
-                      <p>
-                        <strong>Medical Advice:</strong> {remarks}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {certType === "SICK_LEAVE" && (
-                  <div className="p-3 border rounded bg-gray-50/50 space-y-2">
-                    <p>
-                      The patient was found to be suffering from <strong>{diagnosis || "[Specified Illness]"}</strong> and is advised to take medical rest for a duration of <strong>{leaveDays} day(s)</strong>, commencing from <strong>{leaveFrom}</strong>.
-                    </p>
-                    <p>
-                      The patient is expected to be fit to resume normal duties on <strong>{resumeDate}</strong>.
-                    </p>
-                  </div>
-                )}
-
-                {certType === "FITNESS" && (
-                  <div className="p-3 border rounded bg-gray-50/50 space-y-2">
-                    <p>
-                      This examination was performed for the purpose of <strong>{purpose}</strong>.
-                    </p>
-                    <p className="font-medium">
-                      {fitnessRemarks}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Signatures */}
-              <div className="pt-16 flex justify-between items-end text-xs font-sans">
-                <div className="text-center w-40 border-t border-black pt-2">
-                  <p className="font-bold">Hospital Seal</p>
-                  <p className="text-[10px] text-gray-500">Debarawewa Branch</p>
-                </div>
-                <div className="text-center w-48 border-t border-black pt-2">
-                  <p className="font-bold text-sm">{doctor?.fullName || "Medical Officer"}</p>
-                  <p className="text-[10px] text-gray-600">{doctor?.specialty || "Medical Practitioner"}</p>
-                  <p className="text-[10px] text-gray-500 font-mono">Reg #: SLMC-{doctor?.id?.slice(0, 5) || "00000"}</p>
-                </div>
-              </div>
+          <div className="flex-1 bg-slate-100 dark:bg-slate-900 border rounded-xl p-4 overflow-auto flex flex-col items-center justify-start shadow-inner">
+            <div className="mb-2 text-[11px] font-semibold text-muted-foreground flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5" />
+              <span>
+                {certType === "FITNESS" ? "A4 Portrait Preview (Exact Hospital Template)" : "A5 Landscape Preview (Official Hospital Red Frame)"}
+              </span>
             </div>
 
-            <div className="mt-4 pt-4 border-t flex justify-between items-center bg-gray-50 p-3 rounded">
-              <span className="text-xs text-muted-foreground">Letterhead verified format ready for print</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handleSaveOrder} className="gap-1.5 text-xs">
-                  <Save className="w-3.5 h-3.5" /> Save to Billing
-                </Button>
-                <Button size="sm" onClick={handlePrint} className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <Printer className="w-3.5 h-3.5" /> Print Certificate
-                </Button>
-              </div>
+            {/* Scrollable Container with White Sheet Shadow */}
+            <div className="shadow-2xl border border-slate-300 dark:border-slate-800 bg-white rounded my-auto max-w-full overflow-hidden" data-testid="certificate-preview-container">
+              {certType === "FITNESS" ? (
+                <PhysicalFitnessCertificateTemplate ref={certPrintRef} data={fitnessData} />
+              ) : (
+                <MedicalCertificateA5Template ref={certPrintRef} data={medicalA5Data} />
+              )}
             </div>
           </div>
         </div>
 
-        <DialogFooter className="border-t pt-2">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
+        <DialogFooter className="border-t pt-3 flex justify-between items-center">
+          <div className="text-xs text-muted-foreground">
+            Print ready with zero margin collisions (via isolated react-to-print).
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleSaveOrder} className="gap-1.5 text-xs">
+              <Save className="w-3.5 h-3.5" /> Save to Billing
+            </Button>
+            <Button
+              size="sm"
+              onClick={handlePrint}
+              className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              data-testid="print-certificate-btn"
+            >
+              <Printer className="w-3.5 h-3.5" /> Print Certificate
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
