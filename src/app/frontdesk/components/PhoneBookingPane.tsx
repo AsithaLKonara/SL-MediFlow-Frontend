@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, SendToBack, Send, UserRound, Stethoscope, FlaskConical, FilePlus2, CheckCircle2, XCircle } from "lucide-react";
+import { Phone, Calendar as CalendarIcon, User, Search, Loader2, PlusCircle, SendToBack, Send, UserRound, Stethoscope, FlaskConical, FilePlus2, CheckCircle2, XCircle, RefreshCw, CalendarDays, Filter, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { io, Socket } from "socket.io-client";
 import { useRxToPOS } from "../hooks/useCartSync";
@@ -70,6 +70,14 @@ export function PhoneBookingPane() {
 
   const [isBooking, setIsBooking] = useState(false);
   const [todayBookings, setTodayBookings] = useState<any[]>([]);
+  const [phoneBookings, setPhoneBookings] = useState<any[]>([]);
+  const [isPhoneBookingsLoading, setIsPhoneBookingsLoading] = useState(false);
+  const [modalDateFilter, setModalDateFilter] = useState<"TODAY" | "TOMORROW" | "NEXT_7_DAYS" | "CUSTOM">("TODAY");
+  const [modalCustomDate, setModalCustomDate] = useState<string>(
+    new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
+  );
+  const [modalDoctorFilter, setModalDoctorFilter] = useState<string>("ALL");
+  const [isBookingsModalOpen, setIsBookingsModalOpen] = useState(false);
   const [bookingSearchQuery, setBookingSearchQuery] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -100,15 +108,27 @@ export function PhoneBookingPane() {
     fetchCalendarData();
   }, [fetchCalendarData]);
 
+  const [availableSessions, setAvailableSessions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
   const fetchDocTokens = useCallback(() => {
     if (!selectedDocId) return;
-    apiFetch(`${API}/booking/availability?doctorId=${selectedDocId}&date=${selectedDate}`)
+    const sessionParam = selectedSessionId ? `&sessionId=${selectedSessionId}` : '';
+    apiFetch(`${API}/booking/availability?doctorId=${selectedDocId}&date=${selectedDate}${sessionParam}`)
       .then(r => r.json())
       .then(res => {
-        if (res.success) setDocTokens(res.data.tokens || []);
+        if (res.success) {
+          setDocTokens(res.data.tokens || []);
+          if (Array.isArray(res.data.sessions)) {
+            setAvailableSessions(res.data.sessions);
+            if (!selectedSessionId && res.data.activeSessionId) {
+              setSelectedSessionId(res.data.activeSessionId);
+            }
+          }
+        }
       })
       .catch(console.error);
-  }, [selectedDocId, selectedDate, API, apiFetch]);
+  }, [selectedDocId, selectedDate, selectedSessionId, API, apiFetch]);
 
   const fetchLabTokens = useCallback(() => {
     if (!selectedTestIds.size) return;
@@ -157,13 +177,15 @@ export function PhoneBookingPane() {
   }, [API, apiFetch]);
 
   useEffect(() => {
+    setSelectedSessionId(null);
+    setSelectedDocToken(null);
     if (!selectedDocId) {
       setDocTokens([]);
-      setSelectedDocToken(null);
+      setAvailableSessions([]);
       return;
     }
     fetchDocTokens();
-  }, [selectedDocId, fetchDocTokens, selectedDate]);
+  }, [selectedDocId, selectedDate]);
 
   useEffect(() => {
     if (selectedTestIds.size === 0) {
@@ -183,38 +205,106 @@ export function PhoneBookingPane() {
     fetchServiceTokens();
   }, [selectedServiceIds.size, fetchServiceTokens, selectedDate]);
 
-  const fetchTodayBookings = useCallback(async () => {
+  const formatBookingDate = (dateStr: string) => {
+    if (!dateStr) return { label: "N/A", full: "N/A", isToday: false, isTomorrow: false };
+    const d = new Date(dateStr);
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+    const apptDateStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+    
+    const tomorrowD = new Date();
+    tomorrowD.setDate(tomorrowD.getDate() + 1);
+    const tomorrowStr = tomorrowD.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+
+    if (apptDateStr === todayStr) {
+      return { 
+        label: `Today (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Colombo' })})`, 
+        full: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Colombo' }),
+        isToday: true, 
+        isTomorrow: false 
+      };
+    } else if (apptDateStr === tomorrowStr) {
+      return { 
+        label: `Tomorrow (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Colombo' })})`, 
+        full: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Colombo' }),
+        isToday: false, 
+        isTomorrow: true 
+      };
+    } else {
+      return { 
+        label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Asia/Colombo' }), 
+        full: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Colombo' }),
+        isToday: false, 
+        isTomorrow: false 
+      };
+    }
+  };
+
+  const fetchPhoneBookings = useCallback(async () => {
+    setIsPhoneBookingsLoading(true);
     try {
-      const res = await apiFetch(`${API}/booking/appointments`);
+      let queryParams = `bookingType=PHONE`;
+      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+
+      if (modalDateFilter === "TODAY") {
+        queryParams += `&date=${todayStr}`;
+      } else if (modalDateFilter === "TOMORROW") {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        const tomStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+        queryParams += `&date=${tomStr}`;
+      } else if (modalDateFilter === "NEXT_7_DAYS") {
+        const dEnd = new Date();
+        dEnd.setDate(dEnd.getDate() + 7);
+        const endStr = dEnd.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+        queryParams += `&startDate=${todayStr}&endDate=${endStr}`;
+      } else if (modalDateFilter === "CUSTOM" && modalCustomDate) {
+        queryParams += `&date=${modalCustomDate}`;
+      }
+
+      if (modalDoctorFilter && modalDoctorFilter !== "ALL") {
+        queryParams += `&doctorId=${modalDoctorFilter}`;
+      }
+
+      const res = await apiFetch(`${API}/booking/appointments?${queryParams}`);
       const data = await res.json();
-      if (data.success) {
-        // Group by patient instead of booking reference so all their bookings today appear together
-        const todayPhone = data.data.filter((a: any) => a.bookingType === "PHONE" && !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(a.status));
+      if (data.success && Array.isArray(data.data)) {
+        const activePhone = data.data.filter((a: any) => 
+          a.bookingType === "PHONE" && !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(a.status)
+        );
         
-        // Pick primary token per patient (Doctor preferred)
+        // Group appointments by bookingReference or (patientId + appointmentDate)
         const uniqueBookings: any[] = [];
-        const seenPatients = new Set();
-        for (const appt of todayPhone) {
-          const patientKey = appt.Patient?.id || appt.patientPhone || appt.id;
-          if (!seenPatients.has(patientKey)) {
-             // Find all for this patient
-             const group = todayPhone.filter((a: any) => (a.Patient?.id || a.patientPhone || a.id) === patientKey);
+        const seenKeys = new Set();
+        for (const appt of activePhone) {
+          const dateKey = appt.appointmentDate ? appt.appointmentDate.substring(0, 10) : '';
+          const groupKey = appt.bookingReference || `${appt.Patient?.id || appt.patientPhone || appt.id}_${dateKey}`;
+          if (!seenKeys.has(groupKey)) {
+             const group = activePhone.filter((a: any) => {
+               const aDateKey = a.appointmentDate ? a.appointmentDate.substring(0, 10) : '';
+               const aKey = a.bookingReference || `${a.Patient?.id || a.patientPhone || a.id}_${aDateKey}`;
+               return aKey === groupKey;
+             });
              const primary = group.find((a: any) => a.department === "CONSULTATION") || group[0];
              primary.groupedTokens = group;
              uniqueBookings.push(primary);
-             seenPatients.add(patientKey);
+             seenKeys.add(groupKey);
           }
         }
+        setPhoneBookings(uniqueBookings);
         setTodayBookings(uniqueBookings);
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsPhoneBookingsLoading(false);
     }
-  }, [API, apiFetch]);
+  }, [API, apiFetch, modalDateFilter, modalCustomDate, modalDoctorFilter]);
+
+  const fetchTodayBookings = fetchPhoneBookings;
 
   useEffect(() => {
-    fetchTodayBookings();
-  }, [fetchTodayBookings]);
+    fetchPhoneBookings();
+  }, [fetchPhoneBookings]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -318,6 +408,7 @@ export function PhoneBookingPane() {
         serviceIds: Array.from(selectedServiceIds),
         customServicePrices,
         serviceTokenNumber: selectedServiceToken || undefined,
+        sessionId: selectedSessionId || undefined,
         date: selectedDate
       };
 
@@ -512,7 +603,7 @@ export function PhoneBookingPane() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Select Doctor Tile */}
             <Dialog>
-              <DialogTrigger className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
+              <DialogTrigger data-testid="tile-select-doctor-phone" className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Stethoscope className="w-6 h-6 text-primary" />
                 </div>
@@ -576,7 +667,48 @@ export function PhoneBookingPane() {
 
                       {/* Right Column: Matrix */}
                       <div className="border rounded-md flex flex-col overflow-hidden bg-muted/10">
-                        <div className="p-2 border-b bg-muted/50 font-medium text-xs text-muted-foreground">Select Token</div>
+                        {/* Session Selector */}
+                        {availableSessions.length > 0 && (
+                          <div className="p-2 border-b bg-muted/40 flex flex-col gap-1.5">
+                            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                              Select Schedule / Session
+                            </span>
+                            <div className="flex flex-wrap gap-1.5" data-testid="phone-session-selector">
+                              {availableSessions.map((s: any) => {
+                                const isSessionActive = selectedSessionId === s.id;
+                                return (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    data-testid={`phone-session-btn-${s.id}`}
+                                    onClick={() => {
+                                      setSelectedSessionId(s.id);
+                                      setSelectedDocToken(null);
+                                    }}
+                                    className={`px-2.5 py-1 text-xs rounded-md font-medium border transition-all flex items-center gap-1.5 ${
+                                      isSessionActive
+                                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                        : "bg-card text-foreground hover:bg-accent border-border"
+                                    }`}
+                                  >
+                                    <Clock className="w-3 h-3" />
+                                    <span>{s.sessionName || "Session"}:</span>
+                                    <span className="opacity-80">{s.startTime} - {s.endTime}</span>
+                                    {s.roomNumber && <span className="opacity-70 text-[10px] ml-0.5">• Rm {s.roomNumber}</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        <div className="p-2 border-b bg-muted/50 font-medium text-xs text-muted-foreground flex justify-between items-center">
+                          <span>Select Token</span>
+                          {availableSessions.length > 0 && selectedSessionId && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {availableSessions.find(s => s.id === selectedSessionId)?.sessionName || ''}
+                            </span>
+                          )}
+                        </div>
                         <ScrollArea className="flex-1 p-2">
                           <div className="grid grid-cols-5 gap-2">
                             {docTokens.map(t => {
@@ -965,84 +1097,289 @@ export function PhoneBookingPane() {
         </Button>
       </div>
 
-      {/* Today's Phone Bookings Modal */}
+      {/* Phone Bookings Modal */}
       <div className="mt-6">
-        <Dialog onOpenChange={(open) => {
+        <Dialog open={isBookingsModalOpen} onOpenChange={(open) => {
+          setIsBookingsModalOpen(open);
           if (!open) {
             setBookingSearchQuery("");
             setSelectedBookingId(null);
           }
         }}>
-          <DialogTrigger className="w-full h-12 border-dashed flex items-center justify-center bg-muted/30 hover:bg-muted/50 border rounded-md font-medium text-sm transition-colors">
-            <Phone className="w-5 h-5 mr-2" />
+          <DialogTrigger 
+            className="w-full h-12 border-dashed flex items-center justify-center bg-muted/30 hover:bg-muted/50 border rounded-md font-medium text-sm transition-colors"
+            data-testid="btn-view-phone-bookings"
+          >
+            <Phone className="w-5 h-5 mr-2 text-primary" />
             View Phone Bookings
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Phone Bookings</DialogTitle>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-6">
+            <DialogHeader className="pb-3 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-primary" />
+                    Phone Bookings
+                    <Badge variant="secondary" className="ml-2 font-normal">
+                      {phoneBookings.filter(appt => {
+                        if (!bookingSearchQuery.trim()) return true;
+                        const q = bookingSearchQuery.toLowerCase().trim();
+                        const phone = (appt.Patient?.phone || appt.patientPhone || "").toLowerCase();
+                        const name = (appt.Patient?.fullName || appt.patientName || "").toLowerCase();
+                        const token = (appt.tokenNumber || "").toString();
+                        const ref = (appt.bookingReference || "").toLowerCase();
+                        return phone.includes(q) || name.includes(q) || token.includes(q) || ref.includes(q);
+                      }).length} Bookings
+                    </Badge>
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Manage upcoming and today&apos;s telephone token reservations
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchPhoneBookings} 
+                  disabled={isPhoneBookingsLoading}
+                  className="gap-1.5 h-8 text-xs"
+                  data-testid="btn-refresh-phone-bookings"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isPhoneBookingsLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
             </DialogHeader>
-            <div className="flex flex-col gap-4 mt-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by phone number..."
-                  className="pl-9"
-                  value={bookingSearchQuery}
-                  onChange={(e) => setBookingSearchQuery(e.target.value)}
-                />
+
+            {/* Filter Controls Bar */}
+            <div className="flex flex-col gap-3 py-3 border-b bg-muted/20 -mx-6 px-6">
+              {/* Date Presets Row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mr-1">
+                  <CalendarDays className="w-3.5 h-3.5" /> Date:
+                </span>
+                <div className="flex rounded-md bg-muted p-1 gap-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setModalDateFilter("TODAY")}
+                    className={`px-3 py-1 rounded font-medium transition-all ${
+                      modalDateFilter === "TODAY"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    data-testid="filter-date-today"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalDateFilter("TOMORROW")}
+                    className={`px-3 py-1 rounded font-medium transition-all ${
+                      modalDateFilter === "TOMORROW"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    data-testid="filter-date-tomorrow"
+                  >
+                    Tomorrow
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalDateFilter("NEXT_7_DAYS")}
+                    className={`px-3 py-1 rounded font-medium transition-all ${
+                      modalDateFilter === "NEXT_7_DAYS"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    data-testid="filter-date-next-week"
+                  >
+                    Next 7 Days
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalDateFilter("CUSTOM")}
+                    className={`px-3 py-1 rounded font-medium transition-all ${
+                      modalDateFilter === "CUSTOM"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    data-testid="filter-date-custom"
+                  >
+                    Custom Date
+                  </button>
+                </div>
+
+                {modalDateFilter === "CUSTOM" && (
+                  <Input
+                    type="date"
+                    value={modalCustomDate}
+                    onChange={(e) => setModalCustomDate(e.target.value)}
+                    className="h-8 text-xs w-40"
+                    data-testid="input-filter-custom-date"
+                  />
+                )}
               </div>
 
-              <ScrollArea className="h-[300px] border rounded-md p-2">
-                {todayBookings.filter(appt => {
-                  const phone = appt.Patient?.phone || appt.patientPhone || "";
-                  return phone.includes(bookingSearchQuery) || bookingSearchQuery === "";
-                }).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center p-4">No bookings found.</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {todayBookings
-                      .filter(appt => {
-                        const phone = appt.Patient?.phone || appt.patientPhone || "";
-                        return phone.includes(bookingSearchQuery) || bookingSearchQuery === "";
-                      })
-                      .map((appt) => (
+              {/* Doctor and Search Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Doctor Filter Dropdown */}
+                <div className="relative">
+                  <select
+                    value={modalDoctorFilter}
+                    onChange={(e) => setModalDoctorFilter(e.target.value)}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                    data-testid="select-filter-doctor"
+                  >
+                    <option value="ALL">All Doctors</option>
+                    {doctors.map(d => (
+                      <option key={d.id} value={d.id}>
+                        Dr. {d.fullName} ({d.specialty || "General"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, phone, or token #..."
+                    className="pl-8 h-9 text-xs"
+                    value={bookingSearchQuery}
+                    onChange={(e) => setBookingSearchQuery(e.target.value)}
+                    data-testid="input-filter-search"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bookings List Area */}
+            <ScrollArea className="flex-1 h-[360px] pr-2 mt-2">
+              {isPhoneBookingsLoading ? (
+                <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="text-xs">Loading phone bookings...</span>
+                </div>
+              ) : phoneBookings.filter(appt => {
+                if (!bookingSearchQuery.trim()) return true;
+                const q = bookingSearchQuery.toLowerCase().trim();
+                const phone = (appt.Patient?.phone || appt.patientPhone || "").toLowerCase();
+                const name = (appt.Patient?.fullName || appt.patientName || "").toLowerCase();
+                const token = (appt.tokenNumber || "").toString();
+                const ref = (appt.bookingReference || "").toLowerCase();
+                return phone.includes(q) || name.includes(q) || token.includes(q) || ref.includes(q);
+              }).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
+                  <Phone className="w-8 h-8 opacity-30" />
+                  <p className="text-sm font-medium">No bookings found</p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Try selecting a different date range or doctor filter.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5 py-1">
+                  {phoneBookings
+                    .filter(appt => {
+                      if (!bookingSearchQuery.trim()) return true;
+                      const q = bookingSearchQuery.toLowerCase().trim();
+                      const phone = (appt.Patient?.phone || appt.patientPhone || "").toLowerCase();
+                      const name = (appt.Patient?.fullName || appt.patientName || "").toLowerCase();
+                      const token = (appt.tokenNumber || "").toString();
+                      const ref = (appt.bookingReference || "").toLowerCase();
+                      return phone.includes(q) || name.includes(q) || token.includes(q) || ref.includes(q);
+                    })
+                    .map((appt) => {
+                      const dateInfo = formatBookingDate(appt.appointmentDate);
+                      const isSelected = selectedBookingId === appt.id;
+                      const consultAppt = appt.groupedTokens?.find((t: any) => t.department === "CONSULTATION") || appt;
+                      const docName = consultAppt.User?.fullName || consultAppt.doctorName;
+                      const sessionName = consultAppt.Session?.sessionName || (consultAppt.Session?.startTime ? `${consultAppt.Session.startTime} - ${consultAppt.Session.endTime}` : null);
+
+                      return (
                         <div 
                           key={appt.id} 
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedBookingId === appt.id ? 'border-primary bg-primary/5' : 'bg-card hover:border-primary/50'}`}
-                          onClick={() => setSelectedBookingId(appt.id)}
+                          className={`p-3.5 border rounded-lg cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'border-primary ring-1 ring-primary/40 bg-primary/5' 
+                              : 'bg-card hover:border-primary/40'
+                          }`}
+                          onClick={() => setSelectedBookingId(isSelected ? null : appt.id)}
+                          data-testid={`booking-card-${appt.id}`}
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium text-sm">{appt.Patient?.fullName || appt.patientName || "Unknown Patient"}</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {appt.Patient?.phone || appt.patientPhone || "No Phone"}
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm truncate">
+                                  {appt.Patient?.fullName || appt.patientName || "Unknown Patient"}
+                                </span>
+                                {appt.Patient?.age && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    ({appt.Patient.age} yrs)
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                                <span className="flex items-center gap-1 font-mono">
+                                  <Phone className="w-3 h-3" />
+                                  {appt.Patient?.phone || appt.patientPhone || "No Phone"}
+                                </span>
+                                {appt.bookingReference && (
+                                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                                    Ref: {appt.bookingReference}
+                                  </span>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium text-primary">Token #{appt.tokenNumber}</div>
+
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <div className="flex items-center gap-1.5">
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-[11px] font-medium flex items-center gap-1 px-2 py-0.5 ${
+                                    dateInfo.isToday 
+                                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-300 dark:border-emerald-800" 
+                                      : dateInfo.isTomorrow
+                                      ? "bg-blue-500/10 text-blue-600 border-blue-300 dark:border-blue-800"
+                                      : "bg-purple-500/10 text-purple-600 border-purple-300 dark:border-purple-800"
+                                  }`}
+                                >
+                                  <CalendarDays className="w-3 h-3" />
+                                  {dateInfo.label}
+                                </Badge>
+                                <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-md">
+                                  Token #{appt.tokenNumber}
+                                </span>
+                              </div>
+                              {docName && (
+                                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                  <Stethoscope className="w-3 h-3 text-primary" />
+                                  Dr. {docName} {sessionName ? `(${sessionName})` : ''}
+                                </span>
+                              )}
                             </div>
                           </div>
                           
                           {/* List all items booked in this reference */}
-                          {selectedBookingId === appt.id && (
-                            <div className="mt-4 flex flex-col gap-2">
-                              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Selected Items</h4>
+                          {isSelected && (
+                            <div className="mt-4 flex flex-col gap-2 pt-2 border-t">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                Booked Items for this Visit
+                              </h4>
                               {appt.groupedTokens?.map((t: any) => {
                                 if (t.department === "CONSULTATION") {
                                   const docInfo = doctors.find(d => d.id === t.doctorId || d.fullName === t.User?.fullName);
                                   const isUpfront = t.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT";
                                   return (
-                                    <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                                    <div key={t.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-card/60">
                                       <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                          <Stethoscope className="w-4 h-4 text-primary" />
+                                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                          <Stethoscope className="w-3.5 h-3.5 text-primary" />
                                         </div>
                                         <div className="flex flex-col">
-                                          <span className="font-medium text-sm">Dr. {t.User?.fullName || t.doctorName || "General"}</span>
-                                          <span className="text-xs text-muted-foreground">Doctor Consultation</span>
+                                          <span className="font-medium text-xs">Dr. {t.User?.fullName || t.doctorName || "General"}</span>
+                                          <span className="text-[11px] text-muted-foreground">Doctor Consultation</span>
                                         </div>
                                       </div>
-                                      <Badge variant="outline" className={`text-xs ${isUpfront ? "bg-amber-500/10 text-amber-600 border-amber-300" : "bg-blue-500/10 text-blue-600 border-blue-300"}`}>
+                                      <Badge variant="outline" className={`text-[10px] ${isUpfront ? "bg-amber-500/10 text-amber-600 border-amber-300" : "bg-blue-500/10 text-blue-600 border-blue-300"}`}>
                                         {isUpfront ? "Upfront Pay" : "Post Pay"}
                                       </Badge>
                                     </div>
@@ -1051,14 +1388,14 @@ export function PhoneBookingPane() {
                                 
                                 if (t.department === "LAB") {
                                   return (
-                                    <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                                    <div key={t.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-card/60">
                                       <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
-                                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                                          <FlaskConical className="w-4 h-4 text-blue-500" />
+                                        <div className="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                                          <FlaskConical className="w-3.5 h-3.5 text-blue-500" />
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                          <span className="font-medium text-sm truncate">Lab Tests</span>
-                                          <span className="text-xs text-muted-foreground">Lab Test</span>
+                                          <span className="font-medium text-xs truncate">Lab Tests</span>
+                                          <span className="text-[11px] text-muted-foreground">Laboratory</span>
                                         </div>
                                       </div>
                                     </div>
@@ -1067,14 +1404,14 @@ export function PhoneBookingPane() {
 
                                 if (t.department === "EXTRA_SERVICE") {
                                   return (
-                                    <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                                    <div key={t.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-card/60">
                                       <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
-                                        <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
-                                          <FilePlus2 className="w-4 h-4 text-purple-500" />
+                                        <div className="w-7 h-7 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                                          <FilePlus2 className="w-3.5 h-3.5 text-purple-500" />
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                          <span className="font-medium text-sm truncate">Extra Services</span>
-                                          <span className="text-xs text-muted-foreground">Extra Service</span>
+                                          <span className="font-medium text-xs truncate">Extra Services</span>
+                                          <span className="text-[11px] text-muted-foreground">Service Addon</span>
                                         </div>
                                       </div>
                                     </div>
@@ -1087,8 +1424,8 @@ export function PhoneBookingPane() {
                           )}
                           
                           {/* Compact view if not selected */}
-                          {selectedBookingId !== appt.id && (
-                            <div className="mt-3 pt-2 border-t flex flex-wrap gap-1">
+                          {!isSelected && (
+                            <div className="mt-2.5 pt-2 border-t flex flex-wrap gap-1">
                               {appt.groupedTokens?.map((t: any) => (
                                 <span key={t.id} className="text-[10px] bg-muted px-2 py-0.5 rounded-full font-medium">
                                   {t.department === "CONSULTATION" ? `Dr. ${t.User?.fullName || t.doctorName || "General"}` : 
@@ -1099,87 +1436,89 @@ export function PhoneBookingPane() {
                             </div>
                           )}
                         </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
+                      );
+                    })}
+                </div>
+              )}
+            </ScrollArea>
 
-              <div className="flex justify-between items-center pt-2 border-t gap-2">
+            <div className="flex justify-between items-center pt-3 border-t gap-2 mt-2">
+              <Button 
+                variant="destructive"
+                size="sm"
+                disabled={!selectedBookingId}
+                data-testid="btn-cancel-phone-booking"
+                onClick={() => {
+                  const selectedAppt = phoneBookings.find(b => b.id === selectedBookingId);
+                  if (selectedAppt) {
+                    setAppointmentToCancel({
+                      id: selectedAppt.id,
+                      tokenNumber: selectedAppt.tokenNumber,
+                      patientName: selectedAppt.Patient?.fullName || selectedAppt.patientName,
+                      doctorName: selectedAppt.User?.fullName || selectedAppt.doctorName
+                    });
+                    setIsCancelModalOpen(true);
+                  }
+                }}
+              >
+                <XCircle className="w-4 h-4 mr-1.5" />
+                Cancel Booking
+              </Button>
+
+              <DialogClose render={
                 <Button 
-                  variant="destructive"
-                  size="sm"
                   disabled={!selectedBookingId}
-                  onClick={() => {
-                    const selectedAppt = todayBookings.find(b => b.id === selectedBookingId);
+                  data-testid="btn-send-pos-phone-booking"
+                  onClick={async () => {
+                    const selectedAppt = phoneBookings.find(b => b.id === selectedBookingId);
                     if (selectedAppt) {
-                      setAppointmentToCancel({
-                        id: selectedAppt.id,
+                      try {
+                        const res = await apiFetch(`${API}/barcode/${selectedAppt.id}`);
+                        if (res.ok) {
+                          const data = await res.json();
+                          if (data.type === "APPOINTMENT") {
+                            const consultAppt = data.data.allAppointments?.find((a: any) => a.department === "CONSULTATION") || data.data.appointment;
+                            const docInfo = doctors.find(d => d.id === consultAppt?.doctorId || d.fullName === consultAppt?.User?.fullName);
+                            const isUpfront = consultAppt?.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT" || false;
+                            sendAppointmentToPOS({
+                              appointmentId: data.data.appointment.id,
+                              tokenNumber: data.data.appointment.tokenNumber,
+                              patientName: data.data.appointment.Patient?.fullName || selectedAppt.Patient?.fullName,
+                              doctorName: consultAppt?.User?.fullName || data.data.appointment.User?.fullName,
+                              fee: consultAppt?.User?.consultationFee || data.data.appointment.User?.consultationFee || docInfo?.consultationFee || 2500,
+                              isUpfront: isUpfront,
+                              invoice: data.data.invoice,
+                              allAppointments: data.data.allAppointments || []
+                            });
+                            toast.success("Sent to POS for checkout.");
+                            return;
+                          }
+                        }
+                      } catch (e) {
+                         console.error(e);
+                      }
+                      // Fallback if barcode API fails
+                      const docConsultAppt = selectedAppt.groupedTokens?.find((a: any) => a.department === "CONSULTATION") || selectedAppt;
+                      const docName = docConsultAppt.User?.fullName || docConsultAppt.doctorName;
+                      const docInfo = doctors.find(d => d.fullName === docName || d.id === docConsultAppt.doctorId);
+                      const isUpfront = docConsultAppt.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT" || false;
+                      sendAppointmentToPOS({
+                        appointmentId: selectedAppt.id,
                         tokenNumber: selectedAppt.tokenNumber,
                         patientName: selectedAppt.Patient?.fullName || selectedAppt.patientName,
-                        doctorName: selectedAppt.User?.fullName || selectedAppt.doctorName
+                        doctorName: docName,
+                        fee: docConsultAppt.User?.consultationFee || docInfo?.consultationFee || 2500,
+                        isUpfront: isUpfront,
+                        allAppointments: selectedAppt.groupedTokens || []
                       });
-                      setIsCancelModalOpen(true);
+                      toast.success("Sent to POS for checkout.");
                     }
                   }}
-                >
-                  <XCircle className="w-4 h-4 mr-1.5" />
-                  Cancel Booking
-                </Button>
-
-                <DialogClose render={
-                  <Button 
-                    disabled={!selectedBookingId}
-                    onClick={async () => {
-                      const selectedAppt = todayBookings.find(b => b.id === selectedBookingId);
-                      if (selectedAppt) {
-                        try {
-                          const res = await apiFetch(`${API}/barcode/${selectedAppt.id}`);
-                          if (res.ok) {
-                            const data = await res.json();
-                            if (data.type === "APPOINTMENT") {
-                              const consultAppt = data.data.allAppointments?.find((a: any) => a.department === "CONSULTATION") || data.data.appointment;
-                              const docInfo = doctors.find(d => d.id === consultAppt?.doctorId || d.fullName === consultAppt?.User?.fullName);
-                              const isUpfront = consultAppt?.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT" || false;
-                              sendAppointmentToPOS({
-                                appointmentId: data.data.appointment.id,
-                                tokenNumber: data.data.appointment.tokenNumber,
-                                patientName: data.data.appointment.Patient?.fullName || selectedAppt.Patient?.fullName,
-                                doctorName: consultAppt?.User?.fullName || data.data.appointment.User?.fullName,
-                                fee: consultAppt?.User?.consultationFee || data.data.appointment.User?.consultationFee || docInfo?.consultationFee || 2500,
-                                isUpfront: isUpfront,
-                                invoice: data.data.invoice,
-                                allAppointments: data.data.allAppointments || []
-                              });
-                              toast.success("Sent to POS for checkout.");
-                              return;
-                            }
-                          }
-                        } catch (e) {
-                           console.error(e);
-                        }
-                        // Fallback if barcode API fails
-                        const docConsultAppt = selectedAppt.groupedTokens?.find((a: any) => a.department === "CONSULTATION") || selectedAppt;
-                        const docName = docConsultAppt.User?.fullName || docConsultAppt.doctorName;
-                        const docInfo = doctors.find(d => d.fullName === docName || d.id === docConsultAppt.doctorId);
-                        const isUpfront = docConsultAppt.User?.feeType === "UPFRONT" || docInfo?.feeType === "UPFRONT" || false;
-                        sendAppointmentToPOS({
-                          appointmentId: selectedAppt.id,
-                          tokenNumber: selectedAppt.tokenNumber,
-                          patientName: selectedAppt.Patient?.fullName || selectedAppt.patientName,
-                          doctorName: docName,
-                          fee: docConsultAppt.User?.consultationFee || docInfo?.consultationFee || 2500,
-                          isUpfront: isUpfront,
-                          allAppointments: selectedAppt.groupedTokens || []
-                        });
-                        toast.success("Sent to POS for checkout.");
-                      }
-                    }}
-                    className="flex-1 max-w-[200px]"
-                  />
-                }>
-                  <Send className="w-4 h-4 mr-2" /> Send to POS
-                </DialogClose>
-              </div>
+                  className="flex-1 max-w-[200px]"
+                />
+              }>
+                <Send className="w-4 h-4 mr-2" /> Send to POS
+              </DialogClose>
             </div>
           </DialogContent>
         </Dialog>

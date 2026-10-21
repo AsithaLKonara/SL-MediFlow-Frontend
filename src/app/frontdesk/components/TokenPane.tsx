@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon, Trash2, Plus, ShoppingBag } from "lucide-react";
+import { Users, Ticket, Phone, Search, PlusCircle, FileText, CheckCircle, Loader2, FlaskConical, RefreshCw, UserRound, Stethoscope, FilePlus2, Calendar as CalendarIcon, Trash2, Plus, ShoppingBag, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -222,15 +222,27 @@ export function TokenPane() {
     } catch (e) { toast.error("Error"); }
   };
 
+  const [availableSessions, setAvailableSessions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
   const fetchDocTokens = useCallback(() => {
     if (!selectedDocId) return;
-    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${selectedDate}`)
+    const sessionParam = selectedSessionId ? `&sessionId=${selectedSessionId}` : '';
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/availability?doctorId=${selectedDocId}&date=${selectedDate}${sessionParam}`)
       .then(r => r.json())
       .then(res => {
-        if (res.success) setDocTokens(res.data.tokens || []);
+        if (res.success) {
+          setDocTokens(res.data.tokens || []);
+          if (Array.isArray(res.data.sessions)) {
+            setAvailableSessions(res.data.sessions);
+            if (!selectedSessionId && res.data.activeSessionId) {
+              setSelectedSessionId(res.data.activeSessionId);
+            }
+          }
+        }
       })
       .catch(console.error);
-  }, [selectedDocId, selectedDate, apiFetch]);
+  }, [selectedDocId, selectedDate, selectedSessionId, apiFetch]);
 
   const fetchLabTokens = useCallback(() => {
     if (selectedTestIds.size === 0) return;
@@ -393,13 +405,15 @@ export function TokenPane() {
   }, [onRxStatusUpdate]);
 
   useEffect(() => {
+    setSelectedSessionId(null);
+    setSelectedDocToken(null);
     if (!selectedDocId) {
       setDocTokens([]);
-      setSelectedDocToken(null);
+      setAvailableSessions([]);
       return;
     }
     fetchDocTokens();
-  }, [selectedDocId, fetchDocTokens]);
+  }, [selectedDocId, selectedDate]);
 
   useEffect(() => {
     if (selectedTestIds.size === 0) {
@@ -532,9 +546,10 @@ export function TokenPane() {
       services,
       serviceIds: Array.from(selectedServiceIds),
       customServicePrices,
-      serviceTokenNumber: selectedServiceToken || undefined,
       expectedTotal,
-      date: selectedDate
+      date: selectedDate,
+      sessionId: selectedSessionId || undefined,
+      sessionName: availableSessions.find(s => s.id === selectedSessionId)?.sessionName || undefined
     });
 
     toast.success("Token sent to POS for Checkout.");
@@ -978,7 +993,7 @@ export function TokenPane() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Select Doctor Tile */}
                 <Dialog>
-                  <DialogTrigger className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
+                  <DialogTrigger data-testid="tile-select-doctor-walkin" className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Stethoscope className="w-6 h-6 text-primary" />
                     </div>
@@ -1062,7 +1077,48 @@ export function TokenPane() {
 
                       {/* Right Column: Matrix */}
                       <div className="border rounded-md flex flex-col overflow-hidden bg-muted/10">
-                        <div className="p-2 border-b bg-muted/50 font-medium text-xs text-muted-foreground">Select Token</div>
+                        {/* Session Selector */}
+                        {availableSessions.length > 0 && (
+                          <div className="p-2 border-b bg-muted/40 flex flex-col gap-1.5">
+                            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                              Select Schedule / Session
+                            </span>
+                            <div className="flex flex-wrap gap-1.5" data-testid="walkin-session-selector">
+                              {availableSessions.map((s: any) => {
+                                const isSessionActive = selectedSessionId === s.id;
+                                return (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    data-testid={`walkin-session-btn-${s.id}`}
+                                    onClick={() => {
+                                      setSelectedSessionId(s.id);
+                                      setSelectedDocToken(null);
+                                    }}
+                                    className={`px-2.5 py-1 text-xs rounded-md font-medium border transition-all flex items-center gap-1.5 ${
+                                      isSessionActive
+                                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                        : "bg-card text-foreground hover:bg-accent border-border"
+                                    }`}
+                                  >
+                                    <Clock className="w-3 h-3" />
+                                    <span>{s.sessionName || "Session"}:</span>
+                                    <span className="opacity-80">{s.startTime} - {s.endTime}</span>
+                                    {s.roomNumber && <span className="opacity-70 text-[10px] ml-0.5">• Rm {s.roomNumber}</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        <div className="p-2 border-b bg-muted/50 font-medium text-xs text-muted-foreground flex justify-between items-center">
+                          <span>Select Token</span>
+                          {availableSessions.length > 0 && selectedSessionId && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {availableSessions.find(s => s.id === selectedSessionId)?.sessionName || ''}
+                            </span>
+                          )}
+                        </div>
                         <ScrollArea className="flex-1 p-2">
                           <div className="grid grid-cols-5 gap-2">
                             {docTokens.map(t => {

@@ -99,6 +99,8 @@ export type TokenPayload = {
   serviceTokenNumber?: number;
   expectedTotal: number;
   date: string;
+  sessionId?: string;
+  sessionName?: string;
 };
 
 export type AppointmentPayload = {
