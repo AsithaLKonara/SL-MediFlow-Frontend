@@ -23,6 +23,7 @@ import { useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { sortDoctorsWithOpdFirst, isOpdDoctor } from "@/lib/doctor-utils";
 import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
 
 interface Doctor {
@@ -373,7 +374,7 @@ export function TokenPane() {
         return r.json();
       })
     ]).then(([docRes, labRes, svcRes]) => {
-      if (docRes.success) setDoctors(docRes.data);
+      if (docRes.success) setDoctors(sortDoctorsWithOpdFirst(docRes.data));
       if (Array.isArray(labRes)) setLabCatalog(labRes);
       if (Array.isArray(svcRes)) setExtraServicesCatalog(svcRes);
     }).catch((e) => {
@@ -1023,7 +1024,14 @@ export function TokenPane() {
                               <UserRound className="w-5 h-5" />
                             </div>
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-semibold text-base">{doc.fullName}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-base">{doc.fullName}</span>
+                                {isOpdDoctor(doc) && (
+                                  <span className="bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                    OPD • Pinned
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <span>{doc.specialty || "Consultation"}</span>
                                 <span>•</span>

@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnhancedCalendar } from "@/app/frontdesk/arrivals/components/workspace/left-panel/EnhancedCalendar";
 import { Badge } from "@/components/ui/badge";
 import { CancelAppointmentModal } from "@/components/frontdesk/CancelAppointmentModal";
+import { sortDoctorsWithOpdFirst, isOpdDoctor } from "@/lib/doctor-utils";
 
 interface Doctor {
   id: string;
@@ -170,7 +171,7 @@ export function PhoneBookingPane() {
       apiFetch(`${API}/lab/catalog`).then(r => r.json()),
       apiFetch(`${API}/extra-services`).then(r => r.json())
     ]).then(([docRes, labRes, svcRes]) => {
-      if (docRes.success) setDoctors(docRes.data);
+      if (docRes.success) setDoctors(sortDoctorsWithOpdFirst(docRes.data));
       if (Array.isArray(labRes)) setLabCatalog(labRes);
       if (Array.isArray(svcRes)) setExtraServicesCatalog(svcRes);
     }).catch(console.error);
@@ -633,7 +634,14 @@ export function PhoneBookingPane() {
                           <UserRound className="w-5 h-5" />
                         </div>
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-semibold text-base">{doc.fullName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-base">{doc.fullName}</span>
+                            {isOpdDoctor(doc) && (
+                              <span className="bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                OPD • Pinned
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>{doc.specialty || "Consultation"}</span>
                             <span>•</span>
