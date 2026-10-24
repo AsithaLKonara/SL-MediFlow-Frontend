@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2, Stethoscope, Banknote, Printer, FileText, AlertTriangle } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2, Stethoscope, Banknote, Printer, FileText, AlertTriangle, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -227,6 +227,19 @@ export default function FrontDeskDashboard() {
               <div>
                 <h2 className="text-lg font-bold">Release Doctor Fund</h2>
                 <p className="text-muted-foreground text-xs mt-1">Cash & bank payouts</p>
+              </div>
+            </button>
+          )}
+
+          {!isNurse && (
+            <button 
+              onClick={() => router.push('/frontdesk/cancellations')}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-rose-500 hover:text-rose-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48 shadow-sm"
+            >
+              <RotateCcw className="w-10 h-10 opacity-60 group-hover:opacity-100 group-hover:text-rose-500 text-rose-500 transition-all" />
+              <div>
+                <h2 className="text-lg font-bold">Refund & Cancel</h2>
+                <p className="text-muted-foreground text-xs mt-1">Manage cancellations & refunds</p>
               </div>
             </button>
           )}
