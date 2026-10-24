@@ -74,9 +74,9 @@ export const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplatePro
               <br />
               <span>Hotline: +94 47 223 9090</span>
               <span className="mx-1 text-slate-300">•</span>
-              <span>info@amazhospital.com</span>
+              <span>amazhospital88@gmail.com</span>
               <span className="mx-1 text-slate-300">•</span>
-              <span className="text-red-900 font-semibold">www.amazhospital.com</span>
+              <span className="text-red-900 font-semibold">amazhospital.lk</span>
             </div>
 
             {/* Quality & Accreditation Badges */}

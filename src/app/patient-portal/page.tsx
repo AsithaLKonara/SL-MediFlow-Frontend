@@ -100,7 +100,7 @@ export default function PatientPortalLogin() {
         <div className="flex flex-col items-center border-b border-zinc-800 pb-6 text-center">
           <img src="/logo.png" alt="Amaz Hospital" className="h-14 object-contain mb-3 brightness-0 invert" />
           <h1 className="text-base font-bold text-red-500 tracking-wider uppercase">Amaz Hospital Holdings</h1>
-          <p className="text-xs text-zinc-400 mt-1">Debarawewa, Tissamaharama<br />T. +94 47 223 9090 | info@amazhospital.com</p>
+          <p className="text-xs text-zinc-400 mt-1">Debarawewa, Tissamaharama<br />T. +94 47 223 9090 | amazhospital88@gmail.com | amazhospital.lk</p>
         </div>
 
         <div className="text-center">

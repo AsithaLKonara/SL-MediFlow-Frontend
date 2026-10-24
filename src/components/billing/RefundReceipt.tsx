@@ -45,7 +45,8 @@ export const RefundReceipt = forwardRef<HTMLDivElement, RefundReceiptProps>(
 
         <div className="text-center mb-3">
           <img src="/logo.png" alt="AMAZ Hospital" className="w-40 mx-auto mb-1" />
-          <p className="text-[11px] text-black">0472239090 | www.amazhospital.com</p>
+          <p className="text-[11px] text-black">0472239090 | amazhospital.lk</p>
+          <p className="text-[10px] text-black">amazhospital88@gmail.com</p>
           <p className="text-[10px] text-black">Debarawewa, Tissamaharama</p>
           <div className="mt-2 border-2 border-black py-1 bg-white text-black">
             <p className="text-xs font-black uppercase tracking-wider">OFFICIAL REFUND VOUCHER</p>

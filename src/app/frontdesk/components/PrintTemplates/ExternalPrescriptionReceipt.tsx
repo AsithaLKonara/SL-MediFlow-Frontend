@@ -43,7 +43,8 @@ export const ExternalPrescriptionReceipt = React.forwardRef<HTMLDivElement, Exte
         <div className="text-center mb-3 border-b-2 border-black pb-2">
           <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-1.5" />
           <p className="text-xs font-semibold text-black">AMAZ HOSPITAL & MEDICAL SERVICES</p>
-          <p className="text-[10px] text-gray-700">0472239090 | info@amazhospital.com</p>
+          <p className="text-[10px] text-gray-700">0472239090 | amazhospital.lk</p>
+          <p className="text-[10px] text-gray-700">amazhospital88@gmail.com</p>
           <p className="text-[10px] text-gray-700 mb-1.5">Debarawewa, Tissamaharama</p>
           <div className="bg-black text-white py-1 px-2 rounded-sm inline-block">
             <p className="text-xs font-bold uppercase tracking-wider">OUTSIDE PHARMACY PRESCRIPTION</p>

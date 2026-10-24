@@ -210,7 +210,7 @@ export default function PublicReportViewer({ referenceNo }: Props) {
       )}
 
       <div className="text-center mt-6 text-xs text-muted-foreground/70">
-        www.amazhospital.com · info@amazhospital.com · 0472239090
+        amazhospital.lk · amazhospital88@gmail.com · 0472239090
       </div>
     </div>
   );

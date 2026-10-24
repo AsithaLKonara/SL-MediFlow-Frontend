@@ -121,7 +121,7 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">AMAZ HOSPITAL</h1>
                 <p className="text-xs text-slate-600 font-medium">Debarawewa, Tissamaharama, Sri Lanka</p>
-                <p className="text-xs text-slate-500">Tel: +94 47 223 9090 | Email: fundoffice@amazhospital.com</p>
+                <p className="text-xs text-slate-500">Tel: +94 47 223 9090 | amazhospital.lk | amazhospital88@gmail.com</p>
               </div>
             </div>
             <div className="text-right">

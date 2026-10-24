@@ -141,7 +141,8 @@ export const ShiftSummaryReceipt = forwardRef<HTMLDivElement, ShiftSummaryReceip
           <img src="/logo.png" alt="AMAZ Hospital" className="w-36 mx-auto mb-1.5 grayscale brightness-0 object-contain" />
           <h2 className="text-xs font-bold uppercase tracking-wider">AMAZ Hospital</h2>
           <p className="text-[10px] text-gray-700">Debarawewa, Tissamaharama</p>
-          <p className="text-[10px] text-gray-700">Tel: 0472239090 | info@amazhospital.com</p>
+          <p className="text-[10px] text-gray-700">Tel: 0472239090 | amazhospital.lk</p>
+          <p className="text-[10px] text-gray-700">amazhospital88@gmail.com</p>
           <div className="mt-1.5 py-0.5 border-y border-dashed border-black">
             <p className="text-[11px] font-black uppercase tracking-wide">SHIFT CLOSE & SALES SETTLEMENT</p>
           </div>

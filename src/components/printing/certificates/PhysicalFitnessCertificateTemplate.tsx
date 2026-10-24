@@ -149,7 +149,7 @@ export const PhysicalFitnessCertificateTemplate = React.forwardRef<
         {/* Right Contact Info */}
         <div className="text-right text-[10px] font-sans text-gray-700 space-y-0.5 leading-tight">
           <p className="flex items-center justify-end gap-1 font-medium">
-            <span>✉</span> info@amazhospital.com
+            <span>✉</span> amazhospital88@gmail.com | amazhospital.lk
           </p>
           <p className="text-[9.5px] max-w-[240px]">
             Amaz Hospital (Pvt) Ltd. No 382/3, Debarawewa, Tissamaharama, Sri Lanka - 82600
