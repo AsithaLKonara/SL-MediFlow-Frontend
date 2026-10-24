@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2, Stethoscope, Banknote, Printer, FileText, AlertTriangle, RotateCcw } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2, Stethoscope, Banknote, Printer, FileText, AlertTriangle, RotateCcw, FlaskConical } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -240,6 +240,19 @@ export default function FrontDeskDashboard() {
               <div>
                 <h2 className="text-lg font-bold">Refund & Cancel</h2>
                 <p className="text-muted-foreground text-xs mt-1">Manage cancellations & refunds</p>
+              </div>
+            </button>
+          )}
+
+          {!isNurse && (
+            <button 
+              onClick={() => router.push('/frontdesk/outsource-lab')}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-cyan-500 hover:text-cyan-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48 shadow-sm"
+            >
+              <FlaskConical className="w-10 h-10 opacity-60 group-hover:opacity-100 group-hover:text-cyan-500 text-cyan-500 transition-all" />
+              <div>
+                <h2 className="text-lg font-bold">Outsource Lab</h2>
+                <p className="text-muted-foreground text-xs mt-1">Send, receive & dispatch</p>
               </div>
             </button>
           )}
