@@ -8,7 +8,7 @@ import { TokenBoardMatrix } from "./right-panel/TokenBoardMatrix";
 import { EnhancedCalendar } from "./left-panel/EnhancedCalendar";
 import { TodaysScheduleList } from "./right-panel/TodaysScheduleList";
 import { io, Socket } from "socket.io-client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock } from "lucide-react";
 
 export function OperationalWorkspace({
   doctor,
@@ -26,8 +26,22 @@ export function OperationalWorkspace({
   const [activityLog, setActivityLog] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // We assume the first session is the active one for simplicity
-  const activeSession = doctor.sessions && doctor.sessions.length > 0 ? doctor.sessions[0] : null;
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  // Sync selected session with doctor sessions
+  useEffect(() => {
+    if (doctor.sessions && doctor.sessions.length > 0) {
+      if (!selectedSessionId || !doctor.sessions.some((s: any) => s.id === selectedSessionId)) {
+        setSelectedSessionId(doctor.sessions[0].id);
+      }
+    } else {
+      setSelectedSessionId(null);
+    }
+  }, [doctor.id, doctor.sessions]);
+
+  const activeSession = (doctor.sessions && doctor.sessions.length > 0)
+    ? (doctor.sessions.find((s: any) => s.id === selectedSessionId) || doctor.sessions[0])
+    : null;
 
   const { token } = useAuth();
   
@@ -56,7 +70,7 @@ export function OperationalWorkspace({
     return () => {
       socket.disconnect();
     };
-  }, [doctor.id, selectedDate]);
+  }, [doctor.id, selectedDate, selectedSessionId]);
 
   const fetchContext = async () => {
     try {
@@ -101,6 +115,45 @@ export function OperationalWorkspace({
     <div className="space-y-6 animate-in fade-in">
       {/* High-level status for selected doctor on this day */}
       <TopSummaryBar doctor={doctor} tokens={tokens} />
+
+      {/* Multi-Schedule / Session Switcher */}
+      {doctor.sessions && doctor.sessions.length > 1 && (
+        <div className="bg-card border border-primary/20 bg-primary/[0.02] p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-foreground tracking-wide uppercase">
+                Active Clinic Schedule
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Doctor has {doctor.sessions.length} sessions on this day. Select session to operate:
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {doctor.sessions.map((s: any) => {
+              const isCurrent = (activeSession?.id === s.id);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedSessionId(s.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex items-center gap-2 ${
+                    isCurrent
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs ring-2 ring-primary/20"
+                      : "bg-card hover:bg-muted/50 text-foreground border-border"
+                  }`}
+                >
+                  <span>{s.sessionName || "Session"}</span>
+                  <span className="opacity-80 font-mono text-[11px]">{s.startTime} - {s.endTime}</span>
+                  {s.roomNumber && <span className="opacity-70 text-[10px]">• Rm {s.roomNumber}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Panel: Calendar (occupies 4 cols on large screens) */}

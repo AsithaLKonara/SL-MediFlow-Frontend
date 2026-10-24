@@ -362,6 +362,11 @@ export function PhoneBookingPane() {
       return;
     }
 
+    if (selectedDocId && availableSessions.length > 0 && !selectedSessionId) {
+      toast.error("Please select a schedule session for the doctor.");
+      return;
+    }
+
     if (selectedDocId && docTokens.length > 0 && docTokens.every(t => t.status !== "AVAILABLE")) {
       toast.error("Doctor token limit reached. No available tokens.");
       return;
