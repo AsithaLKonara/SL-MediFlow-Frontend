@@ -118,28 +118,8 @@ export const PhysicalFitnessCertificateTemplate = React.forwardRef<
       <div className="flex items-start justify-between pb-3 border-b-2 border-black">
         {/* Left / Center Logo */}
         <div className="flex items-center gap-3">
-          {/* AMAZ Hospital Logo Symbol */}
-          <div className="relative flex items-center justify-center">
-            <svg
-              className="w-12 h-12 text-[#9B2C2C]"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
-            </svg>
-          </div>
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black tracking-wider text-[#9B2C2C] font-sans">
-                AMAZ
-              </span>
-              <span className="text-2xl font-extrabold tracking-wide text-[#742A2A] font-sans">
-                HOSPITAL
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-600 font-sans italic tracking-wide">
-              Delighting Our Health
-            </p>
+          <img src="/logo.png" alt="AMAZ Hospital" className="h-16 w-auto object-contain" />
+          <div className="pt-2">
             <p className="text-[10px] text-gray-700 font-sans mt-0.5 font-medium">
               Company Reg. No : PV122007
             </p>

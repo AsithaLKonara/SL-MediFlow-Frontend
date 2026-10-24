@@ -110,25 +110,7 @@ export const MedicalCertificateA5Template = React.forwardRef<
 
               {/* Hospital Logo & Address */}
               <div className="flex flex-col items-end">
-                <div className="flex items-center gap-1.5">
-                  <svg
-                    className="w-7 h-7 text-[#D32F2F]"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
-                  </svg>
-                  <div className="text-right">
-                    <span className="text-base font-black tracking-wide text-[#D32F2F] font-sans block leading-none">
-                      AMAZ
-                    </span>
-                    <span className="text-sm font-extrabold tracking-wide text-[#B71C1C] font-sans block leading-tight">
-                      HOSPITAL
-                    </span>
-                  </div>
-                </div>
-                <p className="text-[9px] text-gray-500 font-sans italic">Delighting Our Health</p>
-                <p className="text-[9px] text-gray-600 font-sans">Debarawewa, Tissamaharama</p>
+                <img src="/logo.png" alt="AMAZ Hospital" className="h-11 w-auto object-contain mb-0.5" />
                 <p className="text-[9px] text-gray-600 font-sans">Reg. No. PHSRC/PH/306</p>
               </div>
             </div>

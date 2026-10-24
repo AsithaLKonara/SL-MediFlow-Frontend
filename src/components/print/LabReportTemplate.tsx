@@ -52,14 +52,11 @@ export const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplatePro
         <div className="flex justify-between items-start gap-4">
           {/* Left: Brand Identity & Accreditations */}
           <div className="flex-1">
-            <div className="flex items-center gap-2.5 mb-1">
-              <div className="w-9 h-9 rounded-lg bg-red-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                +
-              </div>
+            <div className="flex items-center gap-3 mb-1">
+              <img src="/logo.png" alt="AMAZ Hospital" className="h-14 w-auto object-contain" />
               <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-black tracking-tight text-red-900 font-serif">AMAZ</span>
-                  <span className="text-xs font-bold tracking-[0.2em] text-red-800 uppercase">Hospital Laboratories</span>
+                <div className="text-xs font-bold tracking-[0.18em] text-red-900 uppercase">
+                  Hospital Laboratories & Diagnostic Centre
                 </div>
                 <div className="text-[9px] font-semibold text-slate-600 tracking-wide uppercase">
                   Department of Pathology & Clinical Laboratory Sciences
