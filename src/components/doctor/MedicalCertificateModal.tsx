@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Printer, Save, FileText, CheckCircle2 } from "lucide-react";
+import { Award, Printer, Save, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
@@ -128,31 +128,38 @@ export function MedicalCertificateModal({
     setRecommended(`Medical leave for ${days} day(s) from ${leaveFrom} to ${endStr}. Fit to resume on ${endStr}.`);
   };
 
-  const handleSaveOrder = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveOrder = async () => {
+    if (isSaving) return;
     if (onSaveAsOrder) {
-      onSaveAsOrder({
-        certificateType: certType,
-        certificateData: {
-          patientName: patient?.name,
-          patientAge: patient?.age,
-          patientGender: patient?.gender,
-          date: certDate,
-          diagnosis,
-          remarks,
-          recommended,
-          idNo,
-          height,
-          weight,
-          bp,
-          pr,
-          rr,
-          doctorName: doctor?.fullName || "Dr. V.K.P.A. Mahesh Lakshman",
-          doctorSpecialty: doctor?.specialty
-        },
-        customPrice: fee,
-        notes: `Official Certificate (${certType === "FITNESS" ? "A4 Fitness" : "A5 Medical"}) issued by ${doctor?.fullName || "Doctor"}`
-      });
-      toast.success("Certificate recorded to patient services & billing!");
+      setIsSaving(true);
+      try {
+        await onSaveAsOrder({
+          certificateType: certType,
+          certificateData: {
+            patientName: patient?.name,
+            patientAge: patient?.age,
+            patientGender: patient?.gender,
+            date: certDate,
+            diagnosis,
+            remarks,
+            recommended,
+            idNo,
+            height,
+            weight,
+            bp,
+            pr,
+            rr,
+            doctorName: doctor?.fullName || "Dr. V.K.P.A. Mahesh Lakshman",
+            doctorSpecialty: doctor?.specialty
+          },
+          customPrice: fee,
+          notes: `Official Certificate (${certType === "FITNESS" ? "A4 Fitness" : "A5 Medical"}) issued by ${doctor?.fullName || "Doctor"}`
+        });
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -466,8 +473,9 @@ export function MedicalCertificateModal({
             Print ready with zero margin collisions (via isolated react-to-print).
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={handleSaveOrder} className="gap-1.5 text-xs">
-              <Save className="w-3.5 h-3.5" /> Save to Billing
+            <Button size="sm" variant="outline" onClick={handleSaveOrder} disabled={isSaving} className="gap-1.5 text-xs">
+              {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              {isSaving ? "Saving..." : "Save to Billing"}
             </Button>
             <Button
               size="sm"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -219,12 +219,44 @@ export function POSPane() {
     pendingAppointmentPayload?.allAppointments?.find((a: any) => a.department === "CONSULTATION")?.User?.feeType === "UPFRONT"
   );
 
-  const hasConsultInInvoice = pendingAppointmentPayload?.invoice?.lineItems?.some(
+  // Deduplicate invoice line items across references and certificates
+  const deduplicatedInvoiceItems = useMemo(() => {
+    if (!pendingAppointmentPayload?.invoice?.lineItems) return [];
+    let seenConsultation = false;
+    const seenRefs = new Set<string>();
+    const seenServiceKeys = new Set<string>();
+
+    return pendingAppointmentPayload.invoice.lineItems.filter((li: any) => {
+      if (li.referenceId) {
+        if (seenRefs.has(li.referenceId)) return false;
+        seenRefs.add(li.referenceId);
+      }
+      if (li.department === "CONSULTATION") {
+        if (seenConsultation) return false;
+        seenConsultation = true;
+      }
+      if (li.department === "EXTRA_SERVICE" && li.description?.toLowerCase().includes("certificate")) {
+        const certKey = `CERT_${li.description.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        if (seenServiceKeys.has(certKey)) return false;
+        seenServiceKeys.add(certKey);
+      }
+      return true;
+    });
+  }, [pendingAppointmentPayload?.invoice?.lineItems]);
+
+  const deduplicatedInvoiceTotal = useMemo(() => {
+    if (!deduplicatedInvoiceItems || deduplicatedInvoiceItems.length === 0) return 0;
+    const sum = deduplicatedInvoiceItems.reduce((acc: number, item: any) => acc + (Number(item.total) || 0), 0);
+    const discount = Number(pendingAppointmentPayload?.invoice?.discountAmount) || 0;
+    return Math.max(0, sum - discount);
+  }, [deduplicatedInvoiceItems, pendingAppointmentPayload?.invoice?.discountAmount]);
+
+  const hasConsultInInvoice = deduplicatedInvoiceItems.some(
     (li: any) => li.department === "CONSULTATION"
   );
   const appointmentTotal = pendingAppointmentPayload 
     ? (
-        (pendingAppointmentPayload.invoice ? pendingAppointmentPayload.invoice.totalAmount : 0) +
+        deduplicatedInvoiceTotal +
         ((!hasConsultInInvoice && !pendingAppointmentPayload.consultationPaid && isAppointmentConsultUpfront) ? (pendingAppointmentPayload.fee || 0) : 0)
       )
     : 0;
@@ -877,17 +909,7 @@ export function POSPane() {
             {/* Render Phone Appointment Checkout Item */}
             {pendingAppointmentPayload && (
               <>
-                {pendingAppointmentPayload.invoice && pendingAppointmentPayload.invoice.lineItems?.length > 0 && (() => {
-                  let seenConsultation = false;
-                  const filteredItems = pendingAppointmentPayload.invoice.lineItems.filter((li: any) => {
-                    if (li.department === "CONSULTATION") {
-                      if (seenConsultation) return false;
-                      seenConsultation = true;
-                    }
-                    return true;
-                  });
-
-                  return filteredItems.map((li: any, idx: number) => {
+                {deduplicatedInvoiceItems.length > 0 && deduplicatedInvoiceItems.map((li: any, idx: number) => {
                     let bgClass = "bg-purple-500/5";
                     let textClass = "text-purple-600";
                     let subText = `Phone Booking - Token ${pendingAppointmentPayload.tokenNumber}`;
@@ -920,8 +942,7 @@ export function POSPane() {
                         <TableCell></TableCell>
                       </TableRow>
                     );
-                  });
-                })()}
+                  })}
                 
                 {/* Render Consultations (Upfront or Post Pay) */}
                 {pendingAppointmentPayload.allAppointments?.filter((appt: any) => appt.department === "CONSULTATION").map((appt: any, idx: number) => {

@@ -158,6 +158,7 @@ export default function ConsultationPage() {
 
   // Consultation Modals & Services
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [savedCertOrderId, setSavedCertOrderId] = useState<string | null>(null);
   const [isExtraServicesModalOpen, setIsExtraServicesModalOpen] = useState(false);
   const [availableExtraServices, setAvailableExtraServices] = useState<any[]>([]);
   const [customDocFee, setCustomDocFee] = useState<number>(2500);
@@ -530,6 +531,20 @@ export default function ConsultationPage() {
     try {
       const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
       const finalVisitId = urlVisitId || patient?.activeVisitId || rxVisitId || createdPrescription?.visitId || patient?.id;
+      const orderItem: any = {
+        patientId: patient?.id,
+        doctorId: user?.id,
+        visitId: finalVisitId,
+        customPrice: certData.customPrice,
+        title: `Medical Certificate (${certData.certificateType || "General"})`,
+        certificateType: certData.certificateType,
+        certificateData: certData.certificateData,
+        status: "COMPLETED",
+        notes: certData.notes
+      };
+      if (savedCertOrderId) {
+        orderItem.id = savedCertOrderId;
+      }
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services/orders`, {
         method: "POST",
         headers: {
@@ -537,20 +552,14 @@ export default function ConsultationPage() {
           Authorization: `Bearer ${activeToken}`
         },
         body: JSON.stringify({
-          orders: [{
-            patientId: patient?.id,
-            doctorId: user?.id,
-            visitId: finalVisitId,
-            customPrice: certData.customPrice,
-            title: `Medical Certificate (${certData.certificateType || "General"})`,
-            certificateType: certData.certificateType,
-            certificateData: certData.certificateData,
-            status: "COMPLETED",
-            notes: certData.notes
-          }]
+          orders: [orderItem]
         })
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.orders?.[0]?.id) {
+          setSavedCertOrderId(data.orders[0].id);
+        }
         toast.success("Medical Certificate saved as COMPLETED and added to billing!");
       } else {
         const err = await res.json().catch(() => ({}));
