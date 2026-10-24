@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ScanBarcode, Search, Loader2 } from "lucide-react";
+import { AlertTriangle, ScanBarcode, Search, Loader2, CalendarClock, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { DoctorSessionModal, DoctorSessionInfo } from "@/components/doctor/DoctorSessionModal";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -42,6 +43,10 @@ export default function DoctorQueuePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [sessions, setSessions] = useState<DoctorSessionInfo[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  const [currentColomboTime, setCurrentColomboTime] = useState("");
 
   const handleBarcodeSearch = async (code: string) => {
     const raw = code.trim();
@@ -110,9 +115,40 @@ export default function DoctorQueuePage() {
     handleBarcodeSearch(scanned);
   });
 
+  // Load doctor's schedule sessions for today
   useEffect(() => {
     if (!user) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user.id}`, {
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/sessions?doctorId=${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((r) => r.json())
+      .then((res: any) => {
+        if (res.success && Array.isArray(res.sessions)) {
+          setSessions(res.sessions);
+          if (res.currentColomboTime) setCurrentColomboTime(res.currentColomboTime);
+
+          const savedSessionId = typeof window !== "undefined" ? localStorage.getItem("doctor_active_session_id") : null;
+          const isValidSaved = res.sessions.some((s: any) => s.id === savedSessionId) || savedSessionId === "ALL";
+
+          if (savedSessionId && isValidSaved) {
+            setActiveSessionId(savedSessionId);
+          } else {
+            const current = res.sessions.find((s: any) => s.isCurrent);
+            const initialId = current ? current.id : (res.sessions[0]?.id || "ALL");
+            setActiveSessionId(initialId);
+            if (typeof window !== "undefined") localStorage.setItem("doctor_active_session_id", initialId);
+          }
+        }
+      })
+      .catch((err) => console.error("Error loading doctor sessions:", err));
+  }, [user, token]);
+
+  // Load tokens strictly filtered by active session
+  useEffect(() => {
+    if (!user) return;
+    const sessionQuery = activeSessionId && activeSessionId !== "ALL" ? `&sessionId=${activeSessionId}` : "";
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens/queue?doctorId=${user.id}${sessionQuery}`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then((r) => r.json()).then((d) => {
       const tokens = Array.isArray(d) ? d : (d.data || []);
@@ -147,7 +183,20 @@ export default function DoctorQueuePage() {
       setQueue(activeQueue);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [user, token]);
+  }, [user, token, activeSessionId]);
+
+  const handleSelectSession = (sessId: string) => {
+    setActiveSessionId(sessId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("doctor_active_session_id", sessId);
+    }
+    const selectedSess = sessions.find(s => s.id === sessId);
+    if (sessId === "ALL") {
+      toast.success("Switched to All Today's Sessions overview.");
+    } else if (selectedSess) {
+      toast.success(`Active Session: ${selectedSess.sessionName} (${selectedSess.startTime} - ${selectedSess.endTime})`);
+    }
+  };
 
   const waitingCount = queue.filter((q) => q.status === "WAITING").length;
 
@@ -176,6 +225,75 @@ export default function DoctorQueuePage() {
           <span>Barcode Scanner Active</span>
         </div>
       </div>
+
+      {/* Active Scheduled Session Dispatcher & Switcher */}
+      {sessions.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border p-4 rounded-xl shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Stethoscope className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Active Consultation Session
+                </span>
+                {sessions.find(s => s.id === activeSessionId)?.isCurrent && (
+                  <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-semibold uppercase">
+                    Active Time Window
+                  </Badge>
+                )}
+                {activeSessionId === "ALL" && (
+                  <Badge variant="outline" className="text-[10px]">
+                    All Sessions Combined
+                  </Badge>
+                )}
+              </div>
+              <p className="text-base font-bold text-foreground">
+                {activeSessionId === "ALL"
+                  ? "All Today's Sessions Overview"
+                  : (() => {
+                      const s = sessions.find((item) => item.id === activeSessionId);
+                      return s ? `${s.sessionName} • Room ${s.roomNumber}` : "Scheduled Session";
+                    })()}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto">
+            {activeSessionId !== "ALL" && (() => {
+              const s = sessions.find((item) => item.id === activeSessionId);
+              if (!s) return null;
+              return (
+                <div className="text-right text-xs text-muted-foreground hidden sm:block">
+                  <p className="font-mono">{s.startTime} – {s.endTime}</p>
+                  <p><strong className="text-primary">{s.bookedCount}</strong> waiting / {s.tokenCapacity} cap</p>
+                </div>
+              );
+            })()}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSessionModalOpen(true)}
+              className="gap-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+            >
+              <CalendarClock className="w-4 h-4" />
+              {sessions.length > 1 ? `Switch Session (${sessions.length})` : "Session Details"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <DoctorSessionModal
+        open={isSessionModalOpen}
+        onOpenChange={setIsSessionModalOpen}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onSelectSession={handleSelectSession}
+        currentColomboTime={currentColomboTime}
+        doctorName={user?.fullName}
+      />
 
       {/* Barcode / Token Search Bar */}
       <Card className="border-primary/20 bg-card shadow-sm">
