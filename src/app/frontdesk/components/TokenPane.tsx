@@ -1070,14 +1070,14 @@ export function TokenPane() {
                       ))}
                     </div>
                     {(selectedDocId) && (
-                  <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                  <div className="mt-2 p-3 border-t border-border bg-card flex flex-col gap-2 shrink-0 min-h-[240px] max-h-[275px] overflow-hidden">
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
-                      </div>
+                    </div>
                     
-                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden min-h-[190px]">
                       {/* Left Column: Calendar */}
-                      <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                      <div className="border rounded-md flex flex-col overflow-y-auto bg-card p-2 scrollbar-thin">
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
@@ -1172,7 +1172,7 @@ export function TokenPane() {
 
                 {/* Add Lab Tests Tile */}
                 <Dialog>
-                  <DialogTrigger className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
+                  <DialogTrigger data-testid="tile-select-lab-walkin" className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
                     <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <FlaskConical className="w-6 h-6 text-blue-500" />
                     </div>
@@ -1237,14 +1237,14 @@ export function TokenPane() {
                       })}
                     </div>
                     {(selectedTestIds.size > 0) && (
-                  <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                  <div className="mt-2 p-3 border-t border-border bg-card flex flex-col gap-2 shrink-0 min-h-[240px] max-h-[275px] overflow-hidden">
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
-                      </div>
+                    </div>
                     
-                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden min-h-[190px]">
                       {/* Left Column: Calendar */}
-                      <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                      <div className="border rounded-md flex flex-col overflow-y-auto bg-card p-2 scrollbar-thin">
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
@@ -1298,7 +1298,7 @@ export function TokenPane() {
 
                 {/* Extra Services Tile */}
                 <Dialog>
-                  <DialogTrigger className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
+                  <DialogTrigger data-testid="tile-select-extra-walkin" className="flex flex-col items-center justify-center p-6 border rounded-xl bg-card hover:border-primary/50 transition-colors gap-3 group outline-none">
                     <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <FilePlus2 className="w-6 h-6 text-purple-500" />
                     </div>
@@ -1362,14 +1362,15 @@ export function TokenPane() {
                         );
                       })}
                     </div>
-                    {selectedServiceIds.size > 0 && (                      <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                    {selectedServiceIds.size > 0 && (
+                      <div className="mt-2 p-3 border-t border-border bg-card flex flex-col gap-2 shrink-0 min-h-[240px] max-h-[275px] overflow-hidden">
                         <div className="flex justify-between items-center">
                           <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden min-h-[190px]">
                           {/* Left Column: Calendar */}
-                          <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                          <div className="border rounded-md flex flex-col overflow-y-auto bg-card p-2 scrollbar-thin">
                             <EnhancedCalendar 
                               selectedDate={new Date(selectedDate)} 
                               onDateSelect={(d) => {

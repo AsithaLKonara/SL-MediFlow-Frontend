@@ -20,7 +20,7 @@ export function EnhancedCalendar({
 
   const getDayInfo = (dateNum: number) => {
     if (!calendarData || !calendarData.schedules) return null;
-    const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dateNum);
+    const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dateNum, 12, 0, 0);
     const dayOfWeek = d.getDay();
     let totalTokens = 0;
     let bookedTokens = 0;
@@ -99,15 +99,15 @@ export function EnhancedCalendar({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="font-bold text-foreground uppercase tracking-wider text-sm">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-bold text-foreground uppercase tracking-wider text-xs sm:text-sm">
           {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
         </h4>
         <div className="flex gap-1">
           <Button 
             variant="outline" 
             size="sm" 
-            className="h-7 text-[10px] px-2 font-bold uppercase"
+            className="h-6 text-[9px] px-2 font-bold uppercase"
             onClick={() => {
               setCurrentMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
               onDateSelect(new Date());
@@ -115,14 +115,14 @@ export function EnhancedCalendar({
           >
             Today
           </Button>
-          <Button variant="outline" size="icon" className="w-7 h-7" onClick={handlePrevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-          <Button variant="outline" size="icon" className="w-7 h-7" onClick={handleNextMonth}><ChevronRight className="w-4 h-4" /></Button>
+          <Button variant="outline" size="icon" className="w-6 h-6" onClick={handlePrevMonth}><ChevronLeft className="w-3.5 h-3.5" /></Button>
+          <Button variant="outline" size="icon" className="w-6 h-6" onClick={handleNextMonth}><ChevronRight className="w-3.5 h-3.5" /></Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+      <div className="grid grid-cols-7 gap-1 text-center mb-1">
         {days.map(d => (
-          <div key={d} className="text-[10px] font-bold text-muted-foreground uppercase">{d}</div>
+          <div key={d} className="text-[9px] font-bold text-muted-foreground uppercase">{d}</div>
         ))}
       </div>
 
@@ -132,38 +132,39 @@ export function EnhancedCalendar({
         {dates.map(date => {
           const isSelected = selectedDate.getDate() === date && selectedDate.getMonth() === currentMonth.getMonth() && selectedDate.getFullYear() === currentMonth.getFullYear();
           const info = getDayInfo(date);
-          const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), date);
+          const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), date, 12, 0, 0);
           const isPast = d.getTime() < new Date().setHours(0,0,0,0);
 
           return (
             <button
               key={date}
+              data-testid={`calendar-date-${date}`}
               onClick={() => onDateSelect(d)}
               className={`
-                h-12 w-full rounded-md border flex flex-col items-center p-1 transition-colors
-                ${isSelected ? 'bg-primary border-primary text-primary-foreground shadow-md' : 'bg-card border-border hover:border-primary/50'}
+                min-h-[28px] sm:min-h-[30px] h-[30px] sm:h-[32px] w-full rounded-md border flex flex-col items-center justify-between py-0.5 px-0.5 transition-colors
+                ${isSelected ? 'bg-primary border-primary text-primary-foreground shadow-xs' : 'bg-card border-border hover:border-primary/50'}
                 ${info?.isOnLeave ? 'bg-muted opacity-60 cursor-not-allowed' : ''}
                 ${info?.isCancelled && !isSelected ? 'bg-red-50 border-red-200 opacity-80' : ''}
                 ${isPast && !isSelected ? 'opacity-50' : ''}
               `}
             >
-              <span className={`text-xs font-bold ${isSelected ? 'text-white' : (info?.isCancelled ? 'text-red-700 line-through' : 'text-foreground')}`}>{date}</span>
+              <span className={`text-[10px] sm:text-[11px] font-bold leading-none ${isSelected ? 'text-white' : (info?.isCancelled ? 'text-red-700 line-through' : 'text-foreground')}`}>{date}</span>
               {info?.hasClinic && !info.isCancelled && !info.isOnLeave && (
                 <div className="mt-auto flex flex-col items-center">
-                  <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
-                  <span className={`text-[8px] leading-tight font-medium mt-0.5 ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
+                  <span className={`text-[7px] sm:text-[7.5px] leading-tight font-medium ${isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
                     {info.totalTokens}/{info.bookedTokens}
                   </span>
                 </div>
               )}
               {info?.isCancelled && !info.isOnLeave && (
                 <div className="mt-auto">
-                  <span className="text-[8px] leading-tight font-bold text-red-600 uppercase">Cancel</span>
+                  <span className="text-[7px] leading-tight font-bold text-red-600 uppercase">Cancel</span>
                 </div>
               )}
               {info?.isOnLeave && (
                 <div className="mt-auto">
-                  <span className="text-[8px] leading-tight font-bold text-muted-foreground uppercase">Leave</span>
+                  <span className="text-[7px] leading-tight font-bold text-muted-foreground uppercase">Leave</span>
                 </div>
               )}
             </button>

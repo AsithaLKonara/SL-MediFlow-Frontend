@@ -660,14 +660,14 @@ export function PhoneBookingPane() {
                   ))}
                 </div>
                 {selectedDocId && (
-                  <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                  <div className="mt-2 p-3 border-t border-border bg-card flex flex-col gap-2 shrink-0 min-h-[240px] max-h-[275px] overflow-hidden">
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden min-h-[190px]">
                       {/* Left Column: Calendar */}
-                      <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                      <div className="border rounded-md flex flex-col overflow-y-auto bg-card p-2 scrollbar-thin">
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
@@ -826,14 +826,14 @@ export function PhoneBookingPane() {
                   })}
                 </div>
                 {selectedTestIds.size > 0 && (
-                  <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                  <div className="mt-2 p-3 border-t border-border bg-card flex flex-col gap-2 shrink-0 min-h-[240px] max-h-[275px] overflow-hidden">
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden min-h-[190px]">
                       {/* Left Column: Calendar */}
-                      <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                      <div className="border rounded-md flex flex-col overflow-y-auto bg-card p-2 scrollbar-thin">
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {
@@ -950,14 +950,14 @@ export function PhoneBookingPane() {
                   })}
                 </div>
                 {selectedServiceIds.size > 0 && (
-                  <div className="mt-2 p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0 h-[350px]">
+                  <div className="mt-2 p-3 border-t border-border bg-card flex flex-col gap-2 shrink-0 min-h-[240px] max-h-[275px] overflow-hidden">
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold text-sm">Schedule & Tokens</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[250px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden min-h-[190px]">
                       {/* Left Column: Calendar */}
-                      <div className="border rounded-md flex flex-col overflow-hidden bg-card p-3">
+                      <div className="border rounded-md flex flex-col overflow-y-auto bg-card p-2 scrollbar-thin">
                         <EnhancedCalendar 
                           selectedDate={new Date(selectedDate)} 
                           onDateSelect={(d) => {

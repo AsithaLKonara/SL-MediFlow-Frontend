@@ -1,4 +1,5 @@
 import React from "react";
+import Barcode from "react-barcode";
 
 export interface DoctorDailyItem {
   id?: string;
@@ -81,9 +82,25 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
   ({ sheet }, ref) => {
     if (!sheet) return null;
 
+    const receiptCode = sheet.receiptNumber || `DOC-REC-${sheet.id.slice(0, 8).toUpperCase()}`;
+
     const formattedPaymentDate = sheet.paidAt
-      ? new Date(sheet.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      ? new Date(sheet.paidAt).toLocaleString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        })
+      : new Date().toLocaleString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        });
 
     const formattedSheetDate = new Date(sheet.date).toLocaleDateString("en-GB", {
       weekday: "short",
@@ -92,19 +109,24 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
       year: "numeric"
     });
 
+    const netPayment = sheet.netDoctorPayment !== undefined && sheet.netDoctorPayment !== null
+      ? sheet.netDoctorPayment
+      : (sheet.doctorPayment || 0);
+
     return (
       <div className="hidden">
         <div
           ref={ref}
-          className="w-[794px] min-h-[1123px] mx-auto p-10 bg-white text-slate-900 font-sans text-sm leading-relaxed"
+          data-testid="doctor-payment-receipt-80mm"
+          className="w-[290px] mx-auto box-border bg-white text-black px-2 pt-1 pb-8 font-sans text-xs leading-tight print:w-[290px] print:px-2 print:pt-1 print:pb-10"
           style={{ boxSizing: "border-box" }}
         >
           <style dangerouslySetInnerHTML={{
             __html: `
               @media print {
                 @page {
-                  size: A4 portrait;
-                  margin: 12mm 15mm;
+                  size: auto;
+                  margin: 1.5mm 2mm 6mm 2mm;
                 }
                 body {
                   -webkit-print-color-adjust: exact !important;
@@ -115,314 +137,230 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
           }} />
 
           {/* Hospital Header */}
-          <div className="flex justify-between items-start border-b-2 border-emerald-600 pb-5 mb-6">
-            <div className="flex items-center gap-4">
-              <img src="/logo.png" alt="AMAZ Hospital" className="h-16 w-auto object-contain" />
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">AMAZ HOSPITAL</h1>
-                <p className="text-xs text-slate-600 font-medium">Debarawewa, Tissamaharama, Sri Lanka</p>
-                <p className="text-xs text-slate-500">Tel: +94 47 223 9090 | amazhospital.lk | amazhospital88@gmail.com</p>
-              </div>
+          <div className="text-center mb-2 pb-2 border-b-2 border-black">
+            <img src="/logo.png" alt="AMAZ Hospital" className="w-36 mx-auto mb-1 object-contain" />
+            <h1 className="text-sm font-black tracking-tight uppercase">AMAZ HOSPITAL</h1>
+            <p className="text-[10px] text-black">Debarawewa, Tissamaharama</p>
+            <p className="text-[10px] text-black">Tel: 0472239090 | amazhospital.lk</p>
+
+            <div className="mt-1.5 border border-black py-0.5 px-2 inline-block bg-black text-white font-bold text-[11px] uppercase tracking-wider">
+              DOCTOR PAYMENT VOUCHER
             </div>
-            <div className="text-right">
-              <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-md uppercase tracking-wider mb-2">
-                Fund Office Disbursement
-              </span>
-              <p className="text-xs text-slate-500 font-medium">Official Payment Receipt</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">
-                {sheet.receiptNumber || `DOC-REC-${sheet.id.slice(0, 8).toUpperCase()}`}
-              </p>
+            <div className="text-[10px] mt-1 font-semibold">
+              STATUS: <span className="uppercase">{sheet.status}</span>
             </div>
           </div>
 
-          {/* Voucher Title & Status Banner */}
-          <div className="flex justify-between items-center bg-slate-50 rounded-lg p-4 border border-slate-200 mb-6">
-            <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Document</span>
-              <h2 className="text-lg font-bold text-slate-800">DOCTOR PAYMENT VOUCHER</h2>
+          {/* Voucher Info */}
+          <div className="border-b border-dashed border-black pb-2 mb-2 text-[11px] space-y-1">
+            <div className="flex justify-between">
+              <span className="font-bold">Voucher #:</span>
+              <span className="font-mono font-bold">{receiptCode}</span>
             </div>
-            <div className="text-right">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Status</span>
-              <span className="inline-block px-3 py-0.5 bg-emerald-600 text-white text-xs font-bold rounded-full">
-                {sheet.status}
+            <div className="flex justify-between">
+              <span className="font-bold">Date:</span>
+              <span>{formattedPaymentDate}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-bold">Doctor:</span>
+              <span className="font-bold text-right truncate max-w-[170px]">
+                {sheet.doctor?.fullName || sheet.doctor?.name || "Doctor"}
               </span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-neutral-700">Specialty:</span>
+              <span className="text-right">
+                {sheet.doctor?.specialty || sheet.doctor?.specialization || "Consultant"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-neutral-700">Clinic Date:</span>
+              <span>{formattedSheetDate}</span>
+            </div>
+            {sheet.sessionName && (
+              <div className="flex justify-between">
+                <span className="text-neutral-700">Session:</span>
+                <span>{sheet.sessionName}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-neutral-700">Method:</span>
+              <span className="font-semibold uppercase">
+                {sheet.paymentMethod?.replace("_", " ") || (sheet.cashDisbursed ? "CASH DRAWER" : "BANK TRANSFER")}
+              </span>
+            </div>
+            {sheet.disbursedByRole && (
+              <div className="flex justify-between">
+                <span className="text-neutral-700">Disbursed By:</span>
+                <span className="font-semibold uppercase">{sheet.disbursedByRole}</span>
+              </div>
+            )}
+            {sheet.paymentReference && (
+              <div className="flex justify-between">
+                <span className="text-neutral-700">Ref / Slip:</span>
+                <span className="font-mono">{sheet.paymentReference}</span>
+              </div>
+            )}
+            {(sheet.bankDetails?.bankAccountNumber || sheet.doctor?.bankAccountNumber) && (
+              <div className="flex justify-between text-[10px] pt-0.5 border-t border-dotted border-neutral-400">
+                <span className="text-neutral-700">Bank:</span>
+                <span className="text-right truncate max-w-[180px]">
+                  {sheet.bankDetails?.bankName || sheet.doctor?.bankName} - {sheet.bankDetails?.bankAccountNumber || sheet.doctor?.bankAccountNumber}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Doctor & Clinic Session Information */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 border-b border-slate-200 pb-1">
-                Doctor Information
-              </h3>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Doctor Name:</span>
-                  <span className="font-bold text-slate-800">{sheet.doctor?.fullName || sheet.doctor?.name || "Doctor"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Specialization:</span>
-                  <span className="font-medium text-slate-700">{sheet.doctor?.specialty || sheet.doctor?.specialization || "Consultant"}</span>
-                </div>
-                {sheet.doctor?.phone && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Contact:</span>
-                    <span className="text-slate-700">{sheet.doctor.phone}</span>
-                  </div>
-                )}
-                {sheet.doctor?.email && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Email:</span>
-                    <span className="text-slate-700">{sheet.doctor.email}</span>
-                  </div>
-                )}
-              </div>
+          {/* Financial Breakdown */}
+          <div className="border-b border-dashed border-black pb-2 mb-2 text-[11px] space-y-1">
+            <div className="font-bold uppercase tracking-wider text-[10px] pb-0.5 border-b border-neutral-300">
+              Financial Breakdown
+            </div>
+            <div className="flex justify-between">
+              <span>Consultations:</span>
+              <span className="font-bold">{sheet.totalPatients} Patients</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Gross Fee Revenue:</span>
+              <span className="font-bold">
+                Rs. {sheet.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 border-b border-slate-200 pb-1">
-                Session & Disbursement Details
-              </h3>
-              <div className="space-y-1.5 text-xs">
+            {(sheet.cashRevenue !== undefined && sheet.cardRevenue !== undefined && (sheet.cashRevenue > 0 || sheet.cardRevenue > 0)) && (
+              <div className="bg-neutral-50 p-1 rounded text-[10px] space-y-0.5 my-1 border border-neutral-200">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Clinic Date:</span>
-                  <span className="font-bold text-slate-800">{formattedSheetDate}</span>
+                  <span>- Cash (Desk Drawer):</span>
+                  <span>Rs. {(sheet.cashRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Session Name:</span>
-                  <span className="font-medium text-slate-700">{sheet.sessionName}</span>
+                  <span>- Card / Bank:</span>
+                  <span>Rs. {(sheet.cardRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Disbursed Role:</span>
-                  <span className="font-bold text-slate-800">{sheet.disbursedByRole || "FRONTDESK"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Date:</span>
-                  <span className="font-bold text-emerald-800">{formattedPaymentDate}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Method:</span>
-                  <span className="font-bold text-slate-800">{sheet.paymentMethod?.replace("_", " ") || "CASH / BANK"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Ref / Voucher:</span>
-                  <span className="font-mono font-bold text-slate-800">{sheet.paymentReference || "N/A"}</span>
-                </div>
-                {(sheet.bankDetails?.bankAccountNumber || sheet.doctor?.bankAccountNumber) && (
-                  <div className="flex justify-between pt-1 border-t border-slate-200 text-[11px]">
-                    <span className="text-slate-500">Bank Details:</span>
-                    <span className="font-semibold text-slate-700">
-                      {sheet.bankDetails?.bankName || sheet.doctor?.bankName} - {sheet.bankDetails?.bankAccountNumber || sheet.doctor?.bankAccountNumber}
-                    </span>
-                  </div>
-                )}
               </div>
+            )}
+
+            <div className="flex justify-between text-neutral-800">
+              <span>Less: Hospital Share ({sheet.commissionType === "FLAT" ? `Rs. ${sheet.commissionRate} flat` : `${sheet.commissionRate.toFixed(1)}%`}):</span>
+              <span className="font-semibold">
+                - Rs. {(sheet.hospitalCommission || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
             </div>
+
+            {sheet.otherAdjustments !== 0 && (
+              <div className="flex justify-between text-neutral-800">
+                <span>Other Adjustments:</span>
+                <span>
+                  - Rs. {(sheet.otherAdjustments || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Financial Calculation Statement Table */}
-          <div className="mb-6">
-            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Payment Calculation Breakdown
-            </h3>
-            <table className="w-full text-xs border border-slate-300 rounded-lg overflow-hidden">
-              <thead className="bg-slate-100 text-slate-700 border-b border-slate-300">
-                <tr>
-                  <th className="py-2.5 px-3 text-left font-semibold">Description</th>
-                  <th className="py-2.5 px-3 text-center font-semibold">Quantity / Breakdown</th>
-                  <th className="py-2.5 px-3 text-right font-semibold">Amount (LKR)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                <tr>
-                  <td className="py-2.5 px-3">
-                    <span className="font-semibold text-slate-800">Total Patients Treated</span>
-                    <p className="text-[11px] text-slate-500">Base consultations during clinic session</p>
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-medium text-slate-700">
-                    {sheet.totalPatients} Patients
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-bold text-slate-800">
-                    {sheet.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </td>
-                </tr>
-
-                {(sheet.cashRevenue !== undefined && sheet.cardRevenue !== undefined && (sheet.cashRevenue > 0 || sheet.cardRevenue > 0)) && (
-                  <>
-                    <tr className="bg-emerald-50/40 text-[11px]">
-                      <td className="py-1.5 px-3 text-emerald-900 font-medium">
-                        💵 Cash Collections (Desk Drawer)
-                      </td>
-                      <td className="py-1.5 px-3 text-center text-emerald-700">
-                        Doctor Cash Share: LKR {(sheet.cashDoctorShare || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-1.5 px-3 text-right font-semibold text-emerald-900">
-                        LKR {(sheet.cashRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                    <tr className="bg-blue-50/40 text-[11px]">
-                      <td className="py-1.5 px-3 text-blue-900 font-medium">
-                        💳 Card / Bank Collections
-                      </td>
-                      <td className="py-1.5 px-3 text-center text-blue-700">
-                        Doctor Bank Share: LKR {(sheet.bankDoctorShare || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-1.5 px-3 text-right font-semibold text-blue-900">
-                        LKR {(sheet.cardRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  </>
-                )}
-
-                <tr>
-                  <td className="py-2.5 px-3">
-                    <span className="font-medium text-red-700">Less: Hospital Commission Amount</span>
-                    <p className="text-[11px] text-slate-500">Hospital retained operational & facility charges</p>
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-medium text-red-600">
-                    {sheet.commissionType === "FLAT" ? `LKR ${sheet.commissionRate.toLocaleString()} flat` : `${sheet.commissionRate.toFixed(1)}%`}
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-bold text-red-600">
-                    - {(sheet.hospitalCommission || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </td>
-                </tr>
-
-                {sheet.otherAdjustments !== 0 && (
-                  <tr>
-                    <td className="py-2.5 px-3">
-                      <span className="font-medium text-slate-700">Other Adjustments / Deductions</span>
-                    </td>
-                    <td className="py-2.5 px-3 text-center text-slate-500">-</td>
-                    <td className="py-2.5 px-3 text-right font-medium text-slate-700">
-                      - {(sheet.otherAdjustments || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                )}
-
-                <tr className="bg-emerald-50 border-t-2 border-emerald-600 text-sm">
-                  <td className="py-3 px-3 font-bold text-emerald-950">
-                    NET DOCTOR DISBURSEMENT AMOUNT
-                  </td>
-                  <td className="py-3 px-3 text-center text-xs text-emerald-800 font-semibold">
-                    {sheet.cashDisbursed || sheet.bankDisbursed
-                      ? `Paid: Cash LKR ${(sheet.cashDisbursed || 0).toLocaleString()} | Bank LKR ${(sheet.bankDisbursed || 0).toLocaleString()}`
-                      : "Payable to Doctor"}
-                  </td>
-                  <td className="py-3 px-3 text-right font-black text-emerald-900 text-base">
-                    LKR {(sheet.netDoctorPayment || sheet.doctorPayment || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          {/* Net Doctor Disbursement Box */}
+          <div className="border-2 border-black p-2 mb-2.5 text-center bg-neutral-50">
+            <span className="text-[10px] uppercase font-bold text-neutral-700 block">
+              Net Doctor Disbursement
+            </span>
+            <span className="text-xl font-black text-black">
+              Rs. {netPayment.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </span>
+            {(sheet.cashDisbursed || sheet.bankDisbursed) ? (
+              <div className="text-[9px] text-neutral-600 mt-0.5">
+                Paid: Cash Rs. {(sheet.cashDisbursed || 0).toLocaleString()} | Bank Rs. {(sheet.bankDisbursed || 0).toLocaleString()}
+              </div>
+            ) : null}
           </div>
 
-          {/* Itemized Patient List (if available and less than 30 items) */}
+          {/* Itemized Patient Consultation List */}
           {sheet.patientItems && sheet.patientItems.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Patient Consultation Roster ({sheet.patientItems.length} Records)
-              </h3>
-              <table className="w-full text-[11px] border border-slate-200 rounded-md overflow-hidden">
-                <thead className="bg-slate-100 text-slate-600">
-                  <tr>
-                    <th className="py-1 px-2 text-left">#</th>
-                    <th className="py-1 px-2 text-left">Patient Name</th>
-                    <th className="py-1 px-2 text-left">Token / Ref</th>
-                    <th className="py-1 px-2 text-center">Collection</th>
-                    <th className="py-1 px-2 text-right">Fee (LKR)</th>
-                    <th className="py-1 px-2 text-right">Doc Share (LKR)</th>
+            <div className="border-b border-dashed border-black pb-2 mb-2">
+              <div className="flex justify-between items-center text-[10px] font-bold uppercase pb-1 mb-1 border-b border-neutral-300">
+                <span>Consultation Roster</span>
+                <span>({sheet.patientItems.length})</span>
+              </div>
+              <table className="w-full text-[10px] leading-tight">
+                <thead>
+                  <tr className="border-b border-neutral-300 text-neutral-700">
+                    <th className="text-left py-0.5 w-6">#</th>
+                    <th className="text-left py-0.5">Patient / Token</th>
+                    <th className="text-right py-0.5">Doc Share</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {sheet.patientItems.slice(0, 25).map((item, idx) => {
-                    const isCard = (item.collectionMethod || "CASH") !== "CASH";
+                <tbody className="divide-y divide-dotted divide-neutral-200">
+                  {sheet.patientItems.slice(0, 30).map((item, idx) => {
+                    const itemDocShare = item.doctorShare !== undefined && item.doctorShare !== null
+                      ? item.doctorShare
+                      : (sheet.commissionType === "FLAT"
+                          ? Math.max(0, item.consultationFee - sheet.commissionRate)
+                          : item.consultationFee * (1 - sheet.commissionRate / 100));
+
                     return (
                       <tr key={item.id || idx}>
-                        <td className="py-1 px-2 text-slate-400">{idx + 1}</td>
-                        <td className="py-1 px-2 font-medium text-slate-800">{item.patientName}</td>
-                        <td className="py-1 px-2 text-slate-500 font-mono text-[10px]">{item.tokenNumber || item.appointmentId || item.patientId || "-"}</td>
-                        <td className="py-1 px-2 text-center">
-                          <span className={`inline-block px-1.5 py-0.2 text-[9px] font-bold rounded ${
-                            isCard ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"
-                          }`}>
-                            {item.collectionMethod || "CASH"}
-                          </span>
+                        <td className="py-1 text-neutral-500">{idx + 1}</td>
+                        <td className="py-1 pr-1">
+                          <div className="font-semibold truncate max-w-[150px]">{item.patientName}</div>
+                          <div className="text-[9px] text-neutral-500 font-mono">
+                            {item.tokenNumber ? `T-${item.tokenNumber}` : (item.appointmentId?.slice(0, 8) || "")} 
+                            {" "}({item.collectionMethod || "CASH"})
+                          </div>
                         </td>
-                        <td className="py-1 px-2 text-right font-medium text-slate-700">
-                          {item.consultationFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-1 px-2 text-right text-[11px] font-semibold text-emerald-700">
-                          {(item.doctorShare !== undefined && item.doctorShare !== null
-                            ? item.doctorShare
-                            : (sheet.commissionType === "FLAT"
-                                ? Math.max(0, item.consultationFee - sheet.commissionRate)
-                                : item.consultationFee * (1 - sheet.commissionRate / 100))
-                          ).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        <td className="py-1 text-right font-bold">
+                          {itemDocShare.toLocaleString("en-US", { minimumFractionDigits: 0 })}
                         </td>
                       </tr>
                     );
                   })}
-                  {sheet.patientItems.length > 25 && (
-                    <tr>
-                      <td colSpan={6} className="py-1 px-2 text-center text-slate-400 italic">
-                        ... and {sheet.patientItems.length - 25} more patient records
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
+              {sheet.patientItems.length > 30 && (
+                <p className="text-[9px] text-center text-neutral-500 italic mt-1">
+                  ... +{sheet.patientItems.length - 30} more consultations
+                </p>
+              )}
             </div>
           )}
 
           {/* Remarks */}
           {sheet.remarks && (
-            <div className="mb-6 p-2.5 bg-slate-50 rounded border border-slate-200 text-xs">
-              <span className="font-bold text-slate-600">Remarks: </span>
-              <span className="text-slate-700">{sheet.remarks}</span>
+            <div className="border-b border-dashed border-black pb-2 mb-2 text-[10px]">
+              <span className="font-bold">Remarks: </span>
+              <span className="italic">{sheet.remarks}</span>
             </div>
           )}
 
-          {/* Audit Verification Trail */}
-          <div className="grid grid-cols-3 gap-4 mb-8 text-[11px] text-slate-600 bg-slate-50 p-3 rounded border border-slate-200">
-            <div>
-              <p className="font-semibold text-slate-800">1. Verification:</p>
-              <p>Officer: {sheet.verifiedBy?.name || "Fund Office Officer"}</p>
-              <p>Date: {sheet.verifiedAt ? new Date(sheet.verifiedAt).toLocaleDateString() : "Pending"}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-800">2. Approval:</p>
-              <p>Approver: {sheet.approvedBy?.name || "Finance Director"}</p>
-              <p>Date: {sheet.approvedAt ? new Date(sheet.approvedAt).toLocaleDateString() : "Pending"}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-800">3. Disbursement:</p>
-              <p>Disbursed By: {sheet.paidBy?.name || "Cashier / Fund Office"}</p>
-              <p>Date: {sheet.paidAt ? new Date(sheet.paidAt).toLocaleDateString() : "Pending"}</p>
-            </div>
+          {/* Barcode */}
+          <div className="flex flex-col items-center justify-center my-2">
+            <Barcode
+              value={receiptCode}
+              width={1.2}
+              height={35}
+              fontSize={10}
+              margin={2}
+              displayValue={true}
+            />
           </div>
 
-          {/* Authorized Signatures */}
-          <div className="grid grid-cols-3 gap-8 pt-8 mt-4 border-t border-slate-300 text-center text-xs">
-            <div>
-              <div className="h-12 border-b border-dashed border-slate-400 mx-4 mb-2"></div>
-              <p className="font-bold text-slate-800">Fund Office Officer</p>
-              <p className="text-[10px] text-slate-500">Prepared & Verified By</p>
-            </div>
-            <div>
-              <div className="h-12 border-b border-dashed border-slate-400 mx-4 mb-2"></div>
-              <p className="font-bold text-slate-800">Medical / Finance Director</p>
-              <p className="text-[10px] text-slate-500">Authorized & Approved By</p>
-            </div>
-            <div>
-              <div className="h-12 border-b border-dashed border-slate-400 mx-4 mb-2"></div>
-              <p className="font-bold text-slate-800">Doctor's Signature</p>
-              <p className="text-[10px] text-slate-500">Received & Acknowledged</p>
+          {/* Dual Signatures */}
+          <div className="pt-3 pb-1 border-t border-dashed border-black">
+            <div className="flex justify-between text-center text-[10px] pt-4">
+              <div className="w-[125px]">
+                <div className="border-b border-black mb-1"></div>
+                <p className="font-bold">Disbursed By</p>
+                <p className="text-[8px] text-neutral-600">Fund Office / Cashier</p>
+              </div>
+              <div className="w-[125px]">
+                <div className="border-b border-black mb-1"></div>
+                <p className="font-bold">Doctor Acknowledged</p>
+                <p className="text-[8px] text-neutral-600">Received & Confirmed</p>
+              </div>
             </div>
           </div>
 
           {/* Footer Notice */}
-          <div className="mt-8 text-center text-[10px] text-slate-400 border-t border-slate-200 pt-3">
-            <p>This is a computer-generated voucher issued by the AMAZ Hospital Fund Office. Debarawewa, Tissamaharama.</p>
+          <div className="mt-3 text-center text-[9px] text-neutral-500 border-t border-neutral-300 pt-1.5 leading-normal">
+            <p>Computer-generated official disbursement voucher.</p>
+            <p>AMAZ Hospital Fund Office, Debarawewa.</p>
           </div>
         </div>
       </div>

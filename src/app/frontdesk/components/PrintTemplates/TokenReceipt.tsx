@@ -9,7 +9,7 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
   date: string;
   roomNumber?: string;
 }>(({ tokenId, tokenNumber, patientName, doctorName, date, roomNumber }, ref) => {
-  const numericToken = String(tokenNumber.replace(/\D/g, '')).padStart(2, '0');
+  const displayToken = /[a-zA-Z]/.test(tokenNumber) ? tokenNumber : String(tokenNumber.replace(/\D/g, '')).padStart(2, '0');
   
   return (
     <div ref={ref} className="w-[290px] mx-auto box-border bg-white text-black px-3.5 pt-1.5 pb-8 font-sans print:w-[290px] print:px-3.5 print:pt-1 print:pb-12 leading-tight">
@@ -35,7 +35,7 @@ export const TokenReceipt = React.forwardRef<HTMLDivElement, {
 
       <div className="text-center mb-6 space-y-1">
         <p className="text-sm">Token Number</p>
-        <h2 className="text-7xl font-black tracking-tighter">{numericToken}</h2>
+        <h2 className="text-7xl font-black tracking-tighter">{displayToken}</h2>
       </div>
 
       {roomNumber && (
