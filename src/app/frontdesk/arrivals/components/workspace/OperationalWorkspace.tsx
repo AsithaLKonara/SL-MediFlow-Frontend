@@ -76,26 +76,31 @@ export function OperationalWorkspace({
     try {
       setIsLoading(true);
       const fetchOptions = { headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' as RequestCache };
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-      // 1. Fetch Calendar Aggregation
       const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
-      const calRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/doctors/${doctor.id}/calendar?month=${monthStr}`, fetchOptions);
-      if (calRes.ok) setCalendarData(await calRes.json());
+      const dateStr = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
 
-      // 2. Fetch Session Tokens
-      if (activeSession) {
-        const dateStr = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
-        const tokRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/sessions/${activeSession.id}/tokens?date=${dateStr}`, fetchOptions);
-        if (tokRes.ok) setTokens(await tokRes.json());
-      } else {
-        setTokens([]);
-      }
+      // Parallelize Calendar, Session Tokens, and Activity Log concurrently
+      const [calData, tokData, actData] = await Promise.all([
+        fetch(`${apiUrl}/frontdesk/doctors/${doctor.id}/calendar?month=${monthStr}`, fetchOptions)
+          .then(r => r.ok ? r.json() : null)
+          .catch(err => { console.error("Calendar fetch error:", err); return null; }),
 
-      // 3. Fetch Activity Log
-      const logDateStr = new Date(selectedDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
-      const logRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/frontdesk/activity?date=${logDateStr}`, fetchOptions);
-      if (logRes.ok) setActivityLog(await logRes.json());
+        activeSession
+          ? fetch(`${apiUrl}/frontdesk/sessions/${activeSession.id}/tokens?date=${dateStr}`, fetchOptions)
+              .then(r => r.ok ? r.json() : [])
+              .catch(err => { console.error("Tokens fetch error:", err); return []; })
+          : Promise.resolve([]),
 
+        fetch(`${apiUrl}/frontdesk/activity?date=${dateStr}`, fetchOptions)
+          .then(r => r.ok ? r.json() : [])
+          .catch(err => { console.error("Activity fetch error:", err); return []; })
+      ]);
+
+      if (calData) setCalendarData(calData);
+      setTokens(tokData || []);
+      setActivityLog(actData || []);
     } catch (error) {
       console.error("Failed to fetch operational context:", error);
     } finally {

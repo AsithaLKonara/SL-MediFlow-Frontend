@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { VirtualKeyboardProvider } from "@/components/VirtualKeyboardProvider";
 import { SidebarProvider } from "@/components/dashboard/SidebarProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,21 +31,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <SidebarProvider>
-              <VirtualKeyboardProvider>
-                {children}
-                <Toaster position="top-right" />
-              </VirtualKeyboardProvider>
-            </SidebarProvider>
-          </ThemeProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <SidebarProvider>
+                <VirtualKeyboardProvider>
+                  {children}
+                  <Toaster position="top-right" />
+                </VirtualKeyboardProvider>
+              </SidebarProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

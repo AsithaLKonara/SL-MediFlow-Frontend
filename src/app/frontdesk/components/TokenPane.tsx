@@ -25,6 +25,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { sortDoctorsWithOpdFirst, isOpdDoctor } from "@/lib/doctor-utils";
 import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { useDoctors, useLabCatalog, useExtraServices } from "@/hooks/useMasterData";
 
 interface Doctor {
   id: string;
@@ -358,32 +359,33 @@ export function TokenPane() {
 
 
 
+  const { data: cachedDoctors } = useDoctors();
+  const { data: cachedLabCatalog } = useLabCatalog();
+  const { data: cachedExtraServices } = useExtraServices();
+
+  useEffect(() => {
+    if (cachedDoctors && cachedDoctors.length > 0) {
+      setDoctors(cachedDoctors);
+    }
+  }, [cachedDoctors]);
+
+  useEffect(() => {
+    if (cachedLabCatalog && cachedLabCatalog.length > 0) {
+      setLabCatalog(cachedLabCatalog);
+    }
+  }, [cachedLabCatalog]);
+
+  useEffect(() => {
+    if (cachedExtraServices && cachedExtraServices.length > 0) {
+      setExtraServicesCatalog(cachedExtraServices);
+    }
+  }, [cachedExtraServices]);
+
   useEffect(() => {
     if (!token) return;
-    Promise.all([
-      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/doctors`).then(r => {
-        if (!r.ok) throw new Error("Failed to fetch doctors");
-        return r.json();
-      }),
-      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/lab/catalog`).then(r => {
-        if (!r.ok) throw new Error("Failed to fetch lab catalog");
-        return r.json();
-      }),
-      apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/extra-services`).then(r => {
-        if (!r.ok) throw new Error("Failed to fetch extra services");
-        return r.json();
-      })
-    ]).then(([docRes, labRes, svcRes]) => {
-      if (docRes.success) setDoctors(sortDoctorsWithOpdFirst(docRes.data));
-      if (Array.isArray(labRes)) setLabCatalog(labRes);
-      if (Array.isArray(svcRes)) setExtraServicesCatalog(svcRes);
-    }).catch((e) => {
-      console.error(e);
-    });
-
     // Load prescriptions on mount
     fetchPendingPrescriptions();
-  }, [token, apiFetch, fetchPendingPrescriptions]);
+  }, [token, fetchPendingPrescriptions]);
 
 
 

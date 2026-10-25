@@ -176,3 +176,21 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Universal Tactile Micro-Interactions for Instant Click Feedback */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+.btn-tactile:active {
+  scale: 0.97 !important;
+  transform: scale(0.97) !important;
+  filter: brightness(0.96);
+  transition: scale 0.05s cubic-bezier(0.2, 0, 0, 1), transform 0.05s cubic-bezier(0.2, 0, 0, 1), filter 0.05s ease !important;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+.btn-tactile {
+  transition: scale 0.12s cubic-bezier(0.2, 0, 0, 1), transform 0.12s cubic-bezier(0.2, 0, 0, 1), filter 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+
