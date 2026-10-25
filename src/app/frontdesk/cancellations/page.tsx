@@ -286,8 +286,9 @@ export default function CancellationsAndRefundsPage() {
   const totalRefundedSum = bookings.reduce((sum, b) => sum + (b.totalRefunded || 0), 0);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 md:p-6 space-y-6">
-      {/* Top Bar Navigation */}
+    <div className="flex-1 w-full min-h-screen overflow-y-auto bg-neutral-950 text-neutral-100 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Top Bar Navigation */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
         <div className="flex items-center gap-3">
           <Button
@@ -616,6 +617,7 @@ export default function CancellationsAndRefundsPage() {
           </TableBody>
         </Table>
       </Card>
+      </div>
 
       {/* Cancel & Refund Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
