@@ -63,7 +63,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
         } else {
-          // Attempt pure HttpOnly cookie refresh as fallback
+          // If on a public display/kiosk or auth route with no stored token,
+          // skip probing /auth/refresh to eliminate false-positive 401s and console error spam
+          const isPublicRoute = [
+            "/customer-display",
+            "/login",
+            "/register",
+            "/forgot-password",
+            "/verify-email",
+            "/reports",
+            "/lab-report-preview"
+          ].some(route => pathname?.startsWith(route));
+
+          if (isPublicRoute) {
+            setIsLoading(false);
+            return;
+          }
+
+          // Attempt pure HttpOnly cookie refresh as fallback for protected routes
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
             credentials: "include"
           });
