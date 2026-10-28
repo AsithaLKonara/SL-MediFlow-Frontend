@@ -64,7 +64,8 @@ export function POSHistoryModal() {
           name: li.description,
           qty: li.quantity,
           price: li.unitPrice,
-          total: li.total
+          total: li.total,
+          department: li.department
         })),
         subtotal: item.invoice.subtotal || item.totalAmount,
         total: item.invoice.total || item.totalAmount,

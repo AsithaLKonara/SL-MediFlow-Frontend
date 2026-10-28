@@ -112,49 +112,39 @@ export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
 
             return (
               <>
-                <div className="space-y-2">
-                  {invoice.lineItems.map((item, index) => {
-                    const isMed = isMedicineItem(item);
-                    return (
-                      <div key={index} className="text-xs">
-                        <div className="flex justify-between font-medium">
-                          <span className="pr-2">{item.description}</span>
-                          {isMed ? (
-                            <span className="text-gray-600 font-normal">Qty: {item.quantity}</span>
-                          ) : (
-                            <span>Rs. {(item.quantity * item.unitPrice).toFixed(2)}</span>
-                          )}
-                        </div>
-                        {!isMed && (
-                          <div className="text-[10px] text-gray-600">
-                            {item.quantity} x Rs. {item.unitPrice.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="space-y-1">
+                  <div className="flex justify-between border-b border-dashed border-black pb-1 font-bold text-xs">
+                    <span className="w-3/4 text-left">Item</span>
+                    <span className="w-1/4 text-right">Qty</span>
+                  </div>
+                  {invoice.lineItems.map((item, index) => (
+                    <div key={index} className="flex justify-between text-xs py-0.5 border-b border-dotted border-black/20 last:border-b-0">
+                      <span className="pr-2 break-words leading-tight w-3/4">{item.description}</span>
+                      <span className="font-semibold text-right w-1/4">{item.quantity}</span>
+                    </div>
+                  ))}
                 </div>
                 
                 <div className="mt-4 pt-2 border-t-2 border-black space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span>Subtotal</span>
-                    <span>Rs. {(invoice.subtotal || invoice.totalAmount).toFixed(2)}</span>
+                    <span>Subtotal:</span>
+                    <span>LKR {(invoice.subtotal ?? invoice.totalAmount ?? 0).toFixed(2)}</span>
                   </div>
                   {hasMedicines && (
                     <div className="flex justify-between text-xs font-semibold text-gray-800">
-                      <span>Medicines Total</span>
-                      <span>Rs. {totalMedicines.toFixed(2)}</span>
+                      <span>Medicines Total:</span>
+                      <span>LKR {totalMedicines.toFixed(2)}</span>
                     </div>
                   )}
                   {invoice.discountAmount !== undefined && invoice.discountAmount > 0 && (
                     <div className="flex justify-between text-xs font-semibold">
-                      <span>Discount</span>
-                      <span>- Rs. {invoice.discountAmount.toFixed(2)}</span>
+                      <span>Discount:</span>
+                      <span>- LKR {invoice.discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold text-sm pt-1 border-t border-dashed border-black">
-                    <span>Total Amount</span>
-                    <span>Rs. {invoice.totalAmount.toFixed(2)}</span>
+                    <span>Total:</span>
+                    <span>LKR {(invoice.totalAmount ?? 0).toFixed(2)}</span>
                   </div>
                 </div>
               </>

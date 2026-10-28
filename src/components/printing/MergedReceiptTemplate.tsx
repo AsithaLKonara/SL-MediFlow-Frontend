@@ -109,34 +109,20 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                 </div>
 
                 <div className="border-t-2 border-black pt-2 mb-2">
-                  <table className="w-full text-xs text-left">
+                  <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-dashed border-black">
-                        <th className="py-1 w-1/2">Item</th>
-                        <th className="py-1 w-1/4 text-center">Qty</th>
-                        <th className="py-1 w-1/4 text-right">Total</th>
+                        <th className="py-1 w-3/4 text-left font-bold">Item</th>
+                        <th className="py-1 w-1/4 text-right font-bold">Qty</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {receiptData.items.map((item: any, idx: number) => {
-                        const isMed = isMedicineItem(item);
-                        return (
-                          <React.Fragment key={idx}>
-                            <tr className="align-top">
-                              <td className="pt-1 pr-1 truncate max-w-[140px]">{item.name}</td>
-                              <td className="pt-1 text-center">{item.qty}</td>
-                              <td className="pt-1 text-right">{isMed ? "-" : (item.total || item.price * item.qty).toFixed(2)}</td>
-                            </tr>
-                            {!isMed && (
-                              <tr>
-                                <td colSpan={3} className="pb-1 text-[10px] text-gray-600">
-                                  {item.qty} x Rs. {item.price.toFixed(2)}
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
+                      {receiptData.items.map((item: any, idx: number) => (
+                        <tr key={idx} className="align-top border-b border-dotted border-black/20 last:border-b-0">
+                          <td className="py-1 pr-2 break-words leading-tight">{item.name}</td>
+                          <td className="py-1 text-right font-semibold">{item.qty}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -144,7 +130,7 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                 <div className="border-t-2 border-black pt-2 mb-4 text-sm space-y-0.5">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>LKR {receiptData.subtotal.toFixed(2)}</span>
+                    <span>LKR {(receiptData.subtotal ?? receiptData.total ?? 0).toFixed(2)}</span>
                   </div>
                   {hasMedicines && (
                     <div className="flex justify-between text-xs font-semibold text-gray-800">
@@ -160,7 +146,7 @@ export const MergedReceiptTemplate = React.forwardRef<HTMLDivElement, MergedRece
                   )}
                   <div className="flex justify-between font-bold text-base mt-1 pt-1 border-t border-dashed border-black">
                     <span>Total:</span>
-                    <span>LKR {receiptData.total.toFixed(2)}</span>
+                    <span>LKR {(receiptData.total ?? 0).toFixed(2)}</span>
                   </div>
                 
                 <div className="flex justify-between mt-3 text-xs">

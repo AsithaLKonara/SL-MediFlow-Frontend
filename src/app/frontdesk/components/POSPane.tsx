@@ -257,7 +257,7 @@ export function POSPane() {
   const appointmentTotal = pendingAppointmentPayload 
     ? (
         deduplicatedInvoiceTotal +
-        ((!hasConsultInInvoice && !pendingAppointmentPayload.consultationPaid && isAppointmentConsultUpfront) ? (pendingAppointmentPayload.fee || 0) : 0)
+        ((!hasConsultInInvoice && !pendingAppointmentPayload.consultationPaid) ? (pendingAppointmentPayload.fee || 0) : 0)
       )
     : 0;
     
@@ -1290,7 +1290,9 @@ export function POSPane() {
                       name: item.name,
                       qty: item.qty,
                       price: item.price,
-                      total: item.qty * item.price
+                      total: item.qty * item.price,
+                      department: "PHARMACY",
+                      isMedicine: true
                     }));
 
                     let tokenResultTokens: any[] = [];
@@ -1325,7 +1327,9 @@ export function POSPane() {
                                name: li.description,
                                qty: li.quantity,
                                price: li.unitPrice,
-                               total: li.total
+                               total: li.total,
+                               department: li.department,
+                               isMedicine: li.department === "PHARMACY"
                              });
                            });
                         }
@@ -1344,7 +1348,7 @@ export function POSPane() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ 
                           appointmentId: pendingAppointmentPayload.appointmentId,
-                          fee: (!isAppointmentConsultUpfront || pendingAppointmentPayload.consultationPaid) ? 0 : (pendingAppointmentPayload.fee || 0),
+                          fee: pendingAppointmentPayload.consultationPaid ? 0 : (pendingAppointmentPayload.fee || 0),
                           isUpfront: isAppointmentConsultUpfront,
                           paymentMethod: activePaymentMethod,
                           discount: discountPayload
@@ -1383,12 +1387,16 @@ export function POSPane() {
 
                         if (apptRes.data.invoice) {
                            apptRes.data.invoice.lineItems.forEach((li: any) => {
-                             combinedItems.push({
-                               name: li.description,
-                               qty: li.quantity,
-                               price: li.unitPrice,
-                               total: li.total
-                             });
+                             if (!combinedItems.some(ci => ci.name === li.description)) {
+                               combinedItems.push({
+                                 name: li.description,
+                                 qty: li.quantity,
+                                 price: li.unitPrice,
+                                 total: li.total,
+                                 department: li.department,
+                                 isMedicine: li.department === "PHARMACY"
+                               });
+                             }
                            });
                         }
                       } else {
@@ -1427,12 +1435,16 @@ export function POSPane() {
                        }
 
                        pendingAppointmentPayload.invoice.lineItems.forEach((li: any) => {
-                         combinedItems.push({
-                           name: li.description,
-                           qty: li.quantity,
-                           price: li.unitPrice,
-                           total: li.total
-                         });
+                         if (!combinedItems.some(ci => ci.name === li.description)) {
+                           combinedItems.push({
+                             name: li.description,
+                             qty: li.quantity,
+                             price: li.unitPrice,
+                             total: li.total,
+                             department: li.department,
+                             isMedicine: li.department === "PHARMACY"
+                           });
+                         }
                        });
                     }
 
@@ -1449,7 +1461,7 @@ export function POSPane() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ 
                           appointmentId: pendingAppointmentPayload.appointmentId,
-                          fee: (!isAppointmentConsultUpfront || pendingAppointmentPayload.consultationPaid) ? 0 : (pendingAppointmentPayload.fee || 2500),
+                          fee: pendingAppointmentPayload.consultationPaid ? 0 : (pendingAppointmentPayload.fee || 2500),
                           isUpfront: isAppointmentConsultUpfront,
                           paymentMethod: activePaymentMethod,
                           discount: discountPayload
@@ -1464,16 +1476,20 @@ export function POSPane() {
                                 name: li.description,
                                 qty: li.quantity,
                                 price: li.unitPrice,
-                                total: li.total
+                                total: li.total,
+                                department: li.department,
+                                isMedicine: li.department === "PHARMACY"
                               });
                             }
                           });
-                        } else if (isAppointmentConsultUpfront) {
+                        } else if (!hasConsultInInv && !pendingAppointmentPayload.consultationPaid) {
                           combinedItems.push({
                             name: `Consultation - Dr. ${pendingAppointmentPayload.doctorName || 'Doctor'}`,
                             qty: 1,
                             price: pendingAppointmentPayload.fee || 2500,
-                            total: pendingAppointmentPayload.fee || 2500
+                            total: pendingAppointmentPayload.fee || 2500,
+                            department: "CONSULTATION",
+                            isMedicine: false
                           });
                         }
                       }
@@ -1496,7 +1512,7 @@ export function POSPane() {
                       
                       if (res.ok) {
                         const responseData = await res.json();
-                        receiptId = responseData.invoiceId || responseData.id || receiptId;
+                        receiptId = pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo || createdInvoiceId || responseData.invoiceId || responseData.id || receiptId;
                       } else {
                         const err = await res.json();
                         toast.error(err.error || "Pharmacy payment failed");
