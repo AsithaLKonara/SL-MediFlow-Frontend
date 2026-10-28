@@ -42,7 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedToken && storedUserStr) {
           // Pre-hydrate for immediate UI access
           setToken(storedToken);
-          setUser(JSON.parse(storedUserStr));
+          const parsedUser = JSON.parse(storedUserStr);
+          setUser(parsedUser);
+          document.cookie = `amaz_token=${storedToken}; path=/; max-age=604800; SameSite=Lax`;
+          document.cookie = `amaz_role=${encodeURIComponent(parsedUser.role)}; path=/; max-age=604800; SameSite=Lax`;
           setIsLoading(false); // Render UI immediately
           
           // Verify with backend silently
@@ -94,6 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(data.user);
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
+          document.cookie = `amaz_token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+          document.cookie = `amaz_role=${encodeURIComponent(data.user.role)}; path=/; max-age=604800; SameSite=Lax`;
         }
       } catch (error: any) {
         if (error.message !== "No session" && error.message !== "Invalid session") {
@@ -101,6 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         localStorage.removeItem("user");
         localStorage.removeItem("token");
+        document.cookie = "amaz_token=; path=/; max-age=0";
+        document.cookie = "amaz_role=; path=/; max-age=0";
         setToken(null);
         setUser(null);
       } finally {
@@ -116,6 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser);
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
+    document.cookie = `amaz_token=${newToken}; path=/; max-age=604800; SameSite=Lax`;
+    document.cookie = `amaz_role=${encodeURIComponent(newUser.role)}; path=/; max-age=604800; SameSite=Lax`;
   };
 
   const logout = async () => {
@@ -148,6 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    document.cookie = "amaz_token=; path=/; max-age=0";
+    document.cookie = "amaz_role=; path=/; max-age=0";
     router.push("/login");
   };
 
