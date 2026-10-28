@@ -30,7 +30,7 @@ import { toast } from "sonner";
 import { CartItem, RxMetaPayload } from "../hooks/useCartSync";
 import { ExternalPrescriptionReceipt, ExternalPrescriptionMed } from "./PrintTemplates/ExternalPrescriptionReceipt";
 import { PrescriptionReceipt } from "./PrintTemplates/PrescriptionReceipt";
-import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { calculateDispenseQuantity, calculateStockUnits, formatDispenseLabel } from "@/lib/prescriptionUtils";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 export interface PrescriptionItem {
@@ -48,6 +48,7 @@ export interface PrescriptionItem {
     id: string;
     name: string;
     unit?: string;
+    packSize?: number;
     stockBatches?: { unitPrice: number; currentQuantity?: number }[];
   } | null;
 }
@@ -228,8 +229,9 @@ export function FrontdeskRxEditModal({
   const selectedPharmacyItems = hospitalItems.filter(i => selectedHospitalIds.has(i.id));
   const pharmacySubtotal = selectedPharmacyItems.reduce((sum, item) => {
     const unitPrice = item.unitPrice ?? item.medicine?.stockBatches?.[0]?.unitPrice ?? 0;
-    const qty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
-    return sum + (unitPrice * qty);
+    const doseQty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
+    const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1);
+    return sum + (unitPrice * stockQty);
   }, 0);
 
   const labSubtotal = invoiceLabItems.reduce((sum: number, li: any) => sum + (Number(li.total) || 0), 0);
@@ -241,11 +243,12 @@ export function FrontdeskRxEditModal({
 
     const cartItems: CartItem[] = selectedItems.map(item => {
       const unitPrice = item.unitPrice ?? item.medicine?.stockBatches?.[0]?.unitPrice ?? 0;
-      const qty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
+      const doseQty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
+      const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1);
       return {
         id: item.medicine!.id,
         name: item.medicine!.name,
-        qty,
+        qty: stockQty,
         price: unitPrice,
         dosage: item.dosage,
         frequency: item.frequency,
@@ -291,7 +294,7 @@ export function FrontdeskRxEditModal({
     frequency: i.frequency,
     duration: i.duration,
     instructions: i.instructions,
-    qty: i.dispenseQty || calculateDispenseQuantity(i)
+    qty: calculateStockUnits(i.dispenseQty || calculateDispenseQuantity(i), i.medicine?.packSize ?? 1)
   }));
 
   // Convert hospital items to format expected by PrescriptionReceipt
@@ -303,7 +306,7 @@ export function FrontdeskRxEditModal({
       frequency: i.frequency,
       duration: i.duration,
       instructions: i.instructions,
-      dispenseQty: i.dispenseQty || calculateDispenseQuantity(i) || 1,
+      dispenseQty: calculateStockUnits(i.dispenseQty || calculateDispenseQuantity(i) || 1, i.medicine?.packSize ?? 1),
     }));
 
   // All items for full print
@@ -313,7 +316,7 @@ export function FrontdeskRxEditModal({
     frequency: i.frequency,
     duration: i.duration,
     instructions: i.instructions,
-    dispenseQty: i.dispenseQty || calculateDispenseQuantity(i) || 1,
+    dispenseQty: calculateStockUnits(i.dispenseQty || calculateDispenseQuantity(i) || 1, i.medicine?.packSize ?? 1),
   }));
 
   const formattedDate = new Date(prescription.createdAt).toLocaleDateString("en-LK", {
@@ -419,7 +422,9 @@ export function FrontdeskRxEditModal({
                   </div>
                 ) : (
                   externalItems.map((item) => {
-                    const qty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
+                    const doseQty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
+                    const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1);
+                    const qtyLabel = formatDispenseLabel(stockQty, item.medicine?.unit);
                     const clinical = formatClinicalSummary(item);
 
                     return (
@@ -440,7 +445,7 @@ export function FrontdeskRxEditModal({
                             )}
                           </div>
                           <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-muted text-foreground border border-border shrink-0">
-                            QTY {qty}
+                            QTY {qtyLabel}
                           </span>
                         </div>
                         {clinical && (
@@ -509,9 +514,11 @@ export function FrontdeskRxEditModal({
                 {/* Medicines */}
                 {hospitalItems.map((item) => {
                   const isChecked = selectedHospitalIds.has(item.id);
-                  const qty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
+                  const doseQty = item.dispenseQty || calculateDispenseQuantity(item) || 1;
+                  const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1);
+                  const qtyLabel = formatDispenseLabel(stockQty, item.medicine?.unit);
                   const unitPrice = item.unitPrice ?? item.medicine?.stockBatches?.[0]?.unitPrice ?? 0;
-                  const lineTotal = unitPrice * qty;
+                  const lineTotal = unitPrice * stockQty;
                   const clinical = formatClinicalSummary(item);
 
                   return (
@@ -542,7 +549,7 @@ export function FrontdeskRxEditModal({
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                            QTY {qty}
+                            QTY {qtyLabel}
                           </span>
                           <span className="font-mono font-bold text-xs text-foreground min-w-[70px] text-right">
                             LKR {lineTotal.toFixed(2)}

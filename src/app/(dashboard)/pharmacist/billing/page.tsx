@@ -9,11 +9,14 @@ import { toast } from "sonner";
 import { Search, Plus, Minus, Trash2, CreditCard, SendToBack, Printer, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
-import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { calculateDispenseQuantity, calculateStockUnits } from "@/lib/prescriptionUtils";
 
 interface InventoryItem {
   id: string;
   name: string;
+  form?: string | null;
+  strength?: string | null;
+  unit?: string | null;
   unitPrice: number;
   stock: number;
   category: string;
@@ -24,6 +27,19 @@ interface InventoryItem {
 interface CartItem extends InventoryItem {
   qty: number;
 }
+
+const formatStockUnit = (count: number, unit?: string | null): string => {
+  const clean = (unit || "unit").trim();
+  const lower = clean.toLowerCase();
+  if (lower === "bottle" || lower === "bottles") return count === 1 ? "Bottle" : "Bottles";
+  if (lower === "tube" || lower === "tubes") return count === 1 ? "Tube" : "Tubes";
+  if (lower === "tablet" || lower === "tablets") return count === 1 ? "Tablet" : "Tablets";
+  if (lower === "capsule" || lower === "capsules") return count === 1 ? "Capsule" : "Capsules";
+  if (lower === "strip" || lower === "strips") return count === 1 ? "Strip" : "Strips";
+  if (lower === "vial" || lower === "vials") return count === 1 ? "Vial" : "Vials";
+  if (lower === "piece" || lower === "pieces") return count === 1 ? "Piece" : "Pieces";
+  return count === 1 ? clean : `${clean}s`;
+};
 
 let billCounter = 1001;
 
@@ -51,10 +67,15 @@ export default function PharmacistPOSPage() {
         const meds = data.data || data;
         const mapped = (Array.isArray(meds) ? meds : []).map((med: any) => {
           const stock = med.stockBatches?.reduce((sum: number, b: any) => sum + b.currentQuantity, 0) || 0;
-          const unitPrice = med.stockBatches?.length > 0 ? med.stockBatches[med.stockBatches.length - 1].unitPrice : 0;
+          const unitPrice = med.stockBatches?.length > 0 
+            ? med.stockBatches[med.stockBatches.length - 1].unitPrice 
+            : (med.retailPrice || 0);
           return {
             id: med.id,
             name: med.name,
+            form: med.form || null,
+            strength: med.strength || null,
+            unit: med.unit || "Tablet",
             barcode: med.barcode || "N/A",
             unitPrice,
             stock,
@@ -103,14 +124,17 @@ export default function PharmacistPOSPage() {
       
       if (type === "MEDICINE") {
         // Map the backend structure to InventoryItem if not cached
-        const price = data.stockBatches?.[0]?.unitPrice ?? 0;
+        const price = data.stockBatches?.[0]?.unitPrice ?? (data.retailPrice || 0);
         addToCart({
           id: data.id,
           name: data.name,
+          form: data.form || null,
+          strength: data.strength || null,
+          unit: data.unit || "Tablet",
           unitPrice: price,
-          stock: data.stockBatches?.[0]?.currentQuantity ?? 0,
+          stock: data.stockBatches?.reduce((s: number, b: any) => s + (b.currentQuantity || 0), 0) ?? 0,
           category: data.category,
-          itemType: data.itemType,
+          itemType: data.itemType || "MEDICINE",
           barcode: data.barcode || "",
         });
         toast.success(`Added ${data.name}`);
@@ -119,6 +143,7 @@ export default function PharmacistPOSPage() {
           id: data.id,
           name: data.title,
           unitPrice: data.price,
+          unit: "Service",
           stock: 999, // services don't deplete
           category: "Service",
           itemType: "SERVICE",
@@ -131,15 +156,21 @@ export default function PharmacistPOSPage() {
            let count = 0;
            for (const item of rx.items) {
              if (item.medicineId && item.medicine) {
-               const price = item.medicine.stockBatches?.[0]?.unitPrice ?? 0;
-               const qty = calculateDispenseQuantity(item);
+               const price = item.medicine.stockBatches?.[0]?.unitPrice ?? (item.medicine.retailPrice || 0);
+               const doseQty = calculateDispenseQuantity(item);
+               const qty = item.dispenseQty && Number(item.dispenseQty) > 0
+                 ? Number(item.dispenseQty)
+                 : calculateStockUnits(doseQty, item.medicine.packSize ?? 1, item.medicine.unit);
                addToCart({
                  id: item.medicine.id,
                  name: item.medicine.name,
+                 form: item.medicine.form || null,
+                 strength: item.strength || item.medicine.strength || null,
+                 unit: item.medicine.unit || "Tablet",
                  unitPrice: price,
-                 stock: item.medicine.stockBatches?.[0]?.currentQuantity ?? 0,
+                 stock: item.medicine.stockBatches?.reduce((s: number, b: any) => s + (b.currentQuantity || 0), 0) ?? 0,
                  category: item.medicine.category,
-                 itemType: item.medicine.itemType,
+                 itemType: item.medicine.itemType || "MEDICINE",
                  barcode: item.medicine.barcode || "",
                }, qty);
                count++;
@@ -165,15 +196,21 @@ export default function PharmacistPOSPage() {
           for (const rx of prescriptions) {
             for (const item of rx.items || []) {
               if (item.medicineId && item.medicine) {
-                const price = item.medicine.stockBatches?.[0]?.unitPrice ?? 0;
-                const qty = calculateDispenseQuantity(item);
+                const price = item.medicine.stockBatches?.[0]?.unitPrice ?? (item.medicine.retailPrice || 0);
+                const doseQty = calculateDispenseQuantity(item);
+                const qty = item.dispenseQty && Number(item.dispenseQty) > 0
+                  ? Number(item.dispenseQty)
+                  : calculateStockUnits(doseQty, item.medicine.packSize ?? 1, item.medicine.unit);
                 addToCart({
                   id: item.medicine.id,
                   name: item.medicine.name,
+                  form: item.medicine.form || null,
+                  strength: item.strength || item.medicine.strength || null,
+                  unit: item.medicine.unit || "Tablet",
                   unitPrice: price,
-                  stock: item.medicine.stockBatches?.[0]?.currentQuantity ?? 0,
+                  stock: item.medicine.stockBatches?.reduce((s: number, b: any) => s + (b.currentQuantity || 0), 0) ?? 0,
                   category: item.medicine.category,
-                  itemType: item.medicine.itemType,
+                  itemType: item.medicine.itemType || "MEDICINE",
                   barcode: item.medicine.barcode || "",
                 }, qty);
                 count++;
@@ -378,13 +415,20 @@ export default function PharmacistPOSPage() {
                   {cart.map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card text-card-foreground shadow-sm group">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-semibold text-sm">{item.name}</p>
+                          {item.strength && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              {item.strength}
+                            </span>
+                          )}
                           <Badge variant="outline" className="text-[10px] py-0 h-4">
                             {item.itemType === 'MEDICINE' ? '💊' : item.itemType === 'CONSUMABLE' ? '📦' : '🔧'}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">LKR {item.unitPrice.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          LKR {item.unitPrice.toFixed(2)} / {item.unit || "unit"}
+                        </p>
                       </div>
                       
                       <div className="flex items-center gap-4">
@@ -392,8 +436,8 @@ export default function PharmacistPOSPage() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-l-md text-muted-foreground hover:bg-muted/50" onClick={() => updateQty(item.id, -1)}>
                             <Minus className="w-3 h-3" />
                           </Button>
-                          <div className="w-10 text-center text-sm font-medium">
-                            {item.qty}
+                          <div className="w-12 text-center text-xs font-semibold">
+                            {item.qty} <span className="text-[10px] text-muted-foreground block font-normal">{formatStockUnit(item.qty, item.unit)}</span>
                           </div>
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-r-md text-muted-foreground hover:bg-muted/50" onClick={() => updateQty(item.id, 1)}>
                             <Plus className="w-3 h-3" />
@@ -469,14 +513,21 @@ export default function PharmacistPOSPage() {
                     className="h-auto py-3 px-4 flex flex-col items-start text-left justify-start gap-1 border-border hover:border-primary hover:bg-primary/5 transition-all bg-card text-card-foreground shadow-sm"
                     onClick={() => addToCart(item)}
                   >
-                    <div className="w-full flex justify-between items-start">
+                    <div className="w-full flex justify-between items-start gap-1">
                       <span className="font-semibold text-sm line-clamp-1" title={item.name}>{item.name}</span>
-                      <span className="text-[10px] font-bold">
+                      <span className="text-[10px] font-bold shrink-0">
                         {item.itemType === 'MEDICINE' ? '💊' : item.itemType === 'CONSUMABLE' ? '📦' : '🔧'}
                       </span>
                     </div>
+                    {item.strength && (
+                      <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        {item.strength}
+                      </span>
+                    )}
                     <div className="w-full flex justify-between items-center text-xs text-muted-foreground mt-1">
-                      <span>Stock: {item.stock}</span>
+                      <span className={item.stock === 0 ? "text-red-500 font-semibold" : ""}>
+                        Stock: {item.stock} {formatStockUnit(item.stock, item.unit)}
+                      </span>
                       <span className="font-bold text-primary">LKR {item.unitPrice.toFixed(2)}</span>
                     </div>
                   </Button>

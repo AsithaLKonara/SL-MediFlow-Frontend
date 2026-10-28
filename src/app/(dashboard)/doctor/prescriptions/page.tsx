@@ -44,7 +44,7 @@ import {
   getFrequencyBadgeClass,
   getRouteBadgeClass
 } from "@/lib/prescriptionConstants";
-import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { calculateDispenseQuantity, calculateStockUnits, formatDispenseLabel } from "@/lib/prescriptionUtils";
 
 interface PrescriptionItem {
   id: string;
@@ -356,12 +356,16 @@ export default function PrescriptionDashboardPage() {
     setIsSubmittingItem(true);
     setItemValidationError(null);
 
-    const calcQty = calculateDispenseQuantity({
+    const doseQty = calculateDispenseQuantity({
       dosageAmount: itemForm.dosageAmount,
       frequency: itemForm.frequency,
       duration: itemForm.duration,
       quantity: itemForm.quantity ? Number(itemForm.quantity) : null
     });
+
+    const med = catalogMedicines.find(m => m.id === itemForm.medicineId || m.name.toLowerCase() === itemForm.drugName.trim().toLowerCase());
+    const stockQty = calculateStockUnits(doseQty, med?.packSize ?? 1, med?.unit);
+    const finalQty = itemForm.quantity ? Number(itemForm.quantity) : stockQty;
 
     const payload = {
       drugName: itemForm.drugName.trim(),
@@ -375,9 +379,9 @@ export default function PrescriptionDashboardPage() {
       startDate: itemForm.startDate ? new Date(itemForm.startDate).toISOString() : null,
       endDate: itemForm.endDate ? new Date(itemForm.endDate).toISOString() : null,
       instructions: itemForm.instructions.trim() || null,
-      quantity: itemForm.quantity ? Number(itemForm.quantity) : calcQty,
-      dispenseQty: calcQty,
-      medicineId: itemForm.medicineId || null
+      quantity: finalQty,
+      dispenseQty: finalQty,
+      medicineId: itemForm.medicineId || med?.id || null
     };
 
     try {
@@ -455,10 +459,14 @@ export default function PrescriptionDashboardPage() {
       defaultRoute = "SUPPOSITORY";
     }
 
+    const formStr = (med.form || "").toLowerCase();
+    const isLiquid = formStr.includes("syrup") || formStr.includes("susp") || formStr.includes("liquid");
+
     setItemForm(prev => ({
       ...prev,
       drugName: med.name,
       strength: parsedStrength || prev.strength,
+      dosageAmount: isLiquid ? "5" : (prev.dosageAmount || "1"),
       doseUnit: defaultUnit,
       route: defaultRoute,
       medicineId: med.id
@@ -1157,15 +1165,27 @@ export default function PrescriptionDashboardPage() {
                 <div>
                   <span className="text-xs font-bold text-foreground block">
                     Calculated Dispense Quantity:{" "}
-                    <span className="font-mono text-primary font-extrabold text-sm">
-                      {calculateDispenseQuantity({
+                    {(() => {
+                      const doseQty = calculateDispenseQuantity({
                         dosageAmount: itemForm.dosageAmount,
                         frequency: itemForm.frequency,
                         duration: itemForm.duration,
                         quantity: itemForm.quantity ? Number(itemForm.quantity) : null
-                      })}{" "}
-                      units
-                    </span>
+                      });
+                      const med = catalogMedicines.find(m => m.id === itemForm.medicineId || m.name.toLowerCase() === itemForm.drugName.trim().toLowerCase());
+                      const stockQty = calculateStockUnits(doseQty, med?.packSize ?? 1, med?.unit);
+                      const label = formatDispenseLabel(stockQty, med?.unit);
+                      return (
+                        <span className="font-mono text-primary font-extrabold text-sm">
+                          {label}
+                          {med && med.packSize > 1 && (
+                            <span className="text-[11px] font-normal text-muted-foreground ml-2">
+                              ({doseQty} {itemForm.doseUnit || "units"} total)
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })()}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
                     {itemForm.frequency === "STAT"

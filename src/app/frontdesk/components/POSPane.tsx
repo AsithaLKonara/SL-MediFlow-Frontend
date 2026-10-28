@@ -18,7 +18,7 @@ import { MergedReceiptTemplate } from "../../../components/printing/MergedReceip
 import { CheckCircle2, Printer } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { POSHistoryModal } from "./POSHistoryModal";
-import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { calculateDispenseQuantity, calculateStockUnits } from "@/lib/prescriptionUtils";
 import { useCallback } from "react";
 import { openCashDrawer } from "@/lib/cashDrawer";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
@@ -439,12 +439,19 @@ export function POSPane() {
         if (rx && rx.items) {
           const cartItems: CartItem[] = rx.items
             .filter((item: any) => item.medicineId && item.medicine)
-            .map((item: any) => ({
-              id: item.medicine.id,
-              name: item.medicine.name,
-              qty: calculateDispenseQuantity(item),
-              price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
-            }));
+            .map((item: any) => {
+              const doseQty = item.dispenseQty || calculateDispenseQuantity(item);
+              const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1, item.medicine?.unit);
+              const finalQty = item.dispenseQty != null && Number(item.dispenseQty) >= 1 ? Number(item.dispenseQty) : stockQty;
+              return {
+                id: item.medicine.id,
+                name: item.medicine.name,
+                qty: finalQty,
+                price: item.medicine.stockBatches?.[0]?.unitPrice ?? item.medicine.retailPrice ?? 0,
+                unit: item.medicine.unit,
+                packSize: item.medicine.packSize,
+              };
+            });
           
           if (cartItems.length > 0) {
             setCart(prev => {
@@ -523,12 +530,19 @@ export function POSPane() {
             if (rx.status !== "DISPENSED" && rx.items) {
               const items: CartItem[] = rx.items
                 .filter((item: any) => item.medicineId && item.medicine)
-                .map((item: any) => ({
-                  id: item.medicine.id,
-                  name: item.medicine.name,
-                  qty: calculateDispenseQuantity(item),
-                  price: item.medicine.stockBatches?.[0]?.unitPrice ?? 0,
-                }));
+                .map((item: any) => {
+                  const doseQty = item.dispenseQty || calculateDispenseQuantity(item);
+                  const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1, item.medicine?.unit);
+                  const finalQty = item.dispenseQty != null && Number(item.dispenseQty) >= 1 ? Number(item.dispenseQty) : stockQty;
+                  return {
+                    id: item.medicine.id,
+                    name: item.medicine.name,
+                    qty: finalQty,
+                    price: item.medicine.stockBatches?.[0]?.unitPrice ?? item.medicine.retailPrice ?? 0,
+                    unit: item.medicine.unit,
+                    packSize: item.medicine.packSize,
+                  };
+                });
               allCartItems.push(...items);
 
               apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/prescriptions/${rx.id}/status`, {
@@ -817,17 +831,24 @@ export function POSPane() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      id={`qty-input-${item.id}`}
-                      type="number"
-                      value={item.qty}
-                      className={cn(
-                        "w-16 h-8 text-right ml-auto bg-background border-border text-foreground",
-                        isInsufficient && "border-red-500 focus-visible:ring-red-500 text-red-600 font-bold"
+                    <div className="flex items-center justify-end gap-1">
+                      <Input
+                        id={`qty-input-${item.id}`}
+                        type="number"
+                        value={item.qty}
+                        className={cn(
+                          "w-16 h-8 text-right bg-background border-border text-foreground",
+                          isInsufficient && "border-red-500 focus-visible:ring-red-500 text-red-600 font-bold"
+                        )}
+                        onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
+                        onFocus={(e) => e.target.select()}
+                      />
+                      {item.unit && (
+                        <span className="text-[10px] text-muted-foreground font-medium shrink-0">
+                          {item.unit.toLowerCase().endsWith('s') ? item.unit : `${item.unit}s`}
+                        </span>
                       )}
-                      onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
-                      onFocus={(e) => e.target.select()}
-                    />
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-medium">LKR {(item.price * item.qty).toFixed(2)}</TableCell>

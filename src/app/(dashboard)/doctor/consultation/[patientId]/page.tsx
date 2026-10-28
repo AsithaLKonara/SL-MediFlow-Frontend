@@ -15,7 +15,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { calculateDispenseQuantity, calculateStockUnits, formatDispenseLabel } from "@/lib/prescriptionUtils";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 import { LabTestsModal } from "@/components/doctor/LabTestsModal";
 import { ExtraServicesModal, SelectedExtraService } from "@/components/doctor/ExtraServicesModal";
@@ -126,7 +126,9 @@ export default function ConsultationPage() {
     dispenseQty: null as number | null,
     quantity: null as number | null,
     timesPerDay: "",
-    tabletsPerTime: ""
+    tabletsPerTime: "",
+    packSize: 1,
+    unit: "Tablet"
   };
   const [addedDrugs, setAddedDrugs] = useState<typeof initialDrugState[]>([]);
   const [currentDrug, setCurrentDrug] = useState(initialDrugState);
@@ -391,7 +393,7 @@ export default function ConsultationPage() {
               const freq = (item.frequency || "OD").trim().toUpperCase();
               const route = (item.route || "ORAL").trim().toUpperCase();
               
-              const resolvedQty = calculateDispenseQuantity({
+              const resolvedDoseQty = calculateDispenseQuantity({
                 dispenseQty: item.dispenseQty,
                 quantity: item.quantity,
                 dosageAmount: item.dosageAmount,
@@ -400,6 +402,13 @@ export default function ConsultationPage() {
                 timesPerDay: item.timesPerDay,
                 tabletsPerTime: item.tabletsPerTime
               });
+
+              const medPackSize = item.medicine?.packSize ?? 1;
+              const medUnit = item.medicine?.unit || "Tablet";
+              const stockQty = calculateStockUnits(resolvedDoseQty, medPackSize, medUnit);
+              const finalDispenseQty = item.dispenseQty != null && Number(item.dispenseQty) >= 1
+                ? Number(item.dispenseQty)
+                : stockQty;
 
               return {
                 drug: item.drugName || item.medicine?.name || "",
@@ -415,10 +424,12 @@ export default function ConsultationPage() {
                 instructions: item.instructions || "",
                 timing: "",
                 medicineId: item.medicineId || item.medicine?.id || null,
-                dispenseQty: item.dispenseQty || item.quantity || resolvedQty,
+                dispenseQty: finalDispenseQty,
                 quantity: item.quantity || null,
                 timesPerDay: "",
-                tabletsPerTime: ""
+                tabletsPerTime: "",
+                packSize: medPackSize,
+                unit: medUnit
               };
             });
             setAddedDrugs(parsedDrugs);
@@ -431,10 +442,16 @@ export default function ConsultationPage() {
   const handleAddOrUpdateDrug = () => {
     if (!currentDrug.drug.trim()) return toast.error("Medication name is required.");
     
-    const computedQty = calculateDispenseQuantity(currentDrug);
+    const doseQty = calculateDispenseQuantity(currentDrug);
+    const stockQty = calculateStockUnits(doseQty, currentDrug.packSize ?? 1, currentDrug.unit);
+    const finalDispenseQty = currentDrug.quantity != null && Number(currentDrug.quantity) >= 1
+      ? Number(currentDrug.quantity)
+      : stockQty;
+
     const drugToSave = {
       ...currentDrug,
-      dispenseQty: currentDrug.quantity != null ? Number(currentDrug.quantity) : computedQty
+      dispenseQty: finalDispenseQty,
+      quantity: currentDrug.quantity != null && Number(currentDrug.quantity) >= 1 ? Number(currentDrug.quantity) : null
     };
 
     if (editingIndex !== null) {
@@ -468,14 +485,10 @@ export default function ConsultationPage() {
   };
 
   const selectDrug = (medicine: any) => {
-    let parsedDosage = medicine.unit || "";
     let finalDrugName = medicine.name;
-    let strength = "";
-
-    const strengthMatch = medicine.name.match(/(\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|iu|%))/i);
-    if (strengthMatch) {
-      strength = strengthMatch[1];
-    }
+    const form = (medicine.form || "").toLowerCase();
+    const strength = medicine.strength || medicine.name.match(/(\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|iu|%))/i)?.[1] || "";
+    let parsedDosage = strength || "";
 
     if (medicine.genericName && medicine.name.toLowerCase().includes(medicine.genericName.toLowerCase())) {
       const extracted = medicine.name.substring(medicine.genericName.length).trim();
@@ -486,34 +499,40 @@ export default function ConsultationPage() {
     }
 
     let defaultUnit = "tablet(s)";
-    const catOrUnit = `${medicine.category || ""} ${medicine.unit || ""} ${medicine.name || ""}`.toLowerCase();
-    if (catOrUnit.includes("syrup") || catOrUnit.includes("susp") || catOrUnit.includes("liquid") || catOrUnit.includes("ml")) {
-      defaultUnit = "ml";
-    } else if (catOrUnit.includes("cap")) {
+    let defaultRoute = "ORAL";
+
+    if (form.includes("capsule")) {
       defaultUnit = "capsule(s)";
-    } else if (catOrUnit.includes("inj")) {
+    } else if (form.includes("syrup") || form.includes("susp") || form.includes("liquid")) {
       defaultUnit = "ml";
-    } else if (catOrUnit.includes("drop")) {
-      defaultUnit = "drops";
+    } else if (form.includes("cream") || form.includes("gel") || form.includes("ointment") || form.includes("topical")) {
+      defaultUnit = "application(s)";
+      defaultRoute = "TOPICAL";
+    } else if (form.includes("eye") || form.includes("nasal") || form.includes("drop")) {
+      defaultUnit = "drop(s)";
+      defaultRoute = form.includes("eye") ? "OPHTHALMIC" : "NASAL";
+    } else if (form.includes("inj")) {
+      defaultUnit = "ml";
+      defaultRoute = "IM";
+    } else if (form.includes("inhaler")) {
+      defaultUnit = "puff(s)";
+      defaultRoute = "INHALATION";
     }
 
-    let defaultRoute = "ORAL";
-    if (catOrUnit.includes("iv")) {
-      defaultRoute = "IV";
-    } else if (catOrUnit.includes("im") || catOrUnit.includes("inj")) {
-      defaultRoute = "IM";
-    } else if (catOrUnit.includes("supp")) {
-      defaultRoute = "SUPPOSITORY";
-    }
+    const isLiquid = form.includes("syrup") || form.includes("susp") || form.includes("liquid");
+    const defaultDoseAmount = isLiquid ? "5" : "1";
 
     setCurrentDrug(prev => ({
       ...prev,
       drug: finalDrugName,
       strength: strength || prev.strength,
       dosage: parsedDosage || prev.dosage,
+      dosageAmount: defaultDoseAmount,
       doseUnit: defaultUnit,
       route: defaultRoute,
-      medicineId: medicine.id
+      medicineId: medicine.id,
+      packSize: medicine.packSize ?? 1,
+      unit: medicine.unit || "Tablet"
     }));
     setActiveDrugSearch(false);
     
@@ -607,7 +626,12 @@ export default function ConsultationPage() {
         customConsultationFee: selectedFee !== null ? selectedFee : (customDocFee ? Number(customDocFee) : undefined),
         extraServices: selectedExtraServices,
         items: addedDrugs.map(d => {
-          const dispenseQty = calculateDispenseQuantity(d);
+          const doseQty = calculateDispenseQuantity(d);
+          const stockQty = calculateStockUnits(doseQty, d.packSize ?? 1, d.unit);
+          const finalDispenseQty = d.quantity != null && Number(d.quantity) >= 1
+            ? Number(d.quantity)
+            : (d.dispenseQty || stockQty);
+
           const resolvedMedId = d.medicineId || availableMedicines.find(m => m.name === d.drug || m.genericName === d.drug)?.id || null;
 
           const mealTiming = d.timing === "before" ? "Before meals" : d.timing === "after" ? "After meals" : "";
@@ -626,8 +650,8 @@ export default function ConsultationPage() {
             startDate: d.startDate ? new Date(d.startDate).toISOString() : null,
             endDate: d.endDate ? new Date(d.endDate).toISOString() : null,
             instructions: combinedInstructions || null,
-            quantity: d.quantity != null ? Number(d.quantity) : dispenseQty,
-            dispenseQty
+            quantity: finalDispenseQty,
+            dispenseQty: finalDispenseQty
           };
         })
       };
@@ -1236,20 +1260,29 @@ export default function ConsultationPage() {
                                     <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.category}</span>
                                   </div>
                                   <div className="text-right shrink-0 ml-3">
-                                    <span className="block text-muted-foreground text-xs">{m.unit}</span>
-                                    {isOutOfStock ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30">
-                                        <AlertTriangle className="w-3 h-3" /> OUT OF STOCK
-                                      </span>
-                                    ) : isLowStock ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                                        ⚠️ {m.stock} LOW STOCK
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30">
-                                        ✓ {m.stock} IN STOCK
-                                      </span>
-                                    )}
+                                    <div className="flex items-center gap-1.5 justify-end">
+                                      {m.strength && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold">
+                                          {m.strength}
+                                        </span>
+                                      )}
+                                      <span className="text-xs text-muted-foreground font-medium">{m.form || m.unit}</span>
+                                    </div>
+                                    <div className="mt-1">
+                                      {isOutOfStock ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30">
+                                          <AlertTriangle className="w-3 h-3" /> OUT OF STOCK
+                                        </span>
+                                      ) : isLowStock ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                          ⚠️ {m.stock} {m.unit || "unit"}{m.stock > 1 && !m.unit?.endsWith("s") ? "s" : ""}
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30">
+                                          ✓ {m.stock} {m.unit || "unit"}{m.stock > 1 && !m.unit?.endsWith("s") ? "s" : ""}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </button>
                               );
@@ -1274,7 +1307,7 @@ export default function ConsultationPage() {
                               <div>
                                 <span className="font-bold uppercase tracking-wider text-red-600 dark:text-red-400">OUT OF STOCK IN HOSPITAL PHARMACY</span>
                                 <p className="mt-0.5">
-                                  <strong>{med.name}</strong> currently has <strong>0 units</strong> in stock. You can still prescribe it for outside pharmacy dispensing, but it cannot be dispensed by the hospital pharmacy.
+                                  <strong>{med.name}</strong> currently has <strong>0 {med.unit || "unit"}s</strong> in stock. You can still prescribe it for outside pharmacy dispensing, but it cannot be dispensed by the hospital pharmacy.
                                 </p>
                               </div>
                             </div>
@@ -1285,7 +1318,7 @@ export default function ConsultationPage() {
                           return (
                             <div className="mt-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-center gap-2 text-xs">
                               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                              <span><strong>Low Stock Warning:</strong> Only <strong>{med.stock} units</strong> remaining in hospital pharmacy.</span>
+                              <span><strong>Low Stock Warning:</strong> Only <strong>{med.stock} {med.unit || "unit"}{med.stock > 1 && !med.unit?.endsWith("s") ? "s" : ""}</strong> remaining in hospital pharmacy.</span>
                             </div>
                           );
                         }
@@ -1294,7 +1327,7 @@ export default function ConsultationPage() {
                           return (
                             <div className="mt-1.5 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-medium">
                               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                              <span>In Stock: <strong>{med.stock} units</strong> available in pharmacy.</span>
+                              <span>In Stock: <strong>{med.stock} {med.unit || "unit"}{med.stock > 1 && !med.unit?.endsWith("s") ? "s" : ""}</strong> available in pharmacy.</span>
                             </div>
                           );
                         }
@@ -1396,20 +1429,35 @@ export default function ConsultationPage() {
                     </div>
                     <div className="md:col-span-3">
                       <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">
-                        Calculated Qty
+                        Calculated Dispense
                         {currentDrug.frequency === "STAT" && (
                           <span className="text-[10px] text-rose-500 ml-1 font-semibold">(Immediate dose)</span>
                         )}
                       </label>
-                      <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-input bg-muted/40">
-                        <span className="font-mono font-bold text-primary text-sm">
-                          {calculateDispenseQuantity(currentDrug)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">units</span>
-                      </div>
+                      {(() => {
+                        const doseUnits = calculateDispenseQuantity(currentDrug);
+                        const stockUnits = calculateStockUnits(doseUnits, currentDrug.packSize ?? 1, currentDrug.unit);
+                        const label = formatDispenseLabel(stockUnits, currentDrug.unit);
+                        return (
+                          <div className="flex flex-col justify-center h-9 px-3 rounded-md border border-input bg-muted/40">
+                            <div className="flex items-center gap-1.5 overflow-hidden">
+                              <span className="font-mono font-bold text-primary text-sm shrink-0">
+                                {label}
+                              </span>
+                              {currentDrug.packSize > 1 && (
+                                <span className="text-[10px] text-muted-foreground ml-auto font-mono truncate">
+                                  ({doseUnits} {currentDrug.doseUnit || "units"} total)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="md:col-span-3">
-                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">Override Qty (Optional)</label>
+                      <label className="block text-[11px] uppercase font-bold text-muted-foreground mb-1.5">
+                        Override Qty {currentDrug.unit ? `(${currentDrug.unit}s)` : "(Optional)"}
+                      </label>
                       <Input
                         type="number"
                         min="1"
@@ -1569,9 +1617,24 @@ export default function ConsultationPage() {
                             ) : "-"}
                           </TableCell>
                           <TableCell className="text-center font-bold text-foreground">
-                            <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-mono">
-                              {d.quantity != null ? d.quantity : calculateDispenseQuantity(d)}
-                            </span>
+                            {(() => {
+                              const doseUnits = calculateDispenseQuantity(d);
+                              const stockUnits = calculateStockUnits(doseUnits, d.packSize ?? 1, d.unit);
+                              const finalQty = d.quantity != null ? d.quantity : (d.dispenseQty || stockUnits);
+                              const label = formatDispenseLabel(finalQty, d.unit);
+                              return (
+                                <div className="flex flex-col items-center">
+                                  <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-mono">
+                                    {label}
+                                  </span>
+                                  {d.packSize && d.packSize > 1 ? (
+                                    <span className="text-[10px] text-muted-foreground mt-0.5 font-normal">
+                                      ({doseUnits} {d.doseUnit || "units"})
+                                    </span>
+                                  ) : null}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button

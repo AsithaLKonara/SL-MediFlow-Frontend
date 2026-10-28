@@ -12,6 +12,8 @@ export type CartItem = {
   frequency?: string;
   duration?: string;
   instructions?: string;
+  unit?: string;
+  packSize?: number;
 };
 
 export type SyncState = {

@@ -19,16 +19,27 @@ import { AdvancedFilter } from "@/components/ui/advanced-filter";
 interface InventoryItem {
   id: string;
   name: string;
+  genericName?: string;
   barcode: string;
   category: string;
   itemType: string;
+  form?: string;
+  strength?: string;
   stock: number;
   reorderLevel: number;
   unit: string;
+  packSize?: number;
   unitPrice: number;
   expiryDate: string;
   status: string;
 }
+
+const formatStockUnit = (count: number, unit?: string) => {
+  const u = (unit || "unit").trim();
+  if (count === 1) return u;
+  if (u.toLowerCase().endsWith("s")) return u;
+  return `${u}s`;
+};
 
 export default function SuperAdminInventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -74,8 +85,10 @@ export default function SuperAdminInventoryPage() {
     genericName: "",
     category: "",
     itemType: "MEDICINE",
-    form: "",
-    unit: "",
+    form: "Tablet",
+    strength: "",
+    unit: "Tablet",
+    packSize: "1",
     reorderLevel: "100",
     baseStock: "",
     basePrice: "",
@@ -130,7 +143,10 @@ export default function SuperAdminInventoryPage() {
         body: JSON.stringify({
           name: editingItem.name,
           category: editingItem.category,
+          form: editingItem.form,
+          strength: editingItem.strength || undefined,
           unit: editingItem.unit,
+          packSize: editingItem.packSize ? Number(editingItem.packSize) : undefined,
           reorderLevel: editingItem.reorderLevel,
           barcode: editingItem.barcode
         })
@@ -200,13 +216,17 @@ export default function SuperAdminInventoryPage() {
           return {
             id: med.id,
             name: med.name,
+            genericName: med.genericName,
             barcode: med.barcode || 'N/A',
             category: med.category,
             itemType: med.itemType || 'MEDICINE',
+            form: med.form || 'Tablet',
+            strength: med.strength || '',
             stock,
             reorderLevel: med.reorderLevel,
-            unit: med.unit,
-            unitPrice: latestPrice,
+            unit: med.unit || 'Tablet',
+            packSize: med.packSize ?? 1,
+            unitPrice: latestPrice || med.retailPrice || 0,
             expiryDate: earliestExpiry,
             status
           };
@@ -324,7 +344,9 @@ export default function SuperAdminInventoryPage() {
           category: newDrug.category,
           itemType: newDrug.itemType,
           form: isMedical ? newDrug.form : undefined,
+          strength: isMedical ? (newDrug.strength || undefined) : undefined,
           unit: newDrug.unit,
+          packSize: newDrug.packSize ? parseInt(newDrug.packSize) : 1,
           reorderLevel: parsedReorder,
           baseStock: newDrug.baseStock ? parseInt(newDrug.baseStock) : undefined,
           basePrice: newDrug.basePrice ? parseFloat(newDrug.basePrice) : undefined,
@@ -337,7 +359,7 @@ export default function SuperAdminInventoryPage() {
         toast.success(`Successfully added item master: ${newDrug.name}`);
         fetchMedicines();
         setIsAddDrugOpen(false);
-        setNewDrug({ name: "", barcode: "", genericName: "", category: "", itemType: "MEDICINE", form: "", unit: "", reorderLevel: "100", baseStock: "", basePrice: "", expiryDate: "" });
+        setNewDrug({ name: "", barcode: "", genericName: "", category: "", itemType: "MEDICINE", form: "", strength: "", unit: "", packSize: "1", reorderLevel: "100", baseStock: "", basePrice: "", expiryDate: "" });
       } else {
         console.error("Add item failed:", data);
         setErrorDialog({ open: true, message: data?.error || data?.message || "Failed to add new item master", isConflict: data?.code === 'ALREADY_EXISTS', itemId: data?.itemId });
@@ -519,14 +541,33 @@ export default function SuperAdminInventoryPage() {
                     <TableRow key={item.id} className={item.status !== "IN_STOCK" ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-muted/30"}>
                       <TableCell className="pl-6 font-mono text-xs text-muted-foreground">{item.barcode}</TableCell>
                       <TableCell>
-                        <p className="font-normal text-muted-foreground">{item.name}</p>
-                        <Badge variant="outline" className="mt-1 text-[10px] tracking-wide">
-                          {item.itemType === 'MEDICINE' ? 'Drug' : item.itemType === 'CONSUMABLE' ? 'Consumable' : 'Equipment'}
-                        </Badge>
+                        <div className="flex flex-col gap-0.5">
+                          <p className="font-medium text-foreground">{item.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {item.strength && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                                {item.strength}
+                              </Badge>
+                            )}
+                            {item.form && (
+                              <span className="text-[11px] text-muted-foreground font-medium">
+                                {item.form}
+                              </span>
+                            )}
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 tracking-wide text-muted-foreground">
+                              {item.itemType === 'MEDICINE' ? 'Drug' : item.itemType === 'CONSUMABLE' ? 'Consumable' : 'Equipment'}
+                            </Badge>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{item.category}</TableCell>
                       <TableCell className={`text-right font-bold ${item.status !== "IN_STOCK" ? "text-red-600" : "text-green-600"}`}>
-                        {item.stock} {item.unit}s
+                        <div>{item.stock} {formatStockUnit(item.stock, item.unit)}</div>
+                        {item.packSize && item.packSize > 1 ? (
+                          <span className="text-[10px] font-normal text-muted-foreground block">
+                            ({item.packSize}{item.unit === "Bottle" ? "ml" : item.unit === "Tube" ? "g" : " doses"}/unit)
+                          </span>
+                        ) : null}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">{item.reorderLevel}</TableCell>
                       <TableCell className="text-right font-medium">LKR {item.unitPrice.toFixed(2)}</TableCell>
@@ -671,14 +712,66 @@ export default function SuperAdminInventoryPage() {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="form">Form*</Label>
-                <Input id="form" placeholder="e.g. Tablet, Syrup" value={newDrug.form} onChange={e => setNewDrug({...newDrug, form: e.target.value})} />
+                <Label htmlFor="form">Dosage Form*</Label>
+                <select
+                  id="form"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={newDrug.form}
+                  onChange={e => {
+                    const sel = e.target.value;
+                    let defUnit = "Tablet";
+                    let defPackSize = "1";
+                    if (sel === "Tablet") { defUnit = "Tablet"; defPackSize = "1"; }
+                    else if (sel === "Capsule") { defUnit = "Capsule"; defPackSize = "1"; }
+                    else if (["Syrup", "Suspension", "Liquid"].includes(sel)) { defUnit = "Bottle"; defPackSize = "60"; }
+                    else if (["Eye Drop", "Nasal Drop"].includes(sel)) { defUnit = "Bottle"; defPackSize = "10"; }
+                    else if (["Cream", "Gel", "Ointment", "Topical"].includes(sel)) { defUnit = "Tube"; defPackSize = "30"; }
+                    else if (sel === "Strip") { defUnit = "Strip"; defPackSize = "10"; }
+                    else if (sel === "Injection") { defUnit = "Vial"; defPackSize = "1"; }
+                    else { defUnit = "Piece"; defPackSize = "1"; }
+                    setNewDrug(prev => ({ ...prev, form: sel, unit: defUnit, packSize: defPackSize }));
+                  }}
+                >
+                  <option value="Tablet">Tablet</option>
+                  <option value="Capsule">Capsule</option>
+                  <option value="Syrup">Syrup</option>
+                  <option value="Suspension">Suspension</option>
+                  <option value="Cream">Cream</option>
+                  <option value="Ointment">Ointment</option>
+                  <option value="Gel">Gel</option>
+                  <option value="Eye Drop">Eye Drop</option>
+                  <option value="Nasal Drop">Nasal Drop</option>
+                  <option value="Injection">Injection</option>
+                  <option value="Inhaler">Inhaler</option>
+                  <option value="Strip">Strip</option>
+                  <option value="Topical">Topical</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="unit">Unit/Strength*</Label>
-                <Input id="unit" placeholder="e.g. mg, ml, pills" value={newDrug.unit} onChange={e => setNewDrug({...newDrug, unit: e.target.value})} />
+                <Label htmlFor="strength">Dosage Strength</Label>
+                <Input id="strength" placeholder="e.g. 500 mg, 20 mg, 15g" value={newDrug.strength} onChange={e => setNewDrug({...newDrug, strength: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="unit">Packaging / Stock Unit*</Label>
+                <select
+                  id="unit"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={newDrug.unit}
+                  onChange={e => setNewDrug({...newDrug, unit: e.target.value})}
+                >
+                  <option value="Tablet">Tablet</option>
+                  <option value="Capsule">Capsule</option>
+                  <option value="Bottle">Bottle</option>
+                  <option value="Tube">Tube</option>
+                  <option value="Strip">Strip</option>
+                  <option value="Vial">Vial</option>
+                  <option value="Ampoule">Ampoule</option>
+                  <option value="Piece">Piece</option>
+                  <option value="Box">Box</option>
+                </select>
               </div>
             </div>
             
@@ -688,15 +781,24 @@ export default function SuperAdminInventoryPage() {
                 <Input id="reorderLevel" type="number" value={newDrug.reorderLevel} onChange={e => setNewDrug({...newDrug, reorderLevel: e.target.value})} />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="packSize">
+                  Pack Size*
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    {newDrug.unit === "Tablet" || newDrug.unit === "Capsule" ? "(tabs/pack)" : newDrug.unit === "Bottle" ? "(ml/bottle)" : newDrug.unit === "Tube" ? "(g/tube)" : newDrug.unit === "Strip" ? "(tabs/strip)" : "(units)"}
+                  </span>
+                </Label>
+                <Input id="packSize" type="number" min="1" value={newDrug.packSize} onChange={e => setNewDrug({...newDrug, packSize: e.target.value})} />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="baseStock" className="text-muted-foreground">Opening Stock</Label>
                 <Input id="baseStock" type="number" placeholder="Optional" value={newDrug.baseStock} onChange={e => setNewDrug({...newDrug, baseStock: e.target.value})} />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="basePrice" className="text-muted-foreground">Unit Price (Rs)</Label>
                 <Input id="basePrice" type="number" placeholder="Optional" value={newDrug.basePrice} onChange={e => setNewDrug({...newDrug, basePrice: e.target.value})} />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="baseExpiry" className="text-muted-foreground">Opening Stock Expiry</Label>
                 <Input id="baseExpiry" type="date" value={newDrug.expiryDate} onChange={e => setNewDrug({...newDrug, expiryDate: e.target.value})} />
@@ -814,13 +916,32 @@ export default function SuperAdminInventoryPage() {
                 <Label>Category</Label>
                 <Input list="category-list" value={editingItem.category} onChange={e => setEditingItem({...editingItem, category: e.target.value})} />
               </div>
-              <div className="grid gap-2">
-                <Label>Unit</Label>
-                <Input value={editingItem.unit} onChange={e => setEditingItem({...editingItem, unit: e.target.value})} />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="grid gap-2">
+                  <Label>Form</Label>
+                  <Input value={editingItem.form || ""} onChange={e => setEditingItem({...editingItem, form: e.target.value})} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Strength</Label>
+                  <Input placeholder="e.g. 500 mg" value={editingItem.strength || ""} onChange={e => setEditingItem({...editingItem, strength: e.target.value})} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Stock Unit</Label>
+                  <Input placeholder="e.g. Tablet, Bottle" value={editingItem.unit} onChange={e => setEditingItem({...editingItem, unit: e.target.value})} />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label>Reorder Level</Label>
-                <Input type="number" value={editingItem.reorderLevel} onChange={e => setEditingItem({...editingItem, reorderLevel: e.target.value})} />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label>
+                    Pack Size
+                    <span className="ml-1 text-xs text-muted-foreground">(dose units per stock unit)</span>
+                  </Label>
+                  <Input type="number" min="1" placeholder="e.g. 60 for 60ml bottle" value={editingItem.packSize ?? 1} onChange={e => setEditingItem({...editingItem, packSize: parseInt(e.target.value) || 1})} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Reorder Level</Label>
+                  <Input type="number" value={editingItem.reorderLevel} onChange={e => setEditingItem({...editingItem, reorderLevel: e.target.value})} />
+                </div>
               </div>
             </div>
           )}

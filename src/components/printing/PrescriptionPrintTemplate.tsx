@@ -106,7 +106,9 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
                         )}
                       </td>
                       <td className="py-1.5 pl-1 align-top text-right font-mono font-bold text-[12px] text-black">
-                        {item.dispenseQty != null && item.dispenseQty > 0 ? item.dispenseQty : "-"}
+                        {item.dispenseQty != null && item.dispenseQty > 0
+                          ? `${item.dispenseQty}${item.medicine?.unit ? ` ${item.dispenseQty > 1 && !item.medicine.unit.endsWith('s') ? item.medicine.unit + 's' : item.medicine.unit}` : ''}`
+                          : "-"}
                       </td>
                     </tr>
                   );

@@ -24,7 +24,7 @@ import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { sortDoctorsWithOpdFirst, isOpdDoctor } from "@/lib/doctor-utils";
-import { calculateDispenseQuantity } from "@/lib/prescriptionUtils";
+import { calculateDispenseQuantity, calculateStockUnits, formatDispenseLabel } from "@/lib/prescriptionUtils";
 import { useDoctors, useLabCatalog, useExtraServices } from "@/hooks/useMasterData";
 
 interface Doctor {
@@ -58,8 +58,11 @@ interface PrescriptionItem {
   medicine?: {
     id: string;
     name: string;
+    unit?: string;
+    packSize?: number;
+    retailPrice?: number | null;
     stockBatches?: { unitPrice: number; currentQuantity?: number }[];
-  };
+  } | null;
 }
 
 interface Prescription {
@@ -572,16 +575,23 @@ export function TokenPane() {
 
     const cartItems: CartItem[] = rx.items
       .filter((item) => item.medicineId && item.medicine)
-      .map((item) => ({
-        id: item.medicine!.id,
-        name: item.medicine!.name,
-        qty: calculateDispenseQuantity(item),
-        price: item.medicine!.stockBatches?.[0]?.unitPrice ?? 0,
-        dosage: item.dosage,
-        frequency: item.frequency,
-        duration: item.duration,
-        instructions: item.instructions,
-      }));
+      .map((item) => {
+        const doseQty = item.dispenseQty || calculateDispenseQuantity(item);
+        const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1, item.medicine?.unit);
+        const finalQty = item.dispenseQty != null && Number(item.dispenseQty) >= 1 ? Number(item.dispenseQty) : stockQty;
+        return {
+          id: item.medicine!.id,
+          name: item.medicine!.name,
+          qty: finalQty,
+          price: item.medicine!.stockBatches?.[0]?.unitPrice ?? item.medicine!.retailPrice ?? 0,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          duration: item.duration,
+          instructions: item.instructions,
+          unit: item.medicine?.unit,
+          packSize: item.medicine?.packSize
+        };
+      });
 
     if (cartItems.length === 0) {
       toast.info("No medicines found in this prescription. Sending to POS for post-pay fee checkout if applicable.");
@@ -678,16 +688,21 @@ export function TokenPane() {
             doctorName: barcodeData.doctor?.fullName || "Doctor",
             createdAt: rxFromApi.createdAt || new Date().toISOString(),
             status: rxFromApi.status || "PENDING",
-            items: (rxFromApi.items || []).map((i: any) => ({
-              id: i.id,
-              drugName: i.medicine?.name || i.medicineName || "Medicine",
-              dispenseQty: calculateDispenseQuantity(i),
-              dosage: i.dosage,
-              frequency: i.frequency,
-              duration: i.duration,
-              medicineId: i.medicineId,
-              medicine: i.medicine
-            })),
+            items: (rxFromApi.items || []).map((i: any) => {
+              const doseQty = i.dispenseQty || calculateDispenseQuantity(i);
+              const stockQty = calculateStockUnits(doseQty, i.medicine?.packSize ?? 1, i.medicine?.unit);
+              const finalQty = i.dispenseQty != null && Number(i.dispenseQty) >= 1 ? Number(i.dispenseQty) : stockQty;
+              return {
+                id: i.id,
+                drugName: i.medicine?.name || i.medicineName || "Medicine",
+                dispenseQty: finalQty,
+                dosage: i.dosage,
+                frequency: i.frequency,
+                duration: i.duration,
+                medicineId: i.medicineId,
+                medicine: i.medicine
+              };
+            }),
             labRequests: mappedLabRequests,
             visitId: rxFromApi.visitId || barcodeData.appointment?.id,
             patientId: rxFromApi.patientId || barcodeData.patient?.id,
@@ -735,16 +750,21 @@ export function TokenPane() {
             doctorName: barcodeData.doctor?.fullName || barcodeData.doctorName || "Doctor",
             createdAt: barcodeData.createdAt || new Date().toISOString(),
             status: barcodeData.status || "PENDING",
-            items: (barcodeData.items || []).map((i: any) => ({
-              id: i.id,
-              drugName: i.medicine?.name || i.drugName || "Medicine",
-              dispenseQty: calculateDispenseQuantity(i),
-              dosage: i.dosage,
-              frequency: i.frequency,
-              duration: i.duration,
-              medicineId: i.medicineId,
-              medicine: i.medicine
-            })),
+            items: (barcodeData.items || []).map((i: any) => {
+              const doseQty = i.dispenseQty || calculateDispenseQuantity(i);
+              const stockQty = calculateStockUnits(doseQty, i.medicine?.packSize ?? 1, i.medicine?.unit);
+              const finalQty = i.dispenseQty != null && Number(i.dispenseQty) >= 1 ? Number(i.dispenseQty) : stockQty;
+              return {
+                id: i.id,
+                drugName: i.medicine?.name || i.drugName || "Medicine",
+                dispenseQty: finalQty,
+                dosage: i.dosage,
+                frequency: i.frequency,
+                duration: i.duration,
+                medicineId: i.medicineId,
+                medicine: i.medicine
+              };
+            }),
             labRequests: mappedLabRequests,
             visitId: barcodeData.visitId,
             patientId: barcodeData.patientId,
@@ -822,14 +842,20 @@ export function TokenPane() {
             patientPhone={selectedRxForPrint.patientPhone || "N/A"}
             doctorName={selectedRxForPrint.doctorName}
             date={new Date(selectedRxForPrint.createdAt).toLocaleDateString()}
-            medicines={selectedRxForPrint.items.map(item => ({
-              name: item.drugName || item.medicine?.name || "Medication",
-              dosage: item.dosage,
-              frequency: item.frequency,
-              duration: item.duration,
-              instructions: item.instructions,
-              dispenseQty: item.dispenseQty || calculateDispenseQuantity(item) || null,
-            }))}
+            medicines={selectedRxForPrint.items.map(item => {
+              const doseQty = item.dispenseQty || calculateDispenseQuantity(item);
+              const stockQty = calculateStockUnits(doseQty, item.medicine?.packSize ?? 1, item.medicine?.unit);
+              const finalQty = item.dispenseQty != null && Number(item.dispenseQty) >= 1 ? Number(item.dispenseQty) : stockQty;
+              return {
+                name: item.drugName || item.medicine?.name || "Medication",
+                dosage: item.dosage,
+                frequency: item.frequency,
+                duration: item.duration,
+                instructions: item.instructions,
+                dispenseQty: finalQty,
+                unit: item.medicine?.unit
+              };
+            })}
           />
         )}
       </div>

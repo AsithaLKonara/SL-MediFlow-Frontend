@@ -14,6 +14,9 @@ import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 interface Drug {
   id: string;
   name: string;
+  strength?: string | null;
+  form?: string | null;
+  unit?: string | null;
   prescribedQty: number;
   dispenseQty: number;
   unitPrice: number;
@@ -44,14 +47,29 @@ export default function PharmacyDashboardPage() {
       if (res.ok) {
         const { type, data } = await res.json();
         
+        const formatRxData = (rx: any): Prescription => ({
+          ...rx,
+          drugs: (rx.items || []).map((i: any) => ({
+            id: i.id,
+            medicineId: i.medicineId,
+            name: i.drugName || i.medicine?.name || "Medicine",
+            strength: i.strength || i.medicine?.strength || null,
+            form: i.medicine?.form || null,
+            unit: i.medicine?.unit || "Unit",
+            prescribedQty: i.dispenseQty || (parseInt(i.duration) * (parseInt(i.frequency) || 1)) || 10,
+            dispenseQty: i.dispenseQty || (parseInt(i.duration) * (parseInt(i.frequency) || 1)) || 10,
+            unitPrice: i.medicine?.stockBatches?.[0]?.unitPrice || 0
+          }))
+        });
+
         if (type === "PRESCRIPTION") {
-          setActiveRx(data);
+          setActiveRx(formatRxData(data));
           setSearchQuery("");
           return;
         } else if (type === "APPOINTMENT" && data.prescriptions && data.prescriptions.length > 0) {
           // If a token barcode is scanned, load its prescription
           const rx = data.prescriptions[0];
-          setActiveRx(rx);
+          setActiveRx(formatRxData(rx));
           setSearchQuery("");
           return;
         }
@@ -121,6 +139,9 @@ export default function PharmacyDashboardPage() {
             id: i.id,
             medicineId: i.medicineId,
             name: i.drugName,
+            strength: i.strength || i.medicine?.strength || null,
+            form: i.medicine?.form || null,
+            unit: i.medicine?.unit || "Unit",
             prescribedQty: i.dispenseQty || (parseInt(i.duration) * (parseInt(i.frequency) || 1)) || 10,
             dispenseQty: i.dispenseQty || (parseInt(i.duration) * (parseInt(i.frequency) || 1)) || 10,
             unitPrice: i.medicine?.stockBatches?.[0]?.unitPrice || 0
@@ -227,16 +248,33 @@ export default function PharmacyDashboardPage() {
                 <tbody className="divide-y">
                   {activeRx.drugs.map((drug) => (
                     <tr key={drug.id}>
-                      <td className="p-3 font-medium">{drug.name}</td>
-                      <td className="p-3 text-center font-semibold text-muted-foreground">{drug.prescribedQty}</td>
                       <td className="p-3">
-                        <div className="flex justify-center">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{drug.name}</span>
+                          {drug.strength && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              {drug.strength}
+                            </span>
+                          )}
+                          {drug.form && (
+                            <span className="text-[11px] text-muted-foreground uppercase">
+                              ({drug.form})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-center font-semibold text-muted-foreground">
+                        {drug.prescribedQty} {drug.unit || "Units"}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center gap-1.5">
                           <Input 
                             type="number" 
                             className="w-20 text-center font-bold" 
                             value={drug.dispenseQty}
                             onChange={(e) => updateDispenseQty(drug.id, e.target.value)}
                           />
+                          <span className="text-xs text-muted-foreground">{drug.unit || "Units"}</span>
                         </div>
                       </td>
                       <td className="p-3 text-right font-medium">

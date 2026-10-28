@@ -88,3 +88,40 @@ export function calculateDispenseQuantity(item: RxQuantityInput): number {
   const autoCalc = Math.ceil(timesPerDay * unitsPerAdmin * days);
   return autoCalc > 0 ? autoCalc : 1;
 }
+
+/**
+ * Converts dose-unit quantity (e.g. ml, g, tablets) to stock-unit quantity
+ * (e.g. bottles, tubes, strips) using packSize.
+ *
+ * Examples:
+ *   75ml syrup ÷ 60ml/bottle = 2 bottles (ceil)
+ *   30g cream ÷ 30g/tube    = 1 tube
+ *   14 tablets ÷ 1/tablet   = 14 tablets (no change)
+ *
+ * @param doseUnits  - Total dose units calculated by calculateDispenseQuantity
+ * @param packSize   - How many dose units per stock unit (from Medicine.packSize)
+ * @param unit       - Stock unit label (Tablet, Bottle, Tube, Strip, etc.)
+ * @returns          - Number of stock units to dispense (always >= 1 if doseUnits > 0)
+ */
+export function calculateStockUnits(
+  doseUnits: number,
+  packSize: number = 1,
+  unit?: string | null
+): number {
+  if (!doseUnits || doseUnits <= 0) return 0;
+  // For discrete units (Tablet, Capsule), packSize=1 so doseUnits === stockUnits
+  const effectivePackSize = packSize > 0 ? packSize : 1;
+  return Math.ceil(doseUnits / effectivePackSize);
+}
+
+/**
+ * Returns a human-readable label for a dispense quantity.
+ * e.g. "2 Bottles", "14 Tablets", "1 Tube"
+ */
+export function formatDispenseLabel(stockUnits: number, unit?: string | null): string {
+  const u = (unit || "unit").trim();
+  if (stockUnits === 1) return `1 ${u}`;
+  // Avoid double-s for units already ending in 's'
+  if (u.toLowerCase().endsWith("s")) return `${stockUnits} ${u}`;
+  return `${stockUnits} ${u}s`;
+}

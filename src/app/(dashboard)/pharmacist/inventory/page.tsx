@@ -15,6 +15,8 @@ interface InventoryItem {
   id: string;
   name: string;
   category: string;
+  form?: string;
+  strength?: string;
   stock: number;
   reorderLevel: number;
   unit: string;
@@ -22,6 +24,13 @@ interface InventoryItem {
   expiryDate: string;
   status: string;
 }
+
+const formatStockUnit = (count: number, unit?: string) => {
+  const u = (unit || "unit").trim();
+  if (count === 1) return u;
+  if (u.toLowerCase().endsWith("s")) return u;
+  return `${u}s`;
+};
 
 export default function PharmacistInventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -44,10 +53,12 @@ export default function PharmacistInventoryPage() {
             id: med.id,
             name: med.name,
             category: med.category,
+            form: med.form || 'Tablet',
+            strength: med.strength || '',
             stock,
             reorderLevel: med.reorderLevel,
-            unit: med.unit,
-            unitPrice: latestPrice,
+            unit: med.unit || 'Tablet',
+            unitPrice: latestPrice || med.retailPrice || 0,
             expiryDate: earliestExpiry,
             status
           };
@@ -132,10 +143,26 @@ export default function PharmacistInventoryPage() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id} className={item.status === "LOW_STOCK" ? "bg-red-500/10/40" : ""}>
-                      <TableCell className="font-medium text-[#3A3435] dark:text-gray-100">{item.name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium text-[#3A3435] dark:text-gray-100">{item.name}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {item.strength && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                                {item.strength}
+                              </Badge>
+                            )}
+                            {item.form && (
+                              <span className="text-[11px] text-muted-foreground font-medium">
+                                {item.form}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{item.category}</TableCell>
                       <TableCell className={`text-right font-bold ${item.status === "LOW_STOCK" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
-                        {item.stock} {item.unit}s
+                        {item.stock} {formatStockUnit(item.stock, item.unit)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">{item.reorderLevel}</TableCell>
                       <TableCell className="text-right font-medium">LKR {item.unitPrice.toFixed(2)}</TableCell>
