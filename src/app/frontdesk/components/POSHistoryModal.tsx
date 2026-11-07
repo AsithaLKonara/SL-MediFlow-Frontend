@@ -8,7 +8,8 @@ import { History, Search, Printer } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { MergedReceiptTemplate } from "../../../components/printing/MergedReceiptTemplate";
+import { TokenThermalReceipt } from "../../../components/printing/TokenThermalReceipt";
+import { DotMatrixBillReceipt } from "../../../components/printing/DotMatrixBillReceipt";
 import { triggerPrinterAutoCut } from "@/lib/printerAutoCut";
 
 export function POSHistoryModal() {
@@ -19,14 +20,20 @@ export function POSHistoryModal() {
   const [loading, setLoading] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [tokenData, setTokenData] = useState<any[] | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
+  const tokenPrintRef = useRef<HTMLDivElement>(null);
+  const billPrintRef = useRef<HTMLDivElement>(null);
 
-  const performPrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: "Receipt",
+  const performPrintToken = useReactToPrint({
+    contentRef: tokenPrintRef,
+    documentTitle: "Token_Receipt_80mm",
     onAfterPrint: () => {
       triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
     }
+  });
+
+  const performPrintBill = useReactToPrint({
+    contentRef: billPrintRef,
+    documentTitle: "Bill_Receipt_140x140",
   });
 
   const fetchHistory = async () => {
@@ -59,12 +66,15 @@ export function POSHistoryModal() {
     if (item.invoice && (mode === "ALL" || mode === "INVOICE")) {
       rData = {
         receiptId: item.invoice.receiptId || item.invoice.id,
+        invoiceNo: item.invoice.invoiceNumber || item.invoice.receiptId || item.invoice.id,
         date: item.invoice.date || item.createdAt,
+        patientName: item.Patient?.fullName || item.patientName || item.token?.patientName || "Walk-in Patient",
+        doctorName: item.doctorName || item.Doctor?.fullName || item.token?.doctorName,
         items: item.invoice.items || (item.lineItems || []).map((li: any) => ({
-          name: li.description,
-          qty: li.quantity,
-          price: li.unitPrice,
-          total: li.total,
+          name: li.description || li.name,
+          qty: li.quantity || li.qty || 1,
+          price: li.unitPrice || li.price || 0,
+          total: li.total || ((li.quantity || li.qty || 1) * (li.unitPrice || li.price || 0)),
           department: li.department
         })),
         subtotal: item.invoice.subtotal || item.totalAmount,
@@ -77,6 +87,7 @@ export function POSHistoryModal() {
       tData = [{
         id: item.token.id,
         refNo: item.token.refNo || item.bookingReference,
+        bookingReference: item.bookingReference || item.token.bookingReference || item.token.refNo,
         tokenNumber: item.token.tokenNumber,
         department: item.token.department,
         status: item.token.status || item.appointmentStatus,
@@ -91,13 +102,22 @@ export function POSHistoryModal() {
     setTokenData(tData);
 
     setTimeout(() => {
-      performPrint();
+      if (mode === "TOKEN") {
+        performPrintToken();
+      } else if (mode === "INVOICE") {
+        performPrintBill();
+      } else {
+        performPrintToken();
+        setTimeout(() => {
+          performPrintBill();
+        }, 600);
+      }
     }, 150);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger onClick={() => setOpen(true)} render={<Button id="btn-pos-history-modal" variant="outline" size="sm" />}>
         <History className="w-4 h-4 mr-2" />
         History
       </DialogTrigger>
@@ -250,6 +270,7 @@ export function POSHistoryModal() {
                               All
                             </Button>
                             <Button 
+                              id="btn-reprint-token"
                               size="sm" 
                               variant="ghost" 
                               className="h-7 px-1.5 text-[10px]"
@@ -259,6 +280,7 @@ export function POSHistoryModal() {
                               Token
                             </Button>
                             <Button 
+                              id="btn-reprint-bill"
                               size="sm" 
                               variant="ghost" 
                               className="h-7 px-1.5 text-[10px]"
@@ -302,12 +324,17 @@ export function POSHistoryModal() {
           </table>
         </div>
 
-        {(receiptData || tokenData) && (
-          <MergedReceiptTemplate 
-            ref={printRef} 
+        {tokenData && (
+          <TokenThermalReceipt 
+            ref={tokenPrintRef} 
+            tokens={tokenData} 
+          />
+        )}
+        {receiptData && (
+          <DotMatrixBillReceipt 
+            ref={billPrintRef} 
             receiptData={receiptData} 
-            tokens={tokenData || []} 
-            cashierName={user?.fullName || "Unknown"}
+            cashierName={user?.fullName || "Staff"}
           />
         )}
       </DialogContent>

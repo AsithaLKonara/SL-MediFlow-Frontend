@@ -26,7 +26,10 @@ export default function SettingsPage() {
 
   // Hardware Print & Cash Drawer state
   const [bridgeUrl, setBridgeUrl] = useState("http://127.0.0.1:18181");
-  const [printerName, setPrinterName] = useState("");
+  const [tokenPrinterName, setTokenPrinterName] = useState("");
+  const [billPrinterName, setBillPrinterName] = useState("");
+  const [autoPrintToken, setAutoPrintToken] = useState(false);
+  const [autoPrintBill, setAutoPrintBill] = useState(false);
   const [lanIp, setLanIp] = useState("");
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "checking" | "online" | "offline">("idle");
   const [detectedPrinters, setDetectedPrinters] = useState<any[]>([]);
@@ -71,7 +74,15 @@ export default function SettingsPage() {
 
     if (typeof window !== "undefined") {
       setBridgeUrl(localStorage.getItem("node_print_url") || "http://127.0.0.1:18181");
-      setPrinterName(localStorage.getItem("node_print_printer") || localStorage.getItem("pos_printer") || "");
+      setTokenPrinterName(
+        localStorage.getItem("node_print_token_printer") ||
+        localStorage.getItem("node_print_printer") ||
+        localStorage.getItem("pos_printer") ||
+        ""
+      );
+      setBillPrinterName(localStorage.getItem("node_print_bill_printer") || "");
+      setAutoPrintToken(localStorage.getItem("auto_print_token") === "true");
+      setAutoPrintBill(localStorage.getItem("auto_print_bill") === "true");
       setLanIp(localStorage.getItem("printer_lan_ip") || "");
     }
   }, [token]);
@@ -137,17 +148,30 @@ export default function SettingsPage() {
   const handleSaveHardware = () => {
     if (typeof window !== "undefined") {
       localStorage.setItem("node_print_url", bridgeUrl.trim());
-      if (printerName.trim()) {
-        localStorage.setItem("node_print_printer", printerName.trim());
+
+      if (tokenPrinterName.trim()) {
+        localStorage.setItem("node_print_token_printer", tokenPrinterName.trim());
+        localStorage.setItem("node_print_printer", tokenPrinterName.trim()); // backward compatibility
       } else {
+        localStorage.removeItem("node_print_token_printer");
         localStorage.removeItem("node_print_printer");
       }
+
+      if (billPrinterName.trim()) {
+        localStorage.setItem("node_print_bill_printer", billPrinterName.trim());
+      } else {
+        localStorage.removeItem("node_print_bill_printer");
+      }
+
+      localStorage.setItem("auto_print_token", String(autoPrintToken));
+      localStorage.setItem("auto_print_bill", String(autoPrintBill));
+
       if (lanIp.trim()) {
         localStorage.setItem("printer_lan_ip", lanIp.trim());
       } else {
         localStorage.removeItem("printer_lan_ip");
       }
-      toast.success("Hardware configuration saved locally.");
+      toast.success("Hardware printer settings saved locally.");
     }
   };
 
@@ -483,40 +507,95 @@ export default function SettingsPage() {
                   </div>
 
                   {detectedPrinters.length > 0 && (
-                    <div className="space-y-1 pt-2 border-t text-xs">
+                    <div className="space-y-2 pt-2 border-t text-xs">
                       <span className="font-medium text-muted-foreground">Detected Printers:</span>
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {detectedPrinters.map((p, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setPrinterName(p.name || p.id)}
-                            className={cn(
-                              "px-2.5 py-1 rounded border text-xs cursor-pointer transition-colors",
-                              (printerName === p.name || printerName === p.id)
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-card hover:bg-muted"
-                            )}
-                          >
-                            {p.name || p.id} {p.isDefault && "(Default)"}
-                          </button>
+                          <div key={idx} className="flex items-center gap-1 bg-card border rounded p-1 text-xs">
+                            <span className="font-medium px-1">{p.name || p.id} {p.isDefault && "(Default)"}</span>
+                            <button
+                              type="button"
+                              onClick={() => setTokenPrinterName(p.name || p.id)}
+                              className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 hover:bg-primary/20 text-primary font-semibold"
+                            >
+                              + Token
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBillPrinterName(p.name || p.id)}
+                              className="px-1.5 py-0.5 rounded text-[10px] bg-secondary hover:bg-secondary/80 font-semibold"
+                            >
+                              + Bill
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="printerName">Assigned Receipt / Cash Drawer Printer (USB / Local)</Label>
-                  <Input 
-                    id="printerName" 
-                    value={printerName} 
-                    onChange={e => setPrinterName(e.target.value)} 
-                    placeholder="e.g. POS-80, Thermal-Receipt, or leave blank for default" 
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank to automatically route to the default system receipt printer.
-                  </p>
+                {/* Dual Printer Mapping */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 p-3.5 border rounded-lg bg-card">
+                    <Label htmlFor="tokenPrinterName" className="font-bold flex items-center justify-between">
+                      <span>Token Printer (80mm Thermal)</span>
+                      <span className="text-[10px] font-normal text-muted-foreground">Queue slips</span>
+                    </Label>
+                    <Input 
+                      id="tokenPrinterName" 
+                      value={tokenPrinterName} 
+                      onChange={e => setTokenPrinterName(e.target.value)} 
+                      placeholder="e.g. POS-80, Thermal-Receipt, XP-80" 
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Target 80mm roll printer for Doctor, Lab, and Extra Service queue tokens.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 p-3.5 border rounded-lg bg-card">
+                    <Label htmlFor="billPrinterName" className="font-bold flex items-center justify-between">
+                      <span>Bill Printer (140x140mm Dot Matrix)</span>
+                      <span className="text-[10px] font-normal text-muted-foreground">Invoices</span>
+                    </Label>
+                    <Input 
+                      id="billPrinterName" 
+                      value={billPrinterName} 
+                      onChange={e => setBillPrinterName(e.target.value)} 
+                      placeholder="e.g. EPSON LX-310, EPSON LQ-310" 
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Target impact printer for official 140x140mm continuous tractor/cut-sheet receipts.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Auto-Print Preferences */}
+                <div className="p-4 rounded-lg border bg-muted/20 space-y-3">
+                  <h4 className="text-sm font-semibold">Checkout Auto-Print Preferences</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="switch-auto-token" className="text-xs font-medium cursor-pointer">Auto-print Token (80mm)</Label>
+                        <p className="text-[10px] text-muted-foreground">Automatically print token slip on payment completion</p>
+                      </div>
+                      <Switch 
+                        id="switch-auto-token" 
+                        checked={autoPrintToken} 
+                        onCheckedChange={setAutoPrintToken} 
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="switch-auto-bill" className="text-xs font-medium cursor-pointer">Auto-print Bill (140x140mm)</Label>
+                        <p className="text-[10px] text-muted-foreground">Automatically print official bill on payment completion</p>
+                      </div>
+                      <Switch 
+                        id="switch-auto-bill" 
+                        checked={autoPrintBill} 
+                        onCheckedChange={setAutoPrintBill} 
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -580,7 +659,7 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t px-6 py-4 bg-muted/20 flex justify-between">
-                <Button type="button" onClick={handleSaveHardware} className="gap-2">
+                <Button id="btn-save-hardware" type="button" onClick={handleSaveHardware} className="gap-2">
                   <Save className="w-4 h-4" /> Save Hardware Preferences
                 </Button>
               </CardFooter>

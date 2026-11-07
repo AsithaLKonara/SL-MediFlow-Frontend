@@ -14,7 +14,8 @@ import { toast } from "sonner";
 import { io } from "socket.io-client";
 import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { MergedReceiptTemplate } from "../../../components/printing/MergedReceiptTemplate";
+import { TokenThermalReceipt } from "../../../components/printing/TokenThermalReceipt";
+import { DotMatrixBillReceipt } from "../../../components/printing/DotMatrixBillReceipt";
 import { CheckCircle2, Printer } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { POSHistoryModal } from "./POSHistoryModal";
@@ -61,15 +62,28 @@ export function POSPane() {
   const [receiptData, setReceiptData] = useState<any>(null);
   const [tokenReceiptData, setTokenReceiptData] = useState<any>(null);
   const [receivedAmountInput, setReceivedAmountInput] = useState<string>("");
-  const printRef = useRef<HTMLDivElement>(null);
+  const tokenPrintRef = useRef<HTMLDivElement>(null);
+  const billPrintRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: "Receipt",
+  const handlePrintToken = useReactToPrint({
+    contentRef: tokenPrintRef,
+    documentTitle: "Token_Receipt_80mm",
     onAfterPrint: () => {
       triggerPrinterAutoCut().catch(e => console.warn("Auto cut error:", e));
     }
   });
+
+  const handlePrintBill = useReactToPrint({
+    contentRef: billPrintRef,
+    documentTitle: "Bill_Receipt_140x140",
+  });
+
+  const handlePrintBoth = () => {
+    handlePrintToken();
+    setTimeout(() => {
+      handlePrintBill();
+    }, 600);
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -1157,11 +1171,40 @@ export function POSPane() {
                     <span>{receiptData.paymentMethod}</span>
                   </div>
                 </div>
-                <div className="flex w-full gap-3 mt-4">
-                  <Button variant="outline" className="flex-1 h-12" onClick={() => handlePrint()}>
-                    <Printer className="w-4 h-4 mr-2" /> Print Receipt
-                  </Button>
-                  <Button className="flex-1 h-12" onClick={() => handleCloseCheckout()}>
+                <div className="flex flex-col w-full gap-2 mt-4">
+                  <div className="flex w-full gap-2 flex-wrap">
+                    {tokenReceiptData && tokenReceiptData.length > 0 && (
+                      <Button
+                        id="btn-print-token"
+                        variant="outline"
+                        className="flex-1 h-11 text-xs font-semibold min-w-[120px]"
+                        onClick={() => handlePrintToken()}
+                      >
+                        <Printer className="w-3.5 h-3.5 mr-1.5" /> Token (80mm)
+                      </Button>
+                    )}
+                    {receiptData && receiptData.items && receiptData.items.length > 0 && (
+                      <Button
+                        id="btn-print-bill"
+                        variant="outline"
+                        className="flex-1 h-11 text-xs font-semibold min-w-[120px]"
+                        onClick={() => handlePrintBill()}
+                      >
+                        <Printer className="w-3.5 h-3.5 mr-1.5" /> Bill (140x140)
+                      </Button>
+                    )}
+                    {tokenReceiptData && tokenReceiptData.length > 0 && receiptData?.items?.length > 0 && (
+                      <Button
+                        id="btn-print-both"
+                        variant="secondary"
+                        className="flex-1 h-11 text-xs font-semibold min-w-[100px]"
+                        onClick={() => handlePrintBoth()}
+                      >
+                        Print Both
+                      </Button>
+                    )}
+                  </div>
+                  <Button className="w-full h-11" onClick={() => handleCloseCheckout()}>
                     New Sale
                   </Button>
                 </div>
@@ -1529,6 +1572,8 @@ export function POSPane() {
                       bookingReference: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo,
                       refNo: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo,
                       date: new Date(),
+                      patientName: pendingAppointmentPayload?.patientName || pendingTokenPayload?.patientName || "Walk-in Patient",
+                      doctorName: pendingAppointmentPayload?.doctorName || pendingTokenPayload?.doctorName,
                       items: combinedItems,
                       subtotal: subtotal,
                       discount: discountAmount,
@@ -1561,6 +1606,24 @@ export function POSPane() {
                       console.warn("[POS] Cash drawer trigger error:", err);
                     });
 
+                    // Auto-print integration based on cashier hardware preferences
+                    if (typeof window !== "undefined") {
+                      const autoToken = localStorage.getItem("auto_print_token") === "true";
+                      const autoBill = localStorage.getItem("auto_print_bill") === "true";
+
+                      if (autoToken && tokenResultTokens && tokenResultTokens.length > 0) {
+                        setTimeout(() => {
+                          handlePrintToken();
+                        }, 400);
+                      }
+
+                      if (autoBill && combinedItems && combinedItems.length > 0) {
+                        setTimeout(() => {
+                          handlePrintBill();
+                        }, autoToken && tokenResultTokens && tokenResultTokens.length > 0 ? 1000 : 400);
+                      }
+                    }
+
                     // Notice we do NOT call handleCloseCheckout() here because we want to show the success screen
 
                   } catch (e) {
@@ -1580,8 +1643,17 @@ export function POSPane() {
         </div>
       )}
 
-      {/* Hidden print template */}
-      <MergedReceiptTemplate ref={printRef} receiptData={receiptData} tokens={tokenReceiptData} cashierName={user?.fullName || "Unknown"} />
+      {/* Hidden print templates for 80mm Thermal and 140x140mm Dot Matrix */}
+      <TokenThermalReceipt
+        ref={tokenPrintRef}
+        tokens={tokenReceiptData}
+        masterBarcode={receiptData?.masterBarcode || receiptData?.bookingReference || receiptData?.refNo}
+      />
+      <DotMatrixBillReceipt
+        ref={billPrintRef}
+        receiptData={receiptData}
+        cashierName={user?.fullName || "Unknown"}
+      />
     </div>
   );
 }
