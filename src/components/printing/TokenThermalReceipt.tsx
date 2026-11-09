@@ -96,11 +96,16 @@ export const TokenThermalReceipt = React.forwardRef<HTMLDivElement, TokenThermal
                 }`}
               >
                 {/* Header */}
-                <div className="text-center mb-4">
-                  <h1 className="text-base font-black tracking-wider uppercase">AMAZ HOSPITAL</h1>
-                  <p className="text-[10px] text-black">0472239090 | amazhospital.lk</p>
-                  <p className="text-[9px] text-black">Debarawewa, Tissamaharama</p>
-                  <div className="mt-2 border-t-2 border-b-2 border-black py-1">
+                <div className="text-center mb-3">
+                  <div className="flex justify-center mb-1">
+                    <img
+                      src="/logo.png"
+                      alt="AMAZ Hospital Logo"
+                      className="w-[170px] h-auto object-contain mx-auto print:grayscale print:contrast-150"
+                    />
+                  </div>
+                  <p className="text-[10px] text-black font-medium">0472239090 | amazhospital.lk</p>
+                  <div className="mt-1.5 border-t-2 border-b-2 border-black py-1">
                     <p className="text-xs font-bold uppercase tracking-wide">{deptLabel}</p>
                   </div>
                 </div>

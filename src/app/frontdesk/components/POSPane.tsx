@@ -1568,6 +1568,7 @@ export function POSPane() {
                     const parsedReceived = parseFloat(receivedAmountInput) || total;
                     setReceiptData({
                       receiptId,
+                      tokenNumber: tokenResultTokens?.[0]?.tokenNumber || pendingTokenPayload?.tokenNumber || pendingAppointmentPayload?.tokenNumber,
                       masterBarcode: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo || receiptId,
                       bookingReference: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo,
                       refNo: pendingAppointmentPayload?.bookingReference || pendingTokenPayload?.refNo,

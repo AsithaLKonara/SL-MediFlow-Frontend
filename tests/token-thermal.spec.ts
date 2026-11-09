@@ -3,8 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('80mm Thermal Token Receipt Specification', () => {
   test('Token receipt must strictly fit within 80mm roll width and correctly partition multi-department tokens', async ({ page }) => {
     // Navigate to the token preview page
-    await page.goto('http://localhost:3000/token-preview');
-    await page.waitForLoadState('domcontentloaded');
+    await page.goto('http://localhost:3000/token-preview', { waitUntil: 'domcontentloaded' });
 
     const receiptRoot = page.locator('#thermal-token-receipt-root');
     await expect(receiptRoot).toBeVisible();
@@ -16,8 +15,9 @@ test.describe('80mm Thermal Token Receipt Specification', () => {
     expect(box).not.toBeNull();
     expect(box!.width).toBeLessThanOrEqual(300);
 
-    // 2. Doctor Consultation Token Assertions
-    await expect(receiptRoot).toContainText('AMAZ HOSPITAL');
+    // 2. Official Logo & Doctor Consultation Token Assertions
+    const logo = receiptRoot.locator('img[alt="AMAZ Hospital Logo"]').first();
+    await expect(logo).toBeVisible();
     await expect(receiptRoot).toContainText('Doctor Consultation Token');
     await expect(receiptRoot.locator('h2').first()).toHaveText('05');
     await expect(receiptRoot).toContainText('ROOM 2');

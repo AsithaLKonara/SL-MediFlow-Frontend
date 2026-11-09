@@ -3,8 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('140mm × 140mm Dot Matrix Bill Receipt Specification', () => {
   test('Bill receipt must strictly fit within 140mm × 140mm boundaries and display all financial details', async ({ page }) => {
     // Navigate to the bill preview page
-    await page.goto('http://localhost:3000/bill-preview');
-    await page.waitForLoadState('domcontentloaded');
+    await page.goto('http://localhost:3000/bill-preview', { waitUntil: 'domcontentloaded' });
 
     const receipt = page.locator('#dot-matrix-bill-receipt');
     await expect(receipt).toBeVisible();
@@ -16,6 +15,8 @@ test.describe('140mm × 140mm Dot Matrix Bill Receipt Specification', () => {
 
     // 2. Metadata Assertions
     await expect(receipt).toContainText('INV-98234');
+    await expect(receipt).toContainText('Token #:');
+    await expect(receipt).toContainText('07');
     await expect(receipt).toContainText('Kamal Wickramasinghe');
     await expect(receipt).toContainText('Dr. V.K.P.A. Mahesh Lakshman');
     await expect(receipt).toContainText('CASH');

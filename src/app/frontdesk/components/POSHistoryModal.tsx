@@ -67,6 +67,7 @@ export function POSHistoryModal() {
       rData = {
         receiptId: item.invoice.receiptId || item.invoice.id,
         invoiceNo: item.invoice.invoiceNumber || item.invoice.receiptId || item.invoice.id,
+        tokenNumber: item.token?.tokenNumber || item.tokenNumber || item.appointment?.tokenNumber,
         date: item.invoice.date || item.createdAt,
         patientName: item.Patient?.fullName || item.patientName || item.token?.patientName || "Walk-in Patient",
         doctorName: item.doctorName || item.Doctor?.fullName || item.token?.doctorName,

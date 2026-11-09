@@ -18,6 +18,7 @@ export interface DotMatrixBillItem {
 export interface DotMatrixReceiptData {
   receiptId: string;
   invoiceNo?: string;
+  tokenNumber?: string | number;
   masterBarcode?: string;
   bookingReference?: string;
   refNo?: string;
@@ -158,16 +159,30 @@ export const DotMatrixBillReceipt = React.forwardRef<HTMLDivElement, DotMatrixBi
                   <span className="font-bold w-14">Cashier:</span>
                   <span className="truncate max-w-[120px]">{effectiveCashier}</span>
                 </div>
+                <div className="flex">
+                  <span className="font-bold w-14">Pay Mode:</span>
+                  <span className="font-bold uppercase">{receiptData.paymentMethod || "CASH"}</span>
+                </div>
               </div>
 
               <div className="space-y-0.5">
+                <div className="flex items-center">
+                  <span className="font-bold w-14">Token #:</span>
+                  {receiptData.tokenNumber ? (
+                    <span className="font-black px-1 border border-black bg-white text-[11px] leading-tight">
+                      {receiptData.tokenNumber}
+                    </span>
+                  ) : (
+                    <span>-</span>
+                  )}
+                </div>
                 <div className="flex">
                   <span className="font-bold w-14">Patient:</span>
                   <span className="font-semibold truncate max-w-[120px]">
                     {receiptData.patientName || "Walk-in Patient"}
                   </span>
                 </div>
-                {receiptData.doctorName && (
+                {receiptData.doctorName ? (
                   <div className="flex">
                     <span className="font-bold w-14">Doctor:</span>
                     <span className="truncate max-w-[120px]">
@@ -176,11 +191,12 @@ export const DotMatrixBillReceipt = React.forwardRef<HTMLDivElement, DotMatrixBi
                         : `Dr. ${receiptData.doctorName}`}
                     </span>
                   </div>
+                ) : (
+                  <div className="flex">
+                    <span className="font-bold w-14">Doctor:</span>
+                    <span className="text-gray-500">-</span>
+                  </div>
                 )}
-                <div className="flex">
-                  <span className="font-bold w-14">Pay Mode:</span>
-                  <span className="font-bold uppercase">{receiptData.paymentMethod || "CASH"}</span>
-                </div>
               </div>
             </div>
 

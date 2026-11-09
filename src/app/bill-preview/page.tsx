@@ -9,6 +9,7 @@ import { Printer } from "lucide-react";
 const sampleReceiptData: DotMatrixReceiptData = {
   receiptId: "inv-982348a1",
   invoiceNo: "INV-98234",
+  tokenNumber: "07",
   bookingReference: "AMAZ-20261107-0012",
   refNo: "AMAZ-20261107-0012",
   date: new Date().toISOString(),
