@@ -202,9 +202,9 @@ export function Sidebar() {
     <aside className={cn("h-screen bg-card text-card-foreground border-r flex flex-col shadow-sm fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out", width)}>
       <div className={cn("h-16 flex items-center border-b shrink-0", isCollapsed ? "justify-center px-0" : "px-6")}>
         {isCollapsed ? (
-          <Image src="/logo.png" alt="AMAZ" width={32} height={32} className="object-contain" />
+          <Image src="/logo-icon.png" alt="SL MediFlow" width={34} height={34} className="object-contain" priority />
         ) : (
-          <Image src="/logo.png" alt="AMAZ Hospital" width={140} height={40} className="object-contain" priority />
+          <Image src="/logo.png" alt="SL MediFlow" width={160} height={40} className="object-contain" priority />
         )}
       </div>
 

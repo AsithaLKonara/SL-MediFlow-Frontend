@@ -11,8 +11,8 @@ export default function AuthLayout({
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center overflow-hidden">
         {/* Background Image using Next/Image for optimization */}
         <Image
-          src="/images (8).jpeg"
-          alt="Hospital Background"
+          src="/login-bg.jpg"
+          alt="SL MediFlow Healthcare Background"
           fill
           priority
           className="object-cover"
@@ -31,10 +31,10 @@ export default function AuthLayout({
             <div className="flex items-center gap-3">
               <Image 
                 src="/logo.png" 
-                alt="AMAZ Hospital Logo" 
-                width={200} 
-                height={50} 
-                className="object-contain brightness-0 invert opacity-90" 
+                alt="SL MediFlow Logo" 
+                width={260} 
+                height={55} 
+                className="object-contain brightness-0 invert opacity-95" 
                 priority
               />
             </div>
@@ -42,11 +42,11 @@ export default function AuthLayout({
           
           <h1 className="text-4xl lg:text-5xl font-semibold tracking-tight text-white mb-4">
             Elevate your <br/>
-            <span className="italic font-serif text-primary opacity-90">healthcare experience.</span>
+            <span className="italic font-serif text-primary opacity-90">healthcare workflow.</span>
           </h1>
           
           <p className="text-white/70 leading-relaxed text-base mt-2">
-            AMAZ Hospital is the leading platform for seamless, premium, and AI-powered healthcare workflows.
+            SL MediFlow delivers smarter healthcare and smoother workflows with intelligent, unified medical operations.
           </p>
         </div>
       </div>

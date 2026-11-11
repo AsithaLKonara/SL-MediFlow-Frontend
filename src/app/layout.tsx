@@ -14,8 +14,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AMAZ Hospital",
-  description: "Seamless Patient Management",
+  title: "SL MediFlow | Smarter Healthcare. Smoother Workflow.",
+  description: "SL MediFlow Healthcare & Hospital Management System",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",

@@ -1,6 +1,6 @@
-# Amaz Hospital - Frontend Client
+# SL MediFlow - Frontend Client
 
-The frontend interface for the Amaz Hospital Management System. Built on Next.js App Router, this robust web application offers specialized, role-based dashboards for different hospital departments. It features hardware-specific UI designs, real-time WebSocket integrations, and a centralized UI/UX design system.
+The frontend interface for the SL MediFlow Healthcare Management System. Built on Next.js App Router, this robust web application offers specialized, role-based dashboards for different hospital departments. It features hardware-specific UI designs, real-time WebSocket integrations, and a centralized UI/UX design system.
 
 ## Technology Stack
 

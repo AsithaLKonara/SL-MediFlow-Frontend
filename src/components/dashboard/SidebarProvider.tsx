@@ -15,12 +15,12 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isTouchMode, setIsTouchMode] = useState(false);
   
   useEffect(() => {
-    const storedSidebar = localStorage.getItem("amaz_sidebar_collapsed");
+    const storedSidebar = localStorage.getItem("mediflow_sidebar_collapsed") || localStorage.getItem("amaz_sidebar_collapsed");
     if (storedSidebar) {
       setIsCollapsed(JSON.parse(storedSidebar));
     }
     
-    const storedTouch = localStorage.getItem("amaz_touch_mode");
+    const storedTouch = localStorage.getItem("mediflow_touch_mode") || localStorage.getItem("amaz_touch_mode");
     if (storedTouch) {
       setIsTouchMode(JSON.parse(storedTouch));
     }
@@ -37,7 +37,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const toggleSidebar = () => {
     setIsCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem("amaz_sidebar_collapsed", JSON.stringify(next));
+      localStorage.setItem("mediflow_sidebar_collapsed", JSON.stringify(next));
       return next;
     });
   };
@@ -45,7 +45,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const toggleTouchMode = () => {
     setIsTouchMode(prev => {
       const next = !prev;
-      localStorage.setItem("amaz_touch_mode", JSON.stringify(next));
+      localStorage.setItem("mediflow_touch_mode", JSON.stringify(next));
       return next;
     });
   };

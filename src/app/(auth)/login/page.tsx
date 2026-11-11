@@ -194,7 +194,7 @@ export default function LoginPage() {
 
       
       <p className="text-center text-xs text-white/30 mt-12">
-        © 2026 AMAZ Hospital. All rights reserved.
+        © 2026 SL MediFlow. All rights reserved.
       </p>
     </div>
   );

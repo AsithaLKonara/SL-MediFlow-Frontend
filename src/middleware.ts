@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const roleCookie = request.cookies.get("amaz_role")?.value;
+  const roleCookie = request.cookies.get("mediflow_role")?.value || request.cookies.get("amaz_role")?.value;
 
   if (pathname.startsWith("/superadmin")) {
     if (roleCookie) {
