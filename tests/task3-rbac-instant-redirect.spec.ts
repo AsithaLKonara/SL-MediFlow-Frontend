@@ -8,7 +8,7 @@ test.describe('Task 3: RBAC Soft Guard Instant Redirection', () => {
       const receptionistUser = {
         id: 'usr_receptionist_test',
         fullName: 'Receptionist User',
-        email: 'reception@amazhospital.lk',
+        email: 'reception@slmediflow.lk',
         role: 'Receptionist',
         department: 'Frontdesk',
         permissions: []

@@ -113,7 +113,7 @@ test.describe('Task 1.5: Medical & Fitness Certificates as Extra Services', () =
 
     const previewContainer = page.locator('[data-testid="certificate-print-preview"]');
     await expect(previewContainer).toBeVisible();
-    await expect(previewContainer).toContainText('AMAZ');
+    await expect(previewContainer).toContainText('SLMF');
     await expect(previewContainer).toContainText(/MEDICAL CERTIFICATE/i);
     await expect(previewContainer).toContainText('The Certificate is not for Purpose of Leave from A Court of Law');
     await expect(previewContainer).toContainText('Dr. K. M. Wickramasinghe');

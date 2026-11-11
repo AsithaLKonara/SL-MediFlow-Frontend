@@ -8,7 +8,7 @@ test.describe('Task 1: Doctor Attendance Route & Frontdesk Verification', () => 
       localStorage.setItem('user', JSON.stringify({
         id: 'mock-reception-user-1',
         fullName: 'Udari Receptionist',
-        email: 'udari@amazhospital.lk',
+        email: 'udari@slmediflow.lk',
         role: 'Receptionist'
       }));
     });
@@ -21,7 +21,7 @@ test.describe('Task 1: Doctor Attendance Route & Frontdesk Verification', () => 
           user: {
             id: 'mock-reception-user-1',
             fullName: 'Udari Receptionist',
-            email: 'udari@amazhospital.lk',
+            email: 'udari@slmediflow.lk',
             role: 'Receptionist'
           }
         })
@@ -83,6 +83,6 @@ test.describe('Task 1: Doctor Attendance Route & Frontdesk Verification', () => 
     await page.waitForTimeout(3000);
 
     const bodyText = await page.textContent('body');
-    expect(bodyText).toContain('AMAZ Hospital');
+    expect(bodyText).toContain('SL MediFlow');
   });
 });

@@ -91,7 +91,7 @@ test.describe('Task 1.4: Extra Services Workstation Dashboard & Any-File-Type Up
       mockQueue = mockQueue.map(q => q.id === apptId ? {
         ...q,
         status: 'COMPLETED',
-        reportUrl: 'https://storage.amazhospital.com/extra-services/ecg_strip.png',
+        reportUrl: 'https://storage.slmediflow.com/extra-services/ecg_strip.png',
         fileName: 'ecg_strip.png',
         fileType: 'image/png',
         notes: 'Normal sinus rhythm, 72 bpm',
@@ -106,7 +106,7 @@ test.describe('Task 1.4: Extra Services Workstation Dashboard & Any-File-Type Up
           data: {
             id: apptId,
             status: 'COMPLETED',
-            reportUrl: 'https://storage.amazhospital.com/extra-services/ecg_strip.png',
+            reportUrl: 'https://storage.slmediflow.com/extra-services/ecg_strip.png',
             fileName: 'ecg_strip.png',
             fileType: 'image/png',
             notes: 'Normal sinus rhythm, 72 bpm',

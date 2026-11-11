@@ -153,7 +153,7 @@ test.describe('POS Dual-Printing Decoupling Verification', () => {
     // Verify DotMatrixBillReceipt is mounted with invoice data
     const dotMatrixRoot = page.locator('#dot-matrix-bill-receipt');
     await expect(dotMatrixRoot).toBeAttached({ timeout: 5000 });
-    await expect(dotMatrixRoot).toContainText('AMAZ HOSPITAL');
+    await expect(dotMatrixRoot).toContainText('SL MEDIFLOW');
     await expect(dotMatrixRoot).toContainText('OFFICIAL BILL RECEIPT');
     await expect(dotMatrixRoot).toContainText('Doctor Consultation Fee');
     await expect(dotMatrixRoot).toContainText('Amoxicillin 500mg');

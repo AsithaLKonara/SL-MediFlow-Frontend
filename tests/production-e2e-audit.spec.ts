@@ -1,8 +1,8 @@
 import { test, expect, Page } from '@playwright/test';
 
 // Configuration: Target Production
-const PROD_BASE_URL = 'https://amazhospital.lk';
-const PROD_API_URL = 'https://api.amazhospital.lk';
+const PROD_BASE_URL = 'https://slmediflow.lk';
+const PROD_API_URL = 'https://api.slmediflow.lk';
 
 // Pre-generated valid production tokens
 const AUTH_TOKENS = {
@@ -20,7 +20,7 @@ const AUTH_TOKENS = {
     user: {
       id: "3ef84d7e-7c21-4918-a173-34e4631ea860",
       fullName: "Udari",
-      email: "udari@amazhospital.lk",
+      email: "udari@slmediflow.lk",
       role: "Receptionist"
     }
   },
@@ -39,7 +39,7 @@ const AUTH_TOKENS = {
     user: {
       id: "f9dfdc94-2e02-4cf0-93e5-9c280ffea51a",
       fullName: "Chanika",
-      email: "chanika@amazhospital.lk",
+      email: "chanika@slmediflow.lk",
       role: "LabTech"
     }
   }
@@ -79,7 +79,7 @@ async function setupPage(page: Page, roleKey?: keyof typeof AUTH_TOKENS) {
   return telemetry;
 }
 
-test.describe('AMAZ Hospital Production E2E Audit (https://amazhospital.lk)', () => {
+test.describe('SL MediFlow Production E2E Audit (https://slmediflow.lk)', () => {
   test.setTimeout(90000);
 
   test('Lifecycle 1: Authentication, RBAC & Route Guarding', async ({ page }) => {
@@ -123,7 +123,7 @@ test.describe('AMAZ Hospital Production E2E Audit (https://amazhospital.lk)', ()
 
     // Verify Frontdesk header / tabs
     const bodyText = await page.textContent('body');
-    expect(bodyText).toContain('AMAZ Hospital');
+    expect(bodyText).toContain('SL MediFlow');
 
     // Check presence of key frontdesk elements (Search, Booking / Queue, Shift)
     const hasSearch = await page.locator('input[placeholder*="Search"], input[placeholder*="search"], input[type="search"]').first().isVisible();

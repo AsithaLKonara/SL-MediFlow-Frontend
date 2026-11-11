@@ -34,7 +34,7 @@ test.describe('Task 4: Lab Test Report Template Header Redesign (/ui-ux-pro-max)
     await page.goto('http://localhost:3000/lab-report-preview', { waitUntil: 'domcontentloaded' });
 
     // 3. Verify Hospital Brand Header
-    const hospitalTitle = page.locator('text=AMAZ');
+    const hospitalTitle = page.locator('text=SL MediFlow');
     await expect(hospitalTitle.first()).toBeVisible({ timeout: 15000 });
     await expect(page.locator('text=Hospital Laboratories').first()).toBeVisible();
     await expect(page.locator('text=Department of Pathology & Clinical Laboratory Sciences')).toBeVisible();

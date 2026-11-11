@@ -10,7 +10,7 @@ test.describe('A4 Lab Diagnostic Report Typography & Print Specification', () =>
     await expect(reportRoot).toBeVisible();
 
     // 1. Hospital Header Assertions
-    await expect(reportRoot.locator('img[alt="AMAZ Hospital"]')).toBeVisible();
+    await expect(reportRoot.locator('img[alt="SL MediFlow"]')).toBeVisible();
     await expect(reportRoot).toContainText('Hospital Laboratories & Diagnostic Centre');
     await expect(reportRoot).toContainText('Department of Pathology & Clinical Laboratory Sciences');
     await expect(reportRoot).toContainText('ISO 15189:2022 Accredited');

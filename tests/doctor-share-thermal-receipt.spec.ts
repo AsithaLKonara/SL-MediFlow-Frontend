@@ -140,7 +140,7 @@ test.describe('Task 2: Doctor Share Receipt Voucher 80mm Thermal Print Format', 
     const innerHtml = await receipt.innerHTML();
 
     // 5. Assert header details
-    expect(textContent).toContain('AMAZ HOSPITAL');
+    expect(textContent).toContain('SL MEDIFLOW');
     expect(textContent).toContain('DOCTOR PAYMENT VOUCHER');
     expect(textContent).toContain('PAID');
 

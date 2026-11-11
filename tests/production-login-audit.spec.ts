@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Production Login & CORS Audit: https://amazhospital.lk/login', () => {
+test.describe('Production Login & CORS Audit: https://slmediflow.lk/login', () => {
   test('Production login must execute cleanly without CORS blocks or Failed to fetch errors', async ({ page }) => {
     const consoleErrors: string[] = [];
     const failedRequests: string[] = [];
@@ -28,7 +28,7 @@ test.describe('Production Login & CORS Audit: https://amazhospital.lk/login', ()
     });
 
     // 4. Navigate to live production login page
-    await page.goto('https://amazhospital.lk/login', { waitUntil: 'domcontentloaded' });
+    await page.goto('https://slmediflow.lk/login', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
     // Assert login form loaded
@@ -41,7 +41,7 @@ test.describe('Production Login & CORS Audit: https://amazhospital.lk/login', ()
     await expect(submitButton).toBeVisible();
 
     // 5. Fill credentials matching user scenario
-    await emailInput.fill('sadunika@amazhospital.lk');
+    await emailInput.fill('sadunika@slmediflow.lk');
     await passwordInput.fill('TestAudit123!@#');
 
     // 6. Click Sign In
@@ -59,7 +59,7 @@ test.describe('Production Login & CORS Audit: https://amazhospital.lk/login', ()
 
     // Verify Access-Control-Allow-Origin header is present
     const corsOrigin = loginResponseHeaders['access-control-allow-origin'];
-    expect(corsOrigin).toBe('https://amazhospital.lk');
+    expect(corsOrigin).toBe('https://slmediflow.lk');
 
     // 8. Verify Console has NO CORS or ERR_FAILED errors
     const corsErrors = consoleErrors.filter((err) =>

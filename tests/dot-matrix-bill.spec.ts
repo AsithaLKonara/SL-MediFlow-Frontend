@@ -9,9 +9,9 @@ test.describe('140mm × 140mm Dot Matrix Bill Receipt Specification', () => {
     await expect(receipt).toBeVisible();
 
     // 1. Hospital Header Assertions
-    await expect(receipt.locator('h1')).toHaveText(/AMAZ HOSPITAL/i);
+    await expect(receipt.locator('h1')).toHaveText(/SL MEDIFLOW/i);
     await expect(receipt).toContainText('OFFICIAL BILL RECEIPT');
-    await expect(receipt).toContainText('0472239090');
+    await expect(receipt).toContainText('0112345678');
 
     // 2. Metadata Assertions
     await expect(receipt).toContainText('INV-98234');
@@ -35,7 +35,7 @@ test.describe('140mm × 140mm Dot Matrix Bill Receipt Specification', () => {
     await expect(receipt).toContainText('1000.00'); // Change
 
     // 5. Barcode & Footer
-    await expect(receipt).toContainText('AMAZ-20261107-0012');
+    await expect(receipt).toContainText('SLMF-20261107-0012');
     await expect(receipt).toContainText('Thank you! Wishing you good health.');
 
     // 6. Strict Physical Geometry & Height Overflow Checks:
