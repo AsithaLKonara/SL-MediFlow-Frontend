@@ -1,55 +1,32 @@
-import { useEffect, useRef } from 'react';
-import { EscPosBuilder } from '@/lib/escpos';
+import { useCallback } from 'react';
+import { hardwareService } from '@/services/hardware.service';
+import { poleDisplayService } from '@/services/pole-display.service';
 
 export function usePoleDisplay(enabled: boolean = true) {
-  const bridgeUrlRef = useRef<string>('http://127.0.0.1:18181');
+  const showAmount = useCallback(
+    async (amount: number, label: string = 'TOTAL DUE:') => {
+      if (!enabled) return;
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      bridgeUrlRef.current = localStorage.getItem("node_print_url") || 'http://127.0.0.1:18181';
-    }
+      const config = hardwareService.getPoleDisplayConfig();
+      if (!config.enabled || config.mode === 'DISABLED' || config.mode === 'DUAL_SCREEN') {
+        return;
+      }
+
+      if (config.protocol === 'PRICE_DISPLAY') {
+        await hardwareService.sendPolePriceDisplay(amount, 'TOTAL');
+      } else {
+        const line1 = poleDisplayService.centerText(config.storeName || 'SL MediFlow', 20);
+        const line2 = poleDisplayService.makeTwoColumnLine(label, `Rs.${amount.toFixed(2)}`, 20);
+        await hardwareService.sendPoleDisplayText(line1, line2);
+      }
+    },
+    [enabled]
+  );
+
+  const clearDisplay = useCallback(async () => {
+    if (!enabled) return;
+    await hardwareService.clearPoleDisplay();
   }, [enabled]);
 
-  const showAmount = async (amount: number, label: string = "Total") => {
-    if (!enabled) return;
-
-    try {
-      const builder = new EscPosBuilder();
-      builder
-        .init()
-        .text(`${label}:\n`)
-        .text(`LKR ${amount.toFixed(2)}\n`);
-
-      const rawBase64 = builder.toBase64();
-      await fetch(`${bridgeUrlRef.current}/print`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: 'escpos', printer: 'PoleDisplay', data: rawBase64 }),
-      }).catch(() => null);
-    } catch (error: any) {
-      // silently ignore if bridge is offline
-    }
-  };
-
-  const clearDisplay = async () => {
-    if (!enabled) return;
-
-    try {
-      const builder = new EscPosBuilder();
-      builder.init();
-      const rawBase64 = builder.toBase64();
-      await fetch(`${bridgeUrlRef.current}/print`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: 'escpos', printer: 'PoleDisplay', data: rawBase64 }),
-      }).catch(() => null);
-    } catch (error: any) {
-      // silently ignore
-    }
-  };
-
-  return {
-    showAmount,
-    clearDisplay,
-  };
+  return { showAmount, clearDisplay };
 }
