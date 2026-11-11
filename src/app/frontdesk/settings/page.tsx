@@ -1,5 +1,8 @@
 "use client";
 
+import { CustomerPoleDisplayPanel } from "@/components/hardware/CustomerPoleDisplayPanel";
+import { UrlSyncedTabs } from "@/components/hardware/UrlSyncedTabs";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTheme } from "next-themes";
@@ -258,7 +261,7 @@ export default function SettingsPage() {
           <p className="text-muted-foreground mt-2">Manage your personal information, security, and app preferences.</p>
         </div>
 
-      <Tabs defaultValue="profile" orientation="vertical" className="w-full flex flex-col md:flex-row gap-6">
+      <UrlSyncedTabs defaultValue="profile" orientation="vertical" className="w-full flex flex-col md:flex-row gap-6">
         <div className="md:w-64 shrink-0">
           <TabsList className="w-full bg-transparent p-0 space-y-1">
             <TabsTrigger 
@@ -664,9 +667,17 @@ export default function SettingsPage() {
                 </Button>
               </CardFooter>
             </Card>
+
+            <div className="mt-6">
+              <CustomerPoleDisplayPanel
+                bridgeUrl={bridgeUrl}
+                enableSystemDefaults
+                showPatientQueueLauncher
+              />
+            </div>
           </TabsContent>
         </div>
-      </Tabs>
+      </UrlSyncedTabs>
       </div>
     </div>
   );

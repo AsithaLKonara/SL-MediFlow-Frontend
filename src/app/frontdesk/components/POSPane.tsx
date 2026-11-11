@@ -4,11 +4,12 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2, AlertTriangle } from "lucide-react";
+import { ShoppingCart, ScanLine, CreditCard, Trash2, Banknote, QrCode, Building, Wallet, Loader2, AlertTriangle, Monitor, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartSync, useRxToPOS, CartItem } from "../hooks/useCartSync";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
-import { usePoleDisplay } from "../../../hooks/usePoleDisplay";
+import { hardwareService, CustomerDisplayState } from "@/services/hardware.service";
+import { HardwareSettingsModal } from "@/components/hardware/HardwareSettingsModal";
 import { usePaymentTerminal } from "../../../hooks/usePaymentTerminal";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
@@ -223,8 +224,23 @@ export function POSPane() {
   const [customDiscountValue, setCustomDiscountValue] = useState<string>("");
   const [discountReason, setDiscountReason] = useState<string>("");
   
-  const { showAmount, clearDisplay } = usePoleDisplay(true);
+  const [isHardwareModalOpen, setIsHardwareModalOpen] = useState(false);
+  const prevDisplayCartQtyRef = useRef<Map<string, number>>(new Map());
+  const lastScannedItemRef = useRef<CustomerDisplayState["lastScannedItem"] | undefined>(undefined);
   const { initiateCardPayment, isProcessing: isCardProcessing } = usePaymentTerminal();
+
+  // Apply hospital-wide display defaults when terminal hasn't customized locally
+  useEffect(() => {
+    if (!token) return;
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.success && json.data) {
+          hardwareService.applySystemDefaults(json.data);
+        }
+      })
+      .catch(() => {});
+  }, [token, apiFetch]);
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const tokenTotal = pendingTokenPayload ? pendingTokenPayload.expectedTotal : 0;
@@ -393,7 +409,133 @@ export function POSPane() {
       discountLabel,
       total
     });
-  }, [cart, subtotal, discountAmount, discountType, discountRateValue, total, pendingTokenPayload, pendingAppointmentPayload]); // Removed updateState from dependency to prevent loop
+
+    // Track most recently added or incremented item for customer & pole displays
+    const prevMap = prevDisplayCartQtyRef.current;
+    let activeItem: CartItem | undefined;
+    for (const item of displayCart) {
+      const prevQty = prevMap.get(item.id) ?? 0;
+      if (item.qty > prevQty) {
+        activeItem = item;
+      }
+    }
+    if (!activeItem && displayCart.length > 0) {
+      activeItem = displayCart[displayCart.length - 1];
+    }
+
+    const nextMap = new Map<string, number>();
+    displayCart.forEach((item) => nextMap.set(item.id, item.qty));
+    prevDisplayCartQtyRef.current = nextMap;
+
+    if (activeItem) {
+      lastScannedItemRef.current = {
+        name: activeItem.name,
+        qty: activeItem.qty,
+        priceLkr: activeItem.price,
+      };
+    } else {
+      lastScannedItemRef.current = undefined;
+    }
+
+    // Do not overwrite COMPLETED state while the payment success receipt modal is open
+    if (receiptData) return;
+
+    const storeName = hardwareService.getPoleDisplayConfig().storeName || "SL MediFlow";
+    const cashier = user?.fullName || "Frontdesk";
+    const itemCount = displayCart.reduce((sum, item) => sum + item.qty, 0);
+
+    if (isCheckoutOpen) {
+      hardwareService.updateCustomerDisplay({
+        storeName,
+        cashier,
+        lastScannedItem: lastScannedItemRef.current,
+        items: displayCart.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
+        itemCount,
+        subtotalLkr: subtotal,
+        discountLkr: discountAmount > 0 ? discountAmount : 0,
+        discountLabel,
+        totalLkr: total,
+        paymentMethod,
+        status: "PAYMENT",
+      });
+      return;
+    }
+
+    if (displayCart.length === 0) {
+      hardwareService.updateCustomerDisplay({
+        storeName,
+        cashier,
+        items: [],
+        itemCount: 0,
+        subtotalLkr: 0,
+        discountLkr: 0,
+        totalLkr: 0,
+        status: "IDLE",
+      });
+      return;
+    }
+
+    hardwareService.updateCustomerDisplay({
+      storeName,
+      cashier,
+      lastScannedItem: lastScannedItemRef.current,
+      items: displayCart.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
+      itemCount,
+      subtotalLkr: subtotal,
+      discountLkr: discountAmount > 0 ? discountAmount : 0,
+      discountLabel,
+      totalLkr: total,
+      status: "SCANNING",
+    });
+  }, [
+    cart,
+    subtotal,
+    discountAmount,
+    discountType,
+    discountRateValue,
+    total,
+    pendingTokenPayload,
+    pendingAppointmentPayload,
+    isCheckoutOpen,
+    paymentMethod,
+    receiptData,
+    user?.fullName,
+  ]); // Removed updateState from dependency to prevent loop
+
+  // Emit COMPLETED customer display & pole display state (with auto-revert timer) when receipt is finalized
+  useEffect(() => {
+    if (!receiptData) return;
+
+    const storeName = hardwareService.getPoleDisplayConfig().storeName || "SL MediFlow";
+    const cashier = user?.fullName || "Frontdesk";
+    const completedItems = Array.isArray(receiptData.items)
+      ? receiptData.items.map(
+          (item: { name?: string; qty?: number; price?: number }, idx: number) => ({
+            id: `completed-${idx}`,
+            name: item.name || "Item",
+            qty: Number(item.qty) || 1,
+            price: Number(item.price) || 0,
+          })
+        )
+      : [];
+
+    hardwareService.updateCustomerDisplay({
+      storeName,
+      cashier,
+      items: completedItems,
+      itemCount: completedItems.reduce(
+        (sum: number, item: { qty: number }) => sum + item.qty,
+        0
+      ),
+      subtotalLkr: Number(receiptData.subtotal ?? receiptData.total ?? 0),
+      discountLkr: Number(receiptData.discount ?? 0),
+      totalLkr: Number(receiptData.total ?? 0),
+      amountPaidLkr: Number(receiptData.receivedAmount ?? receiptData.total ?? 0),
+      changeDueLkr: Number(receiptData.change ?? 0),
+      paymentMethod: receiptData.paymentMethod || null,
+      status: "COMPLETED",
+    });
+  }, [receiptData, user?.fullName]);
 
   const handleQtyChange = (id: string, qty: number) => {
     setCart(prev => prev.map(item => item.id === id ? { ...item, qty: Math.max(1, qty) } : item));
@@ -641,7 +783,6 @@ export function POSPane() {
     setDiscountType("NONE");
     setCustomDiscountValue("");
     setDiscountReason("");
-    clearDisplay();
     updateState({
       ...state,
       checkout: { method: null, status: "IDLE" }
@@ -670,7 +811,6 @@ export function POSPane() {
       return;
     }
     setIsCheckoutOpen(true);
-    showAmount(total);
   };
 
   return (
@@ -694,8 +834,25 @@ export function POSPane() {
             </Button>
           )}
           <POSHistoryModal />
-          <Button variant="outline" size="sm" onClick={() => window.open('/customer-display', '_blank', 'width=1024,height=768')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => hardwareService.openCustomerDisplayWindow('/customer-display')}
+            className="gap-1.5"
+            title="Open Customer Checkout Monitor on Secondary Screen"
+          >
+            <Monitor className="w-3.5 h-3.5" />
             Open Display
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsHardwareModalOpen(true)}
+            className="gap-1.5"
+            title="Configure Customer & Pole Display Hardware"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Display Setup
           </Button>
         </div>
       </div>
@@ -1654,6 +1811,10 @@ export function POSPane() {
         ref={billPrintRef}
         receiptData={receiptData}
         cashierName={user?.fullName || "Unknown"}
+      />
+      <HardwareSettingsModal
+        open={isHardwareModalOpen}
+        onOpenChange={setIsHardwareModalOpen}
       />
     </div>
   );

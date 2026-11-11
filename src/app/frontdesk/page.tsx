@@ -4,10 +4,10 @@ import { useShift } from "./hooks/useShift";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2, Stethoscope, Banknote, Printer, FileText, AlertTriangle, RotateCcw, FlaskConical } from "lucide-react";
+import { MonitorPlay, Package, LogOut, UserCheck, Settings, Tv, CalendarClock, LogIn, Fingerprint, Clock, CheckCircle2, Stethoscope, Banknote, Printer, FileText, AlertTriangle, RotateCcw, FlaskConical, Monitor, SlidersHorizontal } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,12 @@ import { toast } from "sonner";
 import { useReactToPrint } from "react-to-print";
 import { ShiftSummaryReceipt, ShiftSummaryData } from "./components/PrintTemplates/ShiftSummaryReceipt";
 import { buildShiftSummaryEscPos } from "./utils/shiftSummaryEscpos";
+import { hardwareService } from "@/services/hardware.service";
+import { HardwareSettingsModal } from "@/components/hardware/HardwareSettingsModal";
 
 export default function FrontDeskDashboard() {
   const { shift, isLoaded, openShift, closeShift } = useShift();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const [startingFloat, setStartingFloat] = useState("0");
   const [declaredCash, setDeclaredCash] = useState("");
   const [isStartShiftOpen, setIsStartShiftOpen] = useState(false);
@@ -30,8 +32,23 @@ export default function FrontDeskDashboard() {
   const [isClosingShift, setIsClosingShift] = useState(false);
   const [closingSummary, setClosingSummary] = useState<ShiftSummaryData | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [isHardwareModalOpen, setIsHardwareModalOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.success && json.data) {
+          hardwareService.applySystemDefaults(json.data);
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   const handleBrowserPrint = useReactToPrint({
     contentRef: printRef,
@@ -303,13 +320,39 @@ export default function FrontDeskDashboard() {
 
           {!isNurse && (
             <button 
-              onClick={() => window.open('/frontdesk/customer-display', '_blank')}
+              onClick={() => hardwareService.openCustomerDisplayWindow('/frontdesk/customer-display')}
               className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-amber-500 hover:text-amber-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
             >
               <Tv className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-amber-600" />
               <div>
                 <h2 className="text-lg font-bold">Patient Display</h2>
                 <p className="text-muted-foreground text-xs mt-1">Launch 2nd screen status</p>
+              </div>
+            </button>
+          )}
+
+          {!isNurse && (
+            <button 
+              onClick={() => hardwareService.openCustomerDisplayWindow('/customer-display')}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-cyan-500 hover:text-cyan-600 text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            >
+              <Monitor className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-cyan-600 text-cyan-600" />
+              <div>
+                <h2 className="text-lg font-bold">Customer POS Display</h2>
+                <p className="text-muted-foreground text-xs mt-1">Dual-screen cart &amp; QR monitor</p>
+              </div>
+            </button>
+          )}
+
+          {!isNurse && (
+            <button 
+              onClick={() => setIsHardwareModalOpen(true)}
+              className="flex flex-col items-center justify-center gap-4 bg-card border border-border hover:border-primary hover:text-primary text-foreground rounded-2xl p-6 transition-colors group text-center h-48"
+            >
+              <SlidersHorizontal className="w-10 h-10 opacity-50 group-hover:opacity-100 group-hover:text-primary" />
+              <div>
+                <h2 className="text-lg font-bold">Display &amp; Pole Setup</h2>
+                <p className="text-muted-foreground text-xs mt-1">VFD, Price LED8 &amp; 2nd screen</p>
               </div>
             </button>
           )}
@@ -583,6 +626,11 @@ export default function FrontDeskDashboard() {
           </div>
         </>
       )}
+
+      <HardwareSettingsModal
+        open={isHardwareModalOpen}
+        onOpenChange={setIsHardwareModalOpen}
+      />
     </div>
   );
 }

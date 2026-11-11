@@ -1,5 +1,11 @@
 "use client";
 
+import { useCustomerDisplaySync } from "@/hooks/useCustomerDisplaySync";
+import {
+  CustomerDisplayLastItemBanner,
+  CustomerDisplayStatusOverlay,
+} from "@/components/hardware/CustomerDisplayBroadcastOverlay";
+
 import { useCartSync } from "../frontdesk/hooks/useCartSync";
 import { ShoppingBag, BellRing, Receipt, Maximize } from "lucide-react";
 import Image from "next/image";
@@ -9,7 +15,8 @@ import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
 export default function CustomerDisplayPage() {
-  const { state } = useCartSync(false); // Receiver
+  const { state: socketState } = useCartSync(false); // Receiver
+  const { state, broadcastState } = useCustomerDisplaySync(socketState);
   const [mounted, setMounted] = useState(false);
   const [calledTokens, setCalledTokens] = useState<{ id: string; number: string; doctor: string; room?: string; specialty?: string }[]>([]);
 
@@ -183,6 +190,8 @@ export default function CustomerDisplayPage() {
           </div>
 
           {/* Totals Footer */}
+          <CustomerDisplayLastItemBanner broadcastState={broadcastState} />
+
           <div className="bg-background p-4 md:p-8 border-t-2 border-border space-y-3 md:space-y-4">
             <div className="flex justify-between text-xl md:text-2xl text-muted-foreground">
               <span>Subtotal</span>
@@ -200,6 +209,8 @@ export default function CustomerDisplayPage() {
             </div>
           </div>
         </div>
+
+        <CustomerDisplayStatusOverlay broadcastState={broadcastState} />
 
         {/* Payment Overlay */}
         {state.checkout?.status === "PAYING" && (state.checkout.method === "BANK" || state.checkout.method === "QR") && (

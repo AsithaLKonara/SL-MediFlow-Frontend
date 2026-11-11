@@ -1,5 +1,9 @@
 "use client";
 
+import { Tv as DisplayHardwareIcon } from "lucide-react";
+import { SuperadminHardwareSettingsTab } from "@/components/hardware/SuperadminHardwareSettingsTab";
+import { UrlSyncedTabs } from "@/components/hardware/UrlSyncedTabs";
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,7 +85,7 @@ export default function SettingsPage() {
         <p className="text-muted-foreground mt-1">Configure global hospital system parameters and policies.</p>
       </div>
 
-      <Tabs defaultValue="general" className="w-full">
+      <UrlSyncedTabs defaultValue="general" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Hospital className="w-4 h-4" /> General
@@ -91,6 +95,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <BellRing className="w-4 h-4" /> Notifications
+          </TabsTrigger>
+          <TabsTrigger value="hardware" className="flex items-center gap-2">
+            <DisplayHardwareIcon className="w-4 h-4" /> Hardware &amp; Displays
           </TabsTrigger>
         </TabsList>
 
@@ -217,7 +224,11 @@ export default function SettingsPage() {
             </CardFooter>
           </Card>
         </TabsContent>
-      </Tabs>
+
+        <TabsContent value="hardware">
+          <SuperadminHardwareSettingsTab />
+        </TabsContent>
+      </UrlSyncedTabs>
     </div>
   );
 }
