@@ -366,11 +366,11 @@ export default function DoctorStatementsPage() {
           {printStatement && (
             <div>
               {/* Header */}
-              <div className="flex justify-between items-start border-b-2 border-red-600 pb-4 mb-6">
+              <div className="flex justify-between items-start border-b-2 border-primary pb-4 mb-6">
                 <div>
-                  <h1 className="text-3xl font-extrabold text-red-600 tracking-tight">AMAZ HOSPITAL</h1>
-                  <p className="text-sm text-gray-600 mt-1">Debarawewa, Tissamaharama</p>
-                  <p className="text-sm text-gray-600">Phone: 047-2233445 | Email: accounts@amazhospital.lk</p>
+                  <h1 className="text-3xl font-extrabold text-primary tracking-tight">SL MEDIFLOW</h1>
+                  <p className="text-sm text-gray-600 mt-1">No. 123, Healthcare Boulevard, Colombo 07, Sri Lanka</p>
+                  <p className="text-sm text-gray-600">Phone: +94 11 234 5678 | Email: accounts@slmediflow.com</p>
                 </div>
                 <div className="text-right">
                   <h2 className="text-2xl font-bold text-gray-800">DOCTOR PAYMENT STATEMENT</h2>

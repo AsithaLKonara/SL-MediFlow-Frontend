@@ -41,11 +41,11 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
 
       {/* Header */}
       <div className="text-center mb-3">
-        <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-1.5" />
-        <p className="text-xs font-semibold text-black">AMAZ HOSPITAL & MEDICAL SERVICES</p>
-        <p className="text-[10px] text-gray-700">0472239090 | amazhospital.lk</p>
-        <p className="text-[10px] text-gray-700">amazhospital88@gmail.com</p>
-        <p className="text-[10px] text-gray-700 mb-1.5">Debarawewa, Tissamaharama</p>
+        <img src="/logo.png" alt="SL MediFlow" className="w-44 mx-auto mb-1.5" />
+        <p className="text-xs font-semibold text-black">SL MEDI FLOW & MEDICAL SERVICES</p>
+        <p className="text-[10px] text-gray-700">0112345678 | slmediflow.lk</p>
+        <p className="text-[10px] text-gray-700">contact@slmediflow.com</p>
+        <p className="text-[10px] text-gray-700 mb-1.5">No. 123, Healthcare Blvd, Colombo 07</p>
         <div className="border-y-2 border-black py-1 my-1">
           <p className="text-xs font-bold uppercase tracking-wider">Official Medical Prescription</p>
         </div>
@@ -154,7 +154,7 @@ export const PrescriptionReceipt = React.forwardRef<HTMLDivElement, {
         <p className="text-[11px] italic font-semibold">{doctorName}</p>
         <p className="text-[9px] text-gray-600 uppercase tracking-wider">Doctor's Signature / Seal</p>
         <p className="text-[8px] font-bold text-gray-500 mt-3 uppercase tracking-wider">
-          Official AMAZ Hospital Medical Prescription
+          Official SL MediFlow Medical Prescription
         </p>
       </div>
       <div className="h-8 print:h-12 w-full" aria-hidden="true" />

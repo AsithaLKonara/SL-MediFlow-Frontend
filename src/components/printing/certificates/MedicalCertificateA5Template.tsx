@@ -94,7 +94,7 @@ export const MedicalCertificateA5Template = React.forwardRef<
               <div className="flex items-baseline gap-1 mt-1 text-[11px] text-gray-700">
                 <span className="font-semibold text-slate-800">Serial No.</span>
                 <span className="font-mono font-bold text-red-700 px-1 border-b border-dotted border-red-500">
-                  {data.serialNo || (isBlank ? "........................" : "AMAZ-MC-0418")}
+                  {data.serialNo || (isBlank ? "........................" : "SLMF-MC-0418")}
                 </span>
               </div>
             </div>
@@ -110,7 +110,7 @@ export const MedicalCertificateA5Template = React.forwardRef<
 
               {/* Hospital Logo & Address */}
               <div className="flex flex-col items-end">
-                <img src="/logo.png" alt="AMAZ Hospital" className="h-11 w-auto object-contain mb-0.5" />
+                <img src="/logo.png" alt="SL MediFlow" className="h-11 w-auto object-contain mb-0.5" />
                 <p className="text-[9px] text-gray-600 font-sans">Reg. No. PHSRC/PH/306</p>
               </div>
             </div>

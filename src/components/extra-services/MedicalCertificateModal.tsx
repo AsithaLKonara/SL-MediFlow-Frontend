@@ -95,7 +95,7 @@ export default function MedicalCertificateModal({
   // Today's date ISO
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const certSerial = useMemo(
-    () => `AMAZ-MC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
+    () => `SLMF-MC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
     [certType]
   );
 

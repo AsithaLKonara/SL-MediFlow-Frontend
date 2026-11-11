@@ -1178,7 +1178,7 @@ export default function SuperadminDoctorSharePage() {
                     <Input
                       value={bankDetailsForm.bankBranch}
                       onChange={(e) => setBankDetailsForm({ ...bankDetailsForm, bankBranch: e.target.value })}
-                      placeholder="e.g. Tissamaharama"
+                      placeholder="e.g. Colombo 07"
                       className="bg-background dark:bg-card border-border text-foreground h-8 text-xs"
                     />
                   </div>
@@ -1352,7 +1352,7 @@ export default function SuperadminDoctorSharePage() {
               <Input
                 value={doctorBankForm.bankBranch}
                 onChange={(e) => setDoctorBankForm({ ...doctorBankForm, bankBranch: e.target.value })}
-                placeholder="e.g. Tissamaharama"
+                placeholder="e.g. Colombo 07"
                 className="bg-background dark:bg-card border-border text-foreground"
               />
             </div>

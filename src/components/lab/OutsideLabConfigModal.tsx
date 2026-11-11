@@ -309,7 +309,7 @@ export default function OutsideLabConfigModal({
                       className="w-full px-3 py-2 rounded-lg border bg-background text-sm font-semibold outline-none"
                     />
                   </div>
-                  <span className="text-[10px] text-muted-foreground">AMAZ Hospital commission retained</span>
+                  <span className="text-[10px] text-muted-foreground">SL MediFlow commission retained</span>
                 </div>
               </div>
 

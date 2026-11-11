@@ -138,7 +138,7 @@ export function FrontdeskRxEditModal({
     let isMounted = true;
     setIsLoadingInvoice(true);
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("amaz_token") : null;
+    const token = typeof window !== "undefined" ? (localStorage.getItem("mediflow_token") || localStorage.getItem("amaz_token")) : null;
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/billing/invoices?visitId=${prescription.visitId}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     })

@@ -53,10 +53,10 @@ export const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplatePro
           {/* Left: Brand Identity & Accreditations */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
-              <img src="/logo.png" alt="AMAZ Hospital" className="h-14 w-auto object-contain" />
+              <img src="/logo.png" alt="SL MediFlow" className="h-14 w-auto object-contain" />
               <div>
                 <div className="text-[13.5px] font-bold tracking-[0.18em] text-red-900 uppercase">
-                  Hospital Laboratories & Diagnostic Centre
+                  SL MediFlow Laboratories & Diagnostic Centre
                 </div>
                 <div className="text-[10.5px] font-semibold text-slate-600 tracking-wide uppercase">
                   Department of Pathology & Clinical Laboratory Sciences
@@ -65,15 +65,15 @@ export const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplatePro
             </div>
 
             <div className="text-[11px] text-slate-600 leading-snug mt-1">
-              <span>Amaz Hospital (Pvt) Ltd. No 382/3, Debarawewa, Tissamaharama</span>
+              <span>SL Medi Flow (Pvt) Ltd. No. 123, Healthcare Boulevard, Colombo 07, Sri Lanka</span>
               <span className="mx-1 text-slate-300">•</span>
               <span className="font-medium text-slate-800">Reg: PHSRC/PH/306</span>
               <br />
-              <span>Hotline: +94 47 223 9090</span>
+              <span>Hotline: +94 11 234 5678</span>
               <span className="mx-1 text-slate-300">•</span>
-              <span>amazhospital88@gmail.com</span>
+              <span>contact@slmediflow.com</span>
               <span className="mx-1 text-slate-300">•</span>
-              <span className="text-red-900 font-semibold">amazhospital.lk</span>
+              <span className="text-red-900 font-semibold">slmediflow.lk</span>
             </div>
 
             {/* Quality & Accreditation Badges */}

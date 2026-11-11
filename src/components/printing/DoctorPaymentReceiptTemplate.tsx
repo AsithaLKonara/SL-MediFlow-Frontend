@@ -138,10 +138,10 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
 
           {/* Hospital Header */}
           <div className="text-center mb-2 pb-2 border-b-2 border-black">
-            <img src="/logo.png" alt="AMAZ Hospital" className="w-36 mx-auto mb-1 object-contain" />
-            <h1 className="text-sm font-black tracking-tight uppercase">AMAZ HOSPITAL</h1>
-            <p className="text-[10px] text-black">Debarawewa, Tissamaharama</p>
-            <p className="text-[10px] text-black">Tel: 0472239090 | amazhospital.lk</p>
+            <img src="/logo.png" alt="SL MediFlow" className="w-36 mx-auto mb-1 object-contain" />
+            <h1 className="text-sm font-black tracking-tight uppercase">SL MEDIFLOW</h1>
+            <p className="text-[10px] text-black">No. 123, Healthcare Blvd, Colombo 07</p>
+            <p className="text-[10px] text-black">Tel: 0112345678 | slmediflow.lk</p>
 
             <div className="mt-1.5 border border-black py-0.5 px-2 inline-block bg-black text-white font-bold text-[11px] uppercase tracking-wider">
               DOCTOR PAYMENT VOUCHER
@@ -360,7 +360,7 @@ export const DoctorPaymentReceiptTemplate = React.forwardRef<HTMLDivElement, Doc
           {/* Footer Notice */}
           <div className="mt-3 text-center text-[9px] text-neutral-500 border-t border-neutral-300 pt-1.5 leading-normal">
             <p>Computer-generated official disbursement voucher.</p>
-            <p>AMAZ Hospital Fund Office, Debarawewa.</p>
+            <p>SL MediFlow Accounts & Finance Office, Colombo 07.</p>
           </div>
         </div>
       </div>

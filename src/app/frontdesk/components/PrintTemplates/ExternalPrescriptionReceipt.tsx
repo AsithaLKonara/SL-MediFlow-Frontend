@@ -41,11 +41,11 @@ export const ExternalPrescriptionReceipt = React.forwardRef<HTMLDivElement, Exte
 
         {/* Header */}
         <div className="text-center mb-3 border-b-2 border-black pb-2">
-          <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-1.5" />
-          <p className="text-xs font-semibold text-black">AMAZ HOSPITAL & MEDICAL SERVICES</p>
-          <p className="text-[10px] text-gray-700">0472239090 | amazhospital.lk</p>
-          <p className="text-[10px] text-gray-700">amazhospital88@gmail.com</p>
-          <p className="text-[10px] text-gray-700 mb-1.5">Debarawewa, Tissamaharama</p>
+          <img src="/logo.png" alt="SL MediFlow" className="w-44 mx-auto mb-1.5" />
+          <p className="text-xs font-semibold text-black">SL MEDI FLOW & MEDICAL SERVICES</p>
+          <p className="text-[10px] text-gray-700">0112345678 | slmediflow.lk</p>
+          <p className="text-[10px] text-gray-700">contact@slmediflow.com</p>
+          <p className="text-[10px] text-gray-700 mb-1.5">No. 123, Healthcare Blvd, Colombo 07</p>
           <div className="bg-black text-white py-1 px-2 rounded-sm inline-block">
             <p className="text-xs font-bold uppercase tracking-wider">OUTSIDE PHARMACY PRESCRIPTION</p>
           </div>
@@ -165,7 +165,7 @@ export const ExternalPrescriptionReceipt = React.forwardRef<HTMLDivElement, Exte
           <p className="text-[11px] italic font-semibold">{doctorName}</p>
           <p className="text-[9px] text-gray-600 uppercase tracking-wider">Doctor's Signature / Stamp</p>
           <p className="text-[8px] text-gray-500 mt-3 uppercase tracking-wider">
-            Official AMAZ Hospital Medical Slip • Valid for outside pharmacy dispensing
+            Official SL MediFlow Medical Slip • Valid for outside pharmacy dispensing
           </p>
         </div>
         <div className="h-8 print:h-12 w-full" aria-hidden="true" />

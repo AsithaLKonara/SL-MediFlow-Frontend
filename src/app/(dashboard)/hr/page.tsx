@@ -78,7 +78,7 @@ export default function MyHRPortal() {
   const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `AMAZ-Payslip-${user?.fullName || "Staff"}`
+    documentTitle: `SLMF-Payslip-${user?.fullName || "Staff"}`
   });
 
   // Fetch Leaves

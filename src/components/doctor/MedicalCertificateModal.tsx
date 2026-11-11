@@ -70,7 +70,7 @@ export function MedicalCertificateModal({
   const [diagnosis, setDiagnosis] = useState("Acute Upper Respiratory Tract Infection");
   const [remarks, setRemarks] = useState("Advised warm saline gargle & complete bed rest.");
   const [recommended, setRecommended] = useState("Medical Leave for 3 days from date of examination.");
-  const [patientAddress, setPatientAddress] = useState(patient?.address || "Debarawewa, Tissamaharama");
+  const [patientAddress, setPatientAddress] = useState(patient?.address || "No. 123, Healthcare Blvd, Colombo 07");
 
   // Sick Leave Helpers
   const [leaveFrom, setLeaveFrom] = useState(new Date().toISOString().split("T")[0]);
@@ -167,7 +167,7 @@ export function MedicalCertificateModal({
 
   // Build Medical A5 Data
   const medicalA5Data: MedicalCertificateA5Data = {
-    serialNo: `AMAZ-MC-${Date.now().toString().slice(-6)}`,
+    serialNo: `SLMF-MC-${Date.now().toString().slice(-6)}`,
     date: certDate,
     patientName: patient.name,
     patientAddress: patientAddress,
@@ -291,7 +291,7 @@ export function MedicalCertificateModal({
                   <Input
                     value={patientAddress}
                     onChange={e => setPatientAddress(e.target.value)}
-                    placeholder="Debarawewa, Tissamaharama"
+                    placeholder="No. 123, Healthcare Blvd, Colombo 07"
                     className="h-8 text-xs"
                   />
                 </div>

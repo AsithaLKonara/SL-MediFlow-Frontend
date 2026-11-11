@@ -136,11 +136,11 @@ export const DotMatrixBillReceipt = React.forwardRef<HTMLDivElement, DotMatrixBi
           <div>
             {/* Hospital Header */}
             <div className="text-center border-b-2 border-black pb-1 mb-1">
-              <h1 className="text-sm font-black tracking-wider uppercase">AMAZ HOSPITAL</h1>
-              <p className="text-[10px] font-semibold">Debarawewa, Tissamaharama | 0472239090</p>
+              <h1 className="text-sm font-black tracking-wider uppercase">SL MEDIFLOW</h1>
+              <p className="text-[10px] font-semibold">No. 123, Healthcare Blvd, Colombo 07 | 0112345678</p>
               <div className="flex justify-between items-center text-[9px] mt-0.5 border-t border-dotted border-black/50 pt-0.5">
                 <span className="font-bold tracking-widest uppercase">OFFICIAL BILL RECEIPT</span>
-                <span>amazhospital.lk</span>
+                <span>slmediflow.lk</span>
               </div>
             </div>
 

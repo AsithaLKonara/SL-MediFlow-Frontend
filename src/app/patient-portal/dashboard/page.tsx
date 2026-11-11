@@ -155,11 +155,11 @@ export default function PatientDashboard() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Amaz Hospital" className="h-8 object-contain brightness-0 invert" />
+            <img src="/logo.png" alt="SL MediFlow" className="h-8 object-contain brightness-0 invert" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm tracking-wider uppercase text-red-500">
-                  AMAZ Hospital Holdings
+                <span className="font-extrabold text-sm tracking-wider uppercase text-primary">
+                  SL Medi Flow Healthcare
                 </span>
                 <Badge variant="outline" className="hidden sm:inline-flex border-zinc-800 text-zinc-400 text-[10px]">
                   Patient Portal
@@ -167,9 +167,9 @@ export default function PatientDashboard() {
               </div>
               <p className="text-[11px] text-zinc-400 flex items-center gap-1.5">
                 <Phone className="w-3 h-3 text-zinc-500" />
-                <span>+94 47 223 9090</span>
+                <span>+94 11 234 5678</span>
                 <span className="text-zinc-600">•</span>
-                <span className="text-zinc-500">Debarawewa, Tissamaharama</span>
+                <span className="text-zinc-500">Colombo 07, Sri Lanka</span>
               </p>
             </div>
           </div>

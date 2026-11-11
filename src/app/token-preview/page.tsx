@@ -17,7 +17,7 @@ const sampleTokens: ThermalTokenItem[] = [
     patientAge: 42,
     patientPhone: "0771234567",
     appointmentDate: new Date().toISOString(),
-    bookingReference: "AMAZ-20261107-0012"
+    bookingReference: "SLMF-20261107-0012"
   },
   {
     id: "tok-lab-002",
@@ -29,7 +29,7 @@ const sampleTokens: ThermalTokenItem[] = [
     patientAge: 42,
     patientPhone: "0771234567",
     appointmentDate: new Date().toISOString(),
-    bookingReference: "AMAZ-20261107-0012"
+    bookingReference: "SLMF-20261107-0012"
   }
 ];
 
@@ -60,7 +60,7 @@ export default function TokenThermalPreviewPage() {
         <TokenThermalReceipt
           ref={printRef}
           tokens={tokens}
-          masterBarcode="AMAZ-20261107-0012"
+          masterBarcode="SLMF-20261107-0012"
           forceVisible={true}
         />
       </div>

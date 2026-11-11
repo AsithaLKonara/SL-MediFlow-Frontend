@@ -50,11 +50,11 @@ export const BillPrintTemplate = React.forwardRef<HTMLDivElement, PrintProps>(
           `}} />
           <div className="text-center mb-4 border-b-2 border-black pb-2">
             {/* Standard HTML img tags are safer for react-to-print than Next/Image */}
-            <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-2" />
+            <img src="/logo.png" alt="SL MediFlow" className="w-44 mx-auto mb-2" />
             <p className="text-xs font-bold uppercase tracking-widest mt-1">Pharmacy / POS</p>
-            <p className="text-xs mt-1">0472239090 | amazhospital.lk</p>
-            <p className="text-[10px]">amazhospital88@gmail.com</p>
-            <p className="text-[10px]">Debarawewa, Tissamaharama</p>
+            <p className="text-xs mt-1">0112345678 | slmediflow.lk</p>
+            <p className="text-[10px]">contact@slmediflow.com</p>
+            <p className="text-[10px]">No. 123, Healthcare Blvd, Colombo 07</p>
           </div>
 
           <div className="mb-4 text-xs">

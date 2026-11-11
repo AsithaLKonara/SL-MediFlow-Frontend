@@ -45,11 +45,11 @@ export const RefundVoucherReceipt = React.forwardRef<HTMLDivElement, { data: Ref
 
         {/* Header */}
         <div className="text-center mb-4">
-          <img src="/logo.png" alt="AMAZ Hospital" className="w-40 mx-auto mb-1.5" />
-          <p className="text-xs font-semibold text-black">AMAZ HOSPITAL</p>
-          <p className="text-[10px] text-black">0472239090 | amazhospital.lk</p>
-          <p className="text-[10px] text-black">amazhospital88@gmail.com</p>
-          <p className="text-[10px] text-black mb-1.5">Debarawewa, Tissamaharama</p>
+          <img src="/logo.png" alt="SL MediFlow" className="w-40 mx-auto mb-1.5" />
+          <p className="text-xs font-semibold text-black">SL MEDIFLOW</p>
+          <p className="text-[10px] text-black">0112345678 | slmediflow.lk</p>
+          <p className="text-[10px] text-black">contact@slmediflow.com</p>
+          <p className="text-[10px] text-black mb-1.5">No. 123, Healthcare Blvd, Colombo 07</p>
           <div className="border-y-2 border-dashed border-black py-1 my-1">
             <p className="text-xs font-black tracking-wider uppercase">CANCELLATION & REFUND VOUCHER</p>
             <p className="text-[10px] text-black">{data.voucherNumber}</p>

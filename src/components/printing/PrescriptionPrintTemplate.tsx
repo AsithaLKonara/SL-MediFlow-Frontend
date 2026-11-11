@@ -28,11 +28,11 @@ export const PrescriptionPrintTemplate = React.forwardRef<HTMLDivElement, PrintP
           `}} />
 
           <div className="text-center mb-3 border-b-2 border-black pb-2">
-            <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-1.5" />
-            <p className="text-xs font-semibold">AMAZ HOSPITAL & MEDICAL SERVICES</p>
-            <p className="text-[10px]">0472239090 | amazhospital.lk</p>
-            <p className="text-[10px]">amazhospital88@gmail.com</p>
-            <p className="text-[10px]">Debarawewa, Tissamaharama</p>
+            <img src="/logo.png" alt="SL MediFlow" className="w-44 mx-auto mb-1.5" />
+            <p className="text-xs font-semibold">SL MEDI FLOW & MEDICAL SERVICES</p>
+            <p className="text-[10px]">0112345678 | slmediflow.lk</p>
+            <p className="text-[10px]">contact@slmediflow.com</p>
+            <p className="text-[10px]">No. 123, Healthcare Blvd, Colombo 07</p>
             <div className="border-y border-black py-1 my-1">
               <p className="text-xs font-bold uppercase tracking-wider">Doctor Prescription</p>
             </div>

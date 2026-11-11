@@ -104,7 +104,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-2 max-w-sm">
                 <label className="text-sm font-medium">Hospital Name</label>
-                <Input value={settings.hospitalName} onChange={e => handleChange('hospitalName', e.target.value)} placeholder="AMAZ General Hospital" />
+                <Input value={settings.hospitalName} onChange={e => handleChange('hospitalName', e.target.value)} placeholder="SL MediFlow Hospital" />
               </div>
               <div className="grid gap-2 max-w-sm">
                 <label className="text-sm font-medium">Contact Email</label>
@@ -115,7 +115,7 @@ export default function SettingsPage() {
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="admin@amaz.com" 
+                  placeholder="admin@slmediflow.com" 
                 />
               </div>
               <div className="grid gap-2 max-w-sm">
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="admin@amaz.com" 
+                  placeholder="admin@slmediflow.com" 
                 />
               </div>
               <div className="grid gap-2 max-w-sm">

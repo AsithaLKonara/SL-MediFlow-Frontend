@@ -29,8 +29,8 @@ export type SyncState = {
   };
 };
 
-const CHANNEL_NAME = "AMAZ_FRONTDESK_SYNC";
-const RX_TO_POS_CHANNEL = "AMAZ_RX_TO_POS";
+const CHANNEL_NAME = "SLMEDIFLOW_FRONTDESK_SYNC";
+const RX_TO_POS_CHANNEL = "SLMEDIFLOW_RX_TO_POS";
 
 export function useCartSync(isSender = false) {
   const [state, setState] = useState<SyncState>({ cart: [], subtotal: 0, total: 0, checkout: { method: null, status: "IDLE" } });
@@ -39,7 +39,7 @@ export function useCartSync(isSender = false) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const token = localStorage.getItem("amaz_token");
+    const token = localStorage.getItem("mediflow_token") || localStorage.getItem("amaz_token");
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || "http://localhost:3001";
     const s = io(baseUrl, {
       auth: { token }

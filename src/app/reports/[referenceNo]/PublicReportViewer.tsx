@@ -101,7 +101,7 @@ export default function PublicReportViewer({ referenceNo }: Props) {
           reportType: "AUTOMATED COUNT",
           departmentInfo: "LABORATORY",
           pageInfo: "Page 1 of 1",
-          mltName: "AMAZ Laboratories",
+          mltName: "SL MediFlow Laboratories",
           reportUrl: req.reportUrl || `${window.location.origin}/reports/${refNo}`,
           categories
         });
@@ -127,7 +127,7 @@ export default function PublicReportViewer({ referenceNo }: Props) {
         <p className="text-muted-foreground text-sm">{error || "This report does not exist or has not been published yet."}</p>
         <p className="text-xs text-muted-foreground/70">Reference: {referenceNo?.toUpperCase?.() ?? "—"}</p>
         <p className="text-xs text-muted-foreground/70 mt-4">
-          AMAZ Hospital · Tissamaharama · 0472239090
+          SL MediFlow · Colombo 07 · 0112345678
         </p>
       </div>
     </div>
@@ -143,7 +143,7 @@ export default function PublicReportViewer({ referenceNo }: Props) {
             <div>
               <p className="text-green-800 dark:text-green-400 font-bold text-sm">Verified Lab Report</p>
               <p className="text-green-600 dark:text-green-500 text-xs">
-                Issued by AMAZ Hospital Laboratories · Ref: <strong>{referenceNo.toUpperCase()}</strong>
+                Issued by SL MediFlow Laboratories · Ref: <strong>{referenceNo.toUpperCase()}</strong>
               </p>
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function PublicReportViewer({ referenceNo }: Props) {
           <iframe
             src={directPdfUrl}
             className="w-full h-[85vh] border-0 bg-white"
-            title={`AMAZ Hospital Report ${referenceNo}`}
+            title={`SL MediFlow Report ${referenceNo}`}
           />
         </div>
       ) : (
@@ -210,7 +210,7 @@ export default function PublicReportViewer({ referenceNo }: Props) {
       )}
 
       <div className="text-center mt-6 text-xs text-muted-foreground/70">
-        amazhospital.lk · amazhospital88@gmail.com · 0472239090
+        slmediflow.lk · contact@slmediflow.com · 0112345678
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { FrontdeskHeaderWrapper } from "./components/FrontdeskHeaderWrapper";
 import { FrontdeskAuthGuard } from "./components/FrontdeskAuthGuard";
 
 export const metadata: Metadata = {
-  title: "Front Desk | AMAZ Hospital",
+  title: "Front Desk | SL MediFlow",
   description: "Unified Front Desk and Pharmacy POS",
 };
 

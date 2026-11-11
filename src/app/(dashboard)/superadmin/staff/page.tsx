@@ -493,7 +493,7 @@ export default function StaffManagementPage() {
                   spellCheck={false}
                   value={formData.email} 
                   onChange={e => setFormData({...formData, email: e.target.value.toLowerCase().trim()})} 
-                  placeholder="john@amaz.com" 
+                  placeholder="john@slmediflow.com" 
                 />
               </div>
               <div className="space-y-2">

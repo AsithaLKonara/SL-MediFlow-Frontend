@@ -108,7 +108,7 @@ export default function CustomerDisplayPage() {
           <div className="relative w-48 h-16">
             <Image 
               src="/logo.png" 
-              alt="AMAZ Hospital" 
+              alt="SL MediFlow" 
               fill 
               className="object-contain"
               priority 

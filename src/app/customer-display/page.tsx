@@ -135,7 +135,7 @@ export default function CustomerDisplayPage() {
           </div>
         ) : (
           <div className="text-center text-muted-foreground flex flex-col items-center">
-            <Image src="/logo.png" alt="AMAZ Hospital" width={400} height={120} className="mb-4 object-contain opacity-80" priority />
+            <Image src="/logo.png" alt="SL MediFlow" width={400} height={120} className="mb-4 object-contain opacity-90" priority />
             <p className="text-lg md:text-xl">Waiting for next token...</p>
           </div>
         )}
@@ -225,7 +225,7 @@ export default function CustomerDisplayPage() {
                   <p className="text-muted-foreground text-sm">Bank Name</p>
                   <p className="text-lg font-semibold text-foreground mb-4">Commercial Bank</p>
                   <p className="text-muted-foreground text-sm">Account Name</p>
-                  <p className="text-lg font-semibold text-foreground mb-4">AMAZ Hospital (Pvt) Ltd</p>
+                  <p className="text-lg font-semibold text-foreground mb-4">SL Medi Flow (Pvt) Ltd</p>
                   <p className="text-muted-foreground text-sm">Account Number</p>
                   <p className="text-2xl font-mono font-bold text-primary">1000 234 5678</p>
                 </div>

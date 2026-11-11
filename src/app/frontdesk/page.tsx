@@ -35,7 +35,7 @@ export default function FrontDeskDashboard() {
 
   const handleBrowserPrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `AMAZ_Shift_Summary_${new Date().toISOString().slice(0, 10)}`,
+    documentTitle: `SL_MediFlow_Shift_Summary_${new Date().toISOString().slice(0, 10)}`,
   });
 
   const printThermalHardware = async (summaryData: ShiftSummaryData) => {

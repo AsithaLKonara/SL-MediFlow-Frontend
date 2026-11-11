@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Customer Display | AMAZ Hospital",
+  title: "Customer Display | SL MediFlow",
   description: "Customer facing display for POS and Tokens",
 };
 

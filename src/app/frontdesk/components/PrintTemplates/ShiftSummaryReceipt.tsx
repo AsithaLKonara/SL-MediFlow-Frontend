@@ -138,11 +138,11 @@ export const ShiftSummaryReceipt = forwardRef<HTMLDivElement, ShiftSummaryReceip
 
         {/* 1. Hospital Header */}
         <div className="text-center mb-2 pb-2 border-b-2 border-black">
-          <img src="/logo.png" alt="AMAZ Hospital" className="w-36 mx-auto mb-1.5 grayscale brightness-0 object-contain" />
-          <h2 className="text-xs font-bold uppercase tracking-wider">AMAZ Hospital</h2>
-          <p className="text-[10px] text-gray-700">Debarawewa, Tissamaharama</p>
-          <p className="text-[10px] text-gray-700">Tel: 0472239090 | amazhospital.lk</p>
-          <p className="text-[10px] text-gray-700">amazhospital88@gmail.com</p>
+          <img src="/logo.png" alt="SL MediFlow" className="w-36 mx-auto mb-1.5 grayscale brightness-0 object-contain" />
+          <h2 className="text-xs font-bold uppercase tracking-wider">SL MediFlow</h2>
+          <p className="text-[10px] text-gray-700">No. 123, Healthcare Blvd, Colombo 07</p>
+          <p className="text-[10px] text-gray-700">Tel: 0112345678 | slmediflow.lk</p>
+          <p className="text-[10px] text-gray-700">contact@slmediflow.com</p>
           <div className="mt-1.5 py-0.5 border-y border-dashed border-black">
             <p className="text-[11px] font-black uppercase tracking-wide">SHIFT CLOSE & SALES SETTLEMENT</p>
           </div>
@@ -365,7 +365,7 @@ export const ShiftSummaryReceipt = forwardRef<HTMLDivElement, ShiftSummaryReceip
           <div className="pt-1 text-[9px] text-gray-600 border-t border-dashed border-gray-400">
             <p>Printed: {formatDateTime(summary.printedAt || new Date())}</p>
             <p className="font-bold uppercase mt-0.5">End of Shift Settlement Report</p>
-            <p>AMAZ Hospital Enterprise Management System</p>
+            <p>SL MediFlow Healthcare Management System</p>
           </div>
         </div>
         <div className="h-8 print:h-12 w-full" aria-hidden="true" />

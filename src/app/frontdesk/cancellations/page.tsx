@@ -127,7 +127,7 @@ export default function CancellationsAndRefundsPage() {
 
   const handlePrintVoucher = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `AMAZ_Refund_Voucher_${activeVoucher?.tokenNumber || "Receipt"}`,
+    documentTitle: `SL_MediFlow_Refund_Voucher_${activeVoucher?.tokenNumber || "Receipt"}`,
   });
 
   const fetchBookings = async () => {

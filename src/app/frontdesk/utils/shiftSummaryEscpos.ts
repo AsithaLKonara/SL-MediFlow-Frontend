@@ -20,7 +20,7 @@ export function buildShiftSummaryEscPos(summary: ShiftSummaryData): EscPosBuilde
     .align("center")
     .bold(true)
     .size(1, 2)
-    .textLine("AMAZ HOSPITAL")
+    .textLine("SL MEDIFLOW")
     .size(1, 1)
     .textLine("Healthcare Excellence & Patient Care")
     .textLine("OFFICIAL SHIFT SETTLEMENT RECEIPT")
@@ -141,7 +141,7 @@ export function buildShiftSummaryEscPos(summary: ShiftSummaryData): EscPosBuilde
     .feed(1)
     .align("center")
     .textLine(`Printed: ${formatDate(summary.printedAt || new Date())}`)
-    .textLine("AMAZ Hospital Management System")
+    .textLine("SL MediFlow Healthcare System")
     .feed(3)
     .cut();
 

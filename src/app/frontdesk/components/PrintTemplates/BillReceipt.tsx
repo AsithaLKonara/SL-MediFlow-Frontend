@@ -41,10 +41,10 @@ export const BillReceipt = forwardRef<HTMLDivElement, BillReceiptProps>(
           }
         `}} />
         <div className="text-center mb-4">
-          <img src="/logo.png" alt="AMAZ Hospital" className="w-44 mx-auto mb-2" />
-          <p className="text-xs text-black">0472239090 | amazhospital.lk</p>
-          <p className="text-[10px] text-black">amazhospital88@gmail.com</p>
-          <p className="text-[10px] text-black mb-2">Debarawewa, Tissamaharama</p>
+          <img src="/logo.png" alt="SL MediFlow" className="w-44 mx-auto mb-2" />
+          <p className="text-xs text-black">0112345678 | slmediflow.lk</p>
+          <p className="text-[10px] text-black">contact@slmediflow.com</p>
+          <p className="text-[10px] text-black mb-2">No. 123, Healthcare Blvd, Colombo 07</p>
           <p className="text-sm font-medium border-b-2 border-black pb-2 pt-2 uppercase">Official Receipt</p>
         </div>
 

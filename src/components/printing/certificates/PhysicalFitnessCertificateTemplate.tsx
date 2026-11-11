@@ -118,7 +118,7 @@ export const PhysicalFitnessCertificateTemplate = React.forwardRef<
       <div className="flex items-start justify-between pb-3 border-b-2 border-black">
         {/* Left / Center Logo */}
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="AMAZ Hospital" className="h-16 w-auto object-contain" />
+          <img src="/logo.png" alt="SL MediFlow" className="h-16 w-auto object-contain" />
           <div className="pt-2">
             <p className="text-[10px] text-gray-700 font-sans mt-0.5 font-medium">
               Company Reg. No : PV122007
@@ -129,13 +129,13 @@ export const PhysicalFitnessCertificateTemplate = React.forwardRef<
         {/* Right Contact Info */}
         <div className="text-right text-[10px] font-sans text-gray-700 space-y-0.5 leading-tight">
           <p className="flex items-center justify-end gap-1 font-medium">
-            <span>✉</span> amazhospital88@gmail.com | amazhospital.lk
+            <span>✉</span> contact@slmediflow.com | slmediflow.lk
           </p>
           <p className="text-[9.5px] max-w-[240px]">
-            Amaz Hospital (Pvt) Ltd. No 382/3, Debarawewa, Tissamaharama, Sri Lanka - 82600
+            SL Medi Flow (Pvt) Ltd. No. 123, Healthcare Boulevard, Colombo 07, Sri Lanka
           </p>
           <p className="font-semibold text-gray-900">
-            ☎ +94 47 223 9090
+            ☎ +94 11 234 5678
           </p>
         </div>
       </div>

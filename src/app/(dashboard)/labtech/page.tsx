@@ -116,7 +116,7 @@ export default function LabTechOverview() {
             id: "out-req-1",
             requestId: "lr-ext-1",
             tokenNumber: "LAB-21",
-            bookingReference: "AMAZ-20261020-045",
+            bookingReference: "SLMF-20261020-045",
             patient: {
               fullName: "Dayananda Gunasekara",
               phone: "0778899112",
@@ -136,7 +136,7 @@ export default function LabTechOverview() {
             id: "out-req-2",
             requestId: "lr-ext-2",
             tokenNumber: "LAB-22",
-            bookingReference: "AMAZ-20261020-046",
+            bookingReference: "SLMF-20261020-046",
             patient: {
               fullName: "Malini Rathnayake",
               phone: "0713344556",
@@ -156,7 +156,7 @@ export default function LabTechOverview() {
             id: "out-req-3",
             requestId: "lr-ext-3",
             tokenNumber: "LAB-23",
-            bookingReference: "AMAZ-20261020-047",
+            bookingReference: "SLMF-20261020-047",
             patient: {
               fullName: "Chaminda Vithanage",
               phone: "0756677889",

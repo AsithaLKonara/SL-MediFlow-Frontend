@@ -9,10 +9,10 @@ export const PayslipPrintTemplate = React.forwardRef(({ records, runPeriod }: { 
           {/* Company Header */}
           <div className="flex justify-between items-center border-b-2 border-black pb-6 mb-8">
             <div className="flex items-center gap-4">
-              <img src="/logo.png" alt="AMAZ Hospital" className="h-16 w-auto object-contain" />
+              <img src="/logo.png" alt="SL MediFlow" className="h-16 w-auto object-contain" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Debarawewa, Tissamaharama</p>
-                <p className="text-xs text-gray-500">Phone: +94 47 223 9090 | amazhospital.lk | amazhospital88@gmail.com</p>
+                <p className="text-sm font-medium text-gray-600">No. 123, Healthcare Boulevard, Colombo 07, Sri Lanka</p>
+                <p className="text-xs text-gray-500">Phone: +94 11 234 5678 | slmediflow.lk | contact@slmediflow.com</p>
               </div>
             </div>
             <div className="text-right">

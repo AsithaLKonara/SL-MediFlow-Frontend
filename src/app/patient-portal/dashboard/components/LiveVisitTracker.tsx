@@ -312,7 +312,7 @@ export const LiveVisitTracker: React.FC<LiveVisitTrackerProps> = ({ visit, patie
             )}
             {visit.currentStage === "COMPLETED" && (
               <>
-                All hospital procedures for today have concluded. Thank you for visiting Amaz Hospital!
+                All hospital procedures for today have concluded. Thank you for visiting SL MediFlow!
               </>
             )}
           </p>
